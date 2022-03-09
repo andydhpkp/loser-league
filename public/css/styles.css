@@ -1,0 +1,95 @@
+:root {
+    --darkest: #1C3144;
+    --secondaryDark: #A23E48;
+    --middle: #6C8EAD;
+    --secondaryLight: #FF8C42;
+    --lightest: #E8EBE4;
+    --lightBlue: #97AEC4;
+}
+
+body {
+    background-color: var(--lightest);
+    color: var(--darkest);
+}
+
+header {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin: 5px;
+}
+
+header h1 {
+    text-align: center;
+    width: 100%;
+}
+
+header a {
+    text-align: center;
+}
+
+header a:hover {
+    color: var(--darkest);
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+.btn-primary:hover {
+    background-color: var(--lightBlue);
+    border-color: var(--lightBlue);
+}
+
+.btn-primary {
+    background-color: var(--middle);
+    border-color: var(--middle);
+}
+
+.btn-secondary {
+    background-color: var(--darkest);
+    border-color: var(--darkest);
+}
+
+.container-login-form {
+    display: flex;
+    justify-content: center;
+    margin-top: 2%;
+}
+
+.login-form {
+    margin: 3%;
+    text-align: center;
+    width: 500px;
+}
+
+.login-btn {
+    width: 100%;
+    margin-bottom: 25px;
+    background-color: var(--middle);
+    border-color: var(--middle);
+}
+
+.logo {
+    width: 15em;
+    margin-top: 1.5%;
+}
+
+.account-helpers:hover {
+    color: var(--secondaryDark);
+}
+
+.games {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.testerBtn {
+    width: 100%;
+}
+
+#forgotPasswordLabel {
+    text-align: center;
+}
