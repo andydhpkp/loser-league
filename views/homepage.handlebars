@@ -1,0 +1,43 @@
+<div class="container-md container-login-form">
+    <form class="login-form">
+        <div class="mb-3">
+            <input type="text" class="form-control" id="inputUsername" aria-describedby="emailHelp" placeholder="Username">
+        </div>
+        <div class="mb-3">
+            <input type="password" class="form-control" id="inputPassword" placeholder="Password">
+        </div>
+        <button type="submit" class="btn btn-primary login-btn">Login</button>
+        <a href="./profile.html">Just use this</a>
+
+        <div class="mb-3">
+            <!-- Button trigger modal -->
+            <a class="account-helpers" data-bs-toggle="modal" data-bs-target="#exampleModal" href="#">
+                Forgot Password
+            </a>
+            
+            <!-- Modal -->
+            <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="forgotPasswordLabel">Enter Email to send Password</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="forgotPasswordEmail" aria-describedby="emailHelp" placeholder="Email">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary">Send Password to Email</button>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </div>
+        <div class="mb-3">
+            <a class="account-helpers" href="./create-account.html">Create Account</a>
+        </div>
+    </form>
+</div>
