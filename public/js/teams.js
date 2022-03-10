@@ -41,8 +41,8 @@ function matchup() {
         let chooser = Math.floor(Math.random() * nflArray.length)
         let chooser2 = Math.floor(Math.random() * nflArray.length)
 
-        if(rejects.includes(chooser) || rejects.includes(chooser2)) {
-            console.log(rejects)
+        if(rejects.includes(chooser) || rejects.includes(chooser2) || chooser === chooser2) {
+
         } else {
             let firstTeam = nflArray[chooser];
             let secondTeam = nflArray[chooser2];

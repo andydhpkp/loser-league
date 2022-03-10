@@ -93,3 +93,13 @@ a {
 #forgotPasswordLabel {
     text-align: center;
 }
+
+#gameMatchups {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+#gameMatchups div {
+    margin: 30px;
+}
