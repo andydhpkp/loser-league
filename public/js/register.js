@@ -4,9 +4,9 @@ async function signupFormHandler(event) {
     const last_name = document.querySelector('#createLastName').value.trim();
     const username = document.querySelector('#createUsername').value.trim();
     const email = document.querySelector('#createEmail').value.trim();
-    const master_password = document.querySelector('#createPassword').value.trim();
+    const password = document.querySelector('#createPassword').value.trim();
 
-    if (first_name && last_name && email && master_password) {
+    if (first_name && last_name && email && password) {
         const response = await fetch('/api/users', {
             method: 'post',
             body: JSON.stringify({
@@ -14,7 +14,7 @@ async function signupFormHandler(event) {
                 last_name,
                 username,
                 email,
-                master_password
+                password
             }),
             headers: { 'Content-Type': 'application/json' }
         });
@@ -26,7 +26,7 @@ async function signupFormHandler(event) {
     }
 }
 
-function revealMasterPassword() {
+function revealPassword() {
     var x = document.getElementById("register-master-password");
     if (x.type === "password") {
         x.type = "text";

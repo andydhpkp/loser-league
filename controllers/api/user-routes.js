@@ -3,7 +3,7 @@ const { User } = require('../../models')
 
 router.get('/', (req, res) => {
     User.findAll({
-        attributes: { exclude: ['master_password'] }
+        //attributes: { exclude: ['password'] }
     })
     .then(dbUser => {
         res.json(dbUser)
@@ -16,7 +16,7 @@ router.get('/', (req, res) => {
 
 router.get('/:id', (req, res) => {
     User.findOne({
-        attributes: { exclude: ['master_password'] },
+        attributes: { exclude: ['password'] },
         where: {
             id: req.params.id
         },
@@ -47,7 +47,7 @@ router.post('/', (req, res) => {
         last_name: req.body.last_name,
         username: req.body.username,
         email: req.body.email,
-        master_password: req.body.master_password
+        password: req.body.password
     })
     .then(dbUser => {
         req.session.save(() => {
@@ -67,7 +67,7 @@ router.post('/', (req, res) => {
 router.post('/login', (req, res) => {
     User.findOne({
         where: {
-            email: req.body.email
+            username: req.body.username,
         }
     }).then(dbUser => {
         if(!dbUser) {
@@ -76,7 +76,8 @@ router.post('/login', (req, res) => {
         }
 
         //use User model's password validator
-        const validPassword = dbUser.checkPassword(req.body.master_password);
+        console.log('this is req.password ' + JSON.stringify(req.body))
+        const validPassword = dbUser.checkPassword(req.body.password);
 
         if (!validPassword) {
             res.status(400).json({ message: 'Incorrect password!' });

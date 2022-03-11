@@ -6,21 +6,21 @@ const userData = [
         last_name: 'Cauldlow',
         username: 'bobybob',
         email: 'robert.california@gmail.com',
-        master_password: 'RobertandMary1958!'
+        password: 'RobertandMary1958!'
     },
     {
         first_name: 'Marge',
         last_name: 'Little',
         username: 'lilmama',
         email: 'luvmygrandkids4@gmail.com',
-        master_password: 'TheWholeF@m1997'
+        password: 'TheWholeF@m1997'
     },
     {
         first_name: 'Don',
         last_name: 'Daniels',
         username: 'doubledon',
         email: 'farmerdon@gmail.com',
-        master_password: 'BlessThisCountry45.'
+        password: 'BlessThisCountry45.'
     }
 ]
 
