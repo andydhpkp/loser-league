@@ -94,4 +94,56 @@ router.post('/login', (req, res) => {
     })
 })
 
+//logout route
+router.post('/logout', (req, res) => {
+    if (req.session.loggedIn) {
+        req.session.destroy(() => {
+            res.status(204).end()
+        })
+    }
+    else {
+        res.status(404).end()
+    }
+})
+
+//update
+router.put('/:id', (req, res) => {
+    User.update(req.body, {
+        where: {
+            id: req.params.id
+        }
+    })
+    .then(dbUser => {
+        if (!dbUser) {
+            res.status(404).json({ message: 'No user found with this id' })
+            return
+        }
+        res.json(dbUser)
+    })
+    .catch(err => {
+        console.log(err)
+        res.status(500).json(err)
+    })
+})
+
+//delete
+router.delete('/:id', (req, res) => {
+    User.destroy({
+        where: {
+            id: req.params.id
+        }
+    })
+    .then(dbUser => {
+        if (!dbUser) {
+            res.status(404).json({ message: 'No user found with this id' })
+            return
+        }
+        res.json(dbUser)
+    })
+    .catch(err => {
+        console.log(err)
+        res.status(500).json(err)
+    })
+})
+
 module.exports = router;
