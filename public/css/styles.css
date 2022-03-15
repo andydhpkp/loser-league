@@ -90,6 +90,10 @@ a {
     width: 100%;
 }
 
+.teamLogos {
+    width: 100px;
+}
+
 #forgotPasswordLabel {
     text-align: center;
 }
