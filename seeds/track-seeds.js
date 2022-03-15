@@ -33,6 +33,7 @@ const trackData = [
             "Titans",
             "Vikings"],
         used_picks: ["Jets", "Chargers", "Patriots"],
+        current_pick: "Steelers",
         user_id: 1
     },
     {
@@ -67,6 +68,7 @@ const trackData = [
             "Titans",
             "Vikings"],
         used_picks: ["Lions", "Chargers", "Patriots"],
+        current_pick: "Buccaneers",
         user_id: 2
     },
     {
@@ -101,6 +103,7 @@ const trackData = [
             "Titans",
             "Vikings"],
         used_picks: ["Lions", "Colts", "Patriots"],
+        current_pick: "Titans",
         user_id: 3
     },
 ]

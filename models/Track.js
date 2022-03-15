@@ -15,11 +15,27 @@ Track.init(
         available_picks: {
             type: DataTypes.STRING,
             allowNull: false,
+            get() {
+                return this.getDataValue('available_picks').split(';');
+            },
+            set(val) {
+                this.setDataValue('available_picks',val.join(';'));
+            }
         },
         //figure out how to make sure available != used
         used_picks: {
             type: DataTypes.STRING,
-            allowNull: true
+            allowNull: true,
+            get() {
+                return this.getDataValue('used_picks').split(';');
+            },
+            set(val) {
+                this.setDataValue('used_picks',val.join(';'));
+            }
+        },
+        current_pick: {
+            type: DataTypes.STRING,
+            allowNull: false
         },
         user_id: {
             type: DataTypes.INTEGER,
