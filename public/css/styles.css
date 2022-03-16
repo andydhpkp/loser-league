@@ -91,7 +91,18 @@ a {
 }
 
 .teamLogos {
-    width: 100px;
+    width: auto;
+    height: 50px;
+}
+
+.individualMatchup {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+}
+
+.individualMatchup div {
+    text-align: center;
 }
 
 #forgotPasswordLabel {
