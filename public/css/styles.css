@@ -91,8 +91,18 @@ a {
 }
 
 .teamLogos {
-    width: auto;
-    height: 50px;
+    width: 100px;
+    height: auto;
+}
+
+.trackContainer {
+    display: flex;
+    border-radius: 2px;
+    border-width: 2px;
+    border-style: solid;
+    flex-wrap: wrap;
+    align-items: center;
+    flex-direction: column;
 }
 
 .individualMatchup {
@@ -117,4 +127,16 @@ a {
 
 #gameMatchups div {
     margin: 30px;
+}
+
+@media screen and (max-width: 550px) {
+    #gameMatchups div {
+        margin: 10px;
+    }
+}
+
+@media screen and (max-width: 365px) {
+    #gameMatchups div {
+        margin: 2px;
+    }
 }

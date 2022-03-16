@@ -162,74 +162,89 @@ let nflArray2 = [
 ]
 
 function matchup() {
-    
-    var matchups = []
-    let rejects = [];
-    let logos = [];
-    let info = [];
 
-    while(matchups.length < 32) {
-        let chooser = Math.floor(Math.random() * nflArray2.length)
-        let chooser2 = Math.floor(Math.random() * nflArray2.length)
-
-        if(rejects.includes(chooser) || rejects.includes(chooser2) || chooser === chooser2) {
-
-        } else {
-            let firstTeam = nflArray2[chooser].teamName;
-            let firstTeamLogo = nflArray2[chooser].teamLogo;
-            let firstTeamRecord = nflArray2[chooser].teamRecord;
-            let secondTeam = nflArray2[chooser2].teamName;
-            let secondTeamLogo = nflArray2[chooser2].teamLogo;
-            let secondTeamRecord = nflArray2[chooser2].teamRecord;
-            matchups.push(firstTeam);
-            matchups.push(secondTeam);
-            info.push(firstTeamRecord);
-            info.push(secondTeamRecord)
-            logos.push(firstTeamLogo);
-            logos.push(secondTeamLogo)
-            rejects.push(chooser)
-            rejects.push(chooser2)
-        }
-        console.log('matchups ' + matchups + ' info ' + info + ' logos ' + logos + ' rejects ' + rejects)
-    }
-
+    let containerNumber = document.getElementById('trackNumber').value.trim()
     let container = document.getElementById('gameMatchups')
     container.innerHTML = "";
-    let logoCounter = 0;
 
-    for (let i=0; i < 16; i++) {
-        let individualMatchup = document.createElement('div');
-        let vs = document.createElement('h1');
-        let firstTeamDiv = document.createElement('div');
-        let firstTeamName = document.createElement('h2');
-        let firstTeamInfo = document.createElement('h3')
-        let secondTeamDiv = document.createElement('div')
-        let secondTeamName = document.createElement('h2')
-        let secondTeamInfo = document.createElement('h3')
-        let teamLogoFirst = document.createElement('img');
-        let teamLogoSecond = document.createElement('img');
-        teamLogoFirst.setAttribute('class', 'teamLogos')
-        teamLogoSecond.setAttribute('class', 'teamLogos')
-        teamLogoFirst.src = logos[logoCounter];
-        firstTeamName.innerText = matchups[logoCounter];
-        firstTeamInfo.innerText = info[logoCounter];
-        firstTeamDiv.appendChild(teamLogoFirst)
-        firstTeamDiv.appendChild(firstTeamName)
-        firstTeamDiv.appendChild(firstTeamInfo)
-        logoCounter++;
-        teamLogoSecond.src = logos[logoCounter];
-        secondTeamName.innerText = matchups[logoCounter];
-        secondTeamInfo.innerText = info[logoCounter];
-        secondTeamDiv.appendChild(teamLogoSecond)
-        secondTeamDiv.appendChild(secondTeamName)
-        secondTeamDiv.appendChild(secondTeamInfo)
-        logoCounter++;
-        vs.innerText = 'VS'
-        individualMatchup.appendChild(firstTeamDiv);
-        individualMatchup.appendChild(vs);
-        individualMatchup.appendChild(secondTeamDiv);
-        individualMatchup.setAttribute('class', 'individualMatchup')
-        container.appendChild(individualMatchup)
+        let matchups = []
+        let rejects = [];
+        let logos = [];
+        let info = [];
+    
+        while(matchups.length < 32) {
+            let chooser = Math.floor(Math.random() * nflArray2.length)
+            let chooser2 = Math.floor(Math.random() * nflArray2.length)
+    
+            if(rejects.includes(chooser) || rejects.includes(chooser2) || chooser === chooser2) {
+    
+            } else {
+                let firstTeam = nflArray2[chooser].teamName;
+                let firstTeamLogo = nflArray2[chooser].teamLogo;
+                let firstTeamRecord = nflArray2[chooser].teamRecord;
+                let secondTeam = nflArray2[chooser2].teamName;
+                let secondTeamLogo = nflArray2[chooser2].teamLogo;
+                let secondTeamRecord = nflArray2[chooser2].teamRecord;
+                matchups.push(firstTeam);
+                matchups.push(secondTeam);
+                info.push(firstTeamRecord);
+                info.push(secondTeamRecord)
+                logos.push(firstTeamLogo);
+                logos.push(secondTeamLogo)
+                rejects.push(chooser)
+                rejects.push(chooser2)
+            }
+        }
+
+        for (i = 0; i < containerNumber; i++) {
+    
+        let logoCounter = 0;
+        let trackContainer = document.createElement('div');
+    
+        for (let i=0; i < 16; i++) {
+            trackContainer.setAttribute('class', 'trackContainer');
+            let individualMatchup = document.createElement('div');
+            let firstAnchor = document.createElement('a')
+
+
+
+            let secondAnchor = document.createElement('a')
+            let vs = document.createElement('h1');
+            let firstTeamDiv = document.createElement('div');
+            let firstTeamName = document.createElement('h2');
+            let firstTeamInfo = document.createElement('h3')
+            let secondTeamDiv = document.createElement('div')
+            let secondTeamName = document.createElement('h2')
+            let secondTeamInfo = document.createElement('h3')
+            let teamLogoFirst = document.createElement('img');
+            let teamLogoSecond = document.createElement('img');
+            teamLogoFirst.setAttribute('class', 'teamLogos')
+            teamLogoSecond.setAttribute('class', 'teamLogos')
+            teamLogoFirst.src = logos[logoCounter];
+            firstTeamName.innerText = matchups[logoCounter];
+            firstTeamInfo.innerText = info[logoCounter];
+            firstAnchor.appendChild(teamLogoFirst)
+            firstAnchor.appendChild(firstTeamName)
+            firstAnchor.appendChild(firstTeamInfo)
+            firstTeamDiv.appendChild(firstAnchor)
+            logoCounter++;
+            teamLogoSecond.src = logos[logoCounter];
+            secondTeamName.innerText = matchups[logoCounter];
+            secondTeamInfo.innerText = info[logoCounter];
+            secondAnchor.appendChild(teamLogoSecond)
+            secondAnchor.appendChild(secondTeamName)
+            secondAnchor.appendChild(secondTeamInfo)
+            secondTeamDiv.appendChild(secondAnchor)
+            logoCounter++;
+            vs.innerText = 'VS'
+            individualMatchup.appendChild(firstTeamDiv);
+            individualMatchup.appendChild(vs);
+            individualMatchup.appendChild(secondTeamDiv);
+            individualMatchup.setAttribute('class', 'individualMatchup')
+            trackContainer.appendChild(individualMatchup)
+        }
+        container.appendChild(trackContainer)
     }
-    console.log(nflArray2)
 }
+
+
