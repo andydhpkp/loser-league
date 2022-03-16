@@ -2,14 +2,14 @@
 const User = require('./User')
 const Track = require('./Track')
 
-/* User.hasMany(Track, {
+User.hasMany(Track, {
     foreignKey: 'user_id'
 })
 
 Track.belongsTo(User, {
     foreignKey: 'user_id',
     onDelete: 'SET NULL'
-}) */
+})
 
 
 module.exports = { User, Track };

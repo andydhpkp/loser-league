@@ -20,7 +20,7 @@ Track.init(
             },
             set(val) {
                 this.setDataValue('available_picks',val.join(';'));
-            }
+            },
         },
         //figure out how to make sure available != used
         used_picks: {
