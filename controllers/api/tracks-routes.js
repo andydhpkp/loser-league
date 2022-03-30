@@ -64,58 +64,7 @@ router.post('/', (req, res) => {
     })
 })
 
-
-
-
-
-
-
-
-
-//login route
-router.post('/login', (req, res) => {
-    User.findOne({
-        where: {
-            username: req.body.username,
-        }
-    }).then(dbUser => {
-        if(!dbUser) {
-            res.status(400).json({ message: 'No user with that username' })
-            return
-        }
-
-        //use User model's password validator
-        console.log('this is req.password ' + JSON.stringify(req.body))
-        const validPassword = dbUser.checkPassword(req.body.password);
-
-        if (!validPassword) {
-            res.status(400).json({ message: 'Incorrect password!' });
-            return;
-        }
-
-        req.session.save(() => {
-            req.session.user_id = dbUser.id;
-            req.session.username = dbUser.username;
-            req.session.loggedIn = true;
-
-            res.json({ user: dbUser, message: 'You are now logged in!' })
-        })
-    })
-})
-
-//logout route
-router.post('/logout', (req, res) => {
-    if (req.session.loggedIn) {
-        req.session.destroy(() => {
-            res.status(204).end()
-        })
-    }
-    else {
-        res.status(404).end()
-    }
-})
-
-//update
+//Make Pick
 router.put('/:id', (req, res) => {
     User.update(req.body, {
         where: {
