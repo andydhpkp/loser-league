@@ -1,5 +1,5 @@
 const router = require('express').Router()
-const { User } = require('../../models')
+const { User, Track } = require('../../models')
 
 router.get('/', (req, res) => {
     User.findAll({
@@ -30,6 +30,31 @@ router.get('/:id', (req, res) => {
     .then(dbUser => {
         if(!dbUser) {
             res.status(404).json({ message: 'No user found with this id' })
+            return
+        }
+        res.json(dbUser)
+    })
+    .catch(err => {
+        console.log(err)
+        res.status(500).json(err)
+    })
+})
+
+//get by username
+router.get('/username/:username', (req, res) => {
+    User.findOne({
+        where: {
+            username: req.params.username
+        },
+        include: [
+            {
+                model: Track
+            }
+        ]
+    })
+    .then(dbUser => {
+        if(!dbUser) {
+            res.status(404).json({ message: 'No user found with this username' })
             return
         }
         res.json(dbUser)
@@ -84,6 +109,8 @@ router.post('/login', (req, res) => {
             return;
         }
 
+        
+
         req.session.save(() => {
             req.session.user_id = dbUser.id;
             req.session.username = dbUser.username;
@@ -91,6 +118,24 @@ router.post('/login', (req, res) => {
 
             res.json({ user: dbUser, message: 'You are now logged in!' })
         })
+    })
+})
+
+//get logged in id
+router.get('/logged', (req, res) => {
+    User.findOne({
+        where: {
+            id: req.session.user_id
+        }
+    }).then(dbUser => {
+        if(!dbUser) {
+            res.status(400).json({ message: 'did not work'})
+            return
+        }
+        res.json(dbUser)
+    }).catch(err => {
+        console.log(err)
+        res.status(500).json(err)
     })
 })
 

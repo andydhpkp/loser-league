@@ -37,6 +37,15 @@ a {
     color: inherit;
 }
 
+hidden {
+    display: none;
+}
+
+.pickBtn {
+    background-color: var(--lightBlue);
+
+}
+
 .btn-primary:hover {
     background-color: var(--lightBlue);
     border-color: var(--lightBlue);
@@ -88,6 +97,7 @@ a {
 
 .testerBtn {
     width: 100%;
+    margin-bottom: 10px;
 }
 
 .teamLogos {
@@ -115,6 +125,20 @@ a {
     text-align: center;
 }
 
+.tempPick {
+    border-style: solid;
+    border-radius: 2px;
+    border-width: 2px;
+    border-color: var(--darkest);
+    padding: 7px;
+}
+
+.adminUsersView {
+    width: 100%;
+    margin: 10px;
+    text-align: center;
+}
+
 #forgotPasswordLabel {
     text-align: center;
 }
@@ -126,7 +150,14 @@ a {
 }
 
 #gameMatchups div {
-    margin: 30px;
+    margin: 25px;
+}
+
+#adminUsers {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 @media screen and (max-width: 550px) {

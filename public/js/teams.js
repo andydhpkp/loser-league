@@ -161,10 +161,31 @@ let nflArray2 = [
     },
 ]
 
-function matchup() {
+function getTrackNumber() {
 
-    let containerNumber = document.getElementById('trackNumber').value.trim()
+    let username = localStorage.getItem('loggedInUser')
+    fetch(`/api/users/username/${username}`).then(function(response) {
+        if (response.ok) {
+            response.json().then(function(data) {
+                console.log(data)
+                let totalTracks = data.tracks.length
+                console.log(totalTracks)
+                matchup(totalTracks)
+            })
+        }
+    })
+}
+
+function matchup(totalTracks) {
+
+    let containerNumber = totalTracks
+    console.log('this is containerNumber ' + containerNumber)
     let container = document.getElementById('gameMatchups')
+    let main = document.getElementById('games')
+    let secondSubmitPicksBtn = document.createElement('button')
+    secondSubmitPicksBtn.setAttribute('class', 'btn btn-primary testerBtn')
+    secondSubmitPicksBtn.setAttribute('onclick', 'pickHandler()')
+    secondSubmitPicksBtn.innerText = 'Submit Picks'
     container.innerHTML = "";
 
         let matchups = []
@@ -196,16 +217,19 @@ function matchup() {
             }
         }
 
+        let extraCountIdHelp = 0;
+
         for (i = 0; i < containerNumber; i++) {
     
         let logoCounter = 0;
         let trackContainer = document.createElement('div');
+        
     
         for (let i=0; i < 16; i++) {
-            trackContainer.setAttribute('class', 'trackContainer');
+            
             let individualMatchup = document.createElement('div');
             let firstAnchor = document.createElement('a')
-
+            trackContainer.setAttribute('class', `trackContainer`);
 
 
             let secondAnchor = document.createElement('a')
@@ -218,11 +242,14 @@ function matchup() {
             let secondTeamInfo = document.createElement('h3')
             let teamLogoFirst = document.createElement('img');
             let teamLogoSecond = document.createElement('img');
+            firstTeamDiv.setAttribute('id', `${extraCountIdHelp},${matchups[logoCounter]}`)
+            firstTeamDiv.setAttribute('onclick', 'registerClick(this.id)')
             teamLogoFirst.setAttribute('class', 'teamLogos')
             teamLogoSecond.setAttribute('class', 'teamLogos')
             teamLogoFirst.src = logos[logoCounter];
             firstTeamName.innerText = matchups[logoCounter];
             firstTeamInfo.innerText = info[logoCounter];
+            //firstAnchor.setAttribute('id', matchups[logoCounter])
             firstAnchor.appendChild(teamLogoFirst)
             firstAnchor.appendChild(firstTeamName)
             firstAnchor.appendChild(firstTeamInfo)
@@ -231,6 +258,9 @@ function matchup() {
             teamLogoSecond.src = logos[logoCounter];
             secondTeamName.innerText = matchups[logoCounter];
             secondTeamInfo.innerText = info[logoCounter];
+            secondTeamDiv.setAttribute('id', `${extraCountIdHelp},${matchups[logoCounter]}`)
+            secondTeamDiv.setAttribute('onclick', 'registerClick(this.id)')
+            //secondAnchor.setAttribute('id', matchups[logoCounter])
             secondAnchor.appendChild(teamLogoSecond)
             secondAnchor.appendChild(secondTeamName)
             secondAnchor.appendChild(secondTeamInfo)
@@ -243,7 +273,10 @@ function matchup() {
             individualMatchup.setAttribute('class', 'individualMatchup')
             trackContainer.appendChild(individualMatchup)
         }
+        extraCountIdHelp++;
+        trackContainer.setAttribute('id', `containerNumber${i}`);
         container.appendChild(trackContainer)
+        main.appendChild(secondSubmitPicksBtn)
     }
 }
 

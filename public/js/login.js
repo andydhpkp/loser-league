@@ -18,9 +18,11 @@ async function loginFormHandler(event) {
         });
 
         if (response.ok) {
+            window.localStorage.setItem("loggedInUser", username)
             location.href = "../profile.html";
+            console.log(response)
         } else {
-            alert(response.statusText);
+            alert('Sorry, incorrect username or password');
         }
     }
 }

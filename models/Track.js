@@ -22,7 +22,7 @@ Track.init(
                 this.setDataValue('available_picks',val.join(';'));
             },
         },
-        //figure out how to make sure available != used
+        //figure out how to make sure available != used 
         used_picks: {
             type: DataTypes.STRING,
             allowNull: true,
@@ -35,7 +35,7 @@ Track.init(
         },
         current_pick: {
             type: DataTypes.STRING,
-            allowNull: false
+            allowNull: true
         },
         user_id: {
             type: DataTypes.INTEGER,

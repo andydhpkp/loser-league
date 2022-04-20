@@ -66,17 +66,17 @@ router.post('/', (req, res) => {
 
 //Make Pick
 router.put('/:id', (req, res) => {
-    User.update(req.body, {
+    Track.update(req.body, {
         where: {
             id: req.params.id
         }
     })
-    .then(dbUser => {
-        if (!dbUser) {
+    .then(dbTrack => {
+        if (!dbTrack) {
             res.status(404).json({ message: 'No user found with this id' })
             return
         }
-        res.json(dbUser)
+        res.json(dbTrack)
     })
     .catch(err => {
         console.log(err)
@@ -86,17 +86,17 @@ router.put('/:id', (req, res) => {
 
 //delete
 router.delete('/:id', (req, res) => {
-    User.destroy({
+    Track.destroy({
         where: {
             id: req.params.id
         }
     })
-    .then(dbUser => {
-        if (!dbUser) {
+    .then(dbTrack => {
+        if (!dbTrack) {
             res.status(404).json({ message: 'No user found with this id' })
             return
         }
-        res.json(dbUser)
+        res.json(dbTrack)
     })
     .catch(err => {
         console.log(err)
