@@ -167,24 +167,25 @@ function getTrackNumber() {
     fetch(`/api/users/username/${username}`).then(function(response) {
         if (response.ok) {
             response.json().then(function(data) {
-                console.log(data)
                 let totalTracks = data.tracks.length
-                console.log(totalTracks)
-                matchup(totalTracks)
+                let trackIdArray = []
+                for (i=0; i<totalTracks; i++) {
+                    trackIdArray.push(data.tracks[i].id)
+                }
+                matchup(totalTracks, trackIdArray)
             })
         }
     })
 }
 
-function matchup(totalTracks) {
+function matchup(totalTracks, trackIds) {
 
     let containerNumber = totalTracks
-    console.log('this is containerNumber ' + containerNumber)
     let container = document.getElementById('gameMatchups')
     let main = document.getElementById('games')
     let secondSubmitPicksBtn = document.createElement('button')
     secondSubmitPicksBtn.setAttribute('class', 'btn btn-primary testerBtn')
-    secondSubmitPicksBtn.setAttribute('onclick', 'pickHandler()')
+    secondSubmitPicksBtn.setAttribute('onclick', 'getBodyForPicks()')
     secondSubmitPicksBtn.innerText = 'Submit Picks'
     container.innerHTML = "";
 
@@ -274,7 +275,7 @@ function matchup(totalTracks) {
             trackContainer.appendChild(individualMatchup)
         }
         extraCountIdHelp++;
-        trackContainer.setAttribute('id', `containerNumber${i}`);
+        trackContainer.setAttribute('id', trackIds[i]);
         container.appendChild(trackContainer)
         main.appendChild(secondSubmitPicksBtn)
     }

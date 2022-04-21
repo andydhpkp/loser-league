@@ -85,50 +85,124 @@ function submitTrackNumberHandler() {
 }
 
 
-async function pickHandler() {
+async function getBodyForPicks() {
+    fetch(`/api/tracks/`).then(function(response) {
+        if(response.ok) {
+            response.json().then(function(data) {
+                console.log(data)
+                let picks = document.getElementsByClassName('tempPick')
+                let totalPicks = picks.length
+                let trackHelp = document.getElementsByClassName('trackContainer')
+                let trackTotal = trackHelp.length
+                let trackIdPicksArr = []
+                let trackSelectionsArr = []
+                let finalPicksArrHelper = []
+                let picksObj = []
+                
 
-    let totalPicksNeeded = document.getElementById('trackNumber').value.trim();
-    let picks = document.getElementsByClassName('tempPick')
-    let totalPicks = picks.length
-    let trackHelp = document.getElementsByClassName('trackContainer')
-    let trackTotal = trackHelp.length
+                if (totalPicks != trackTotal) {
+                    alert('Please Make A Pick For Each Track')
+                } else {
+                    
+                    for(i=0; i<trackTotal; i++) {
+                        let parseId = parseInt(trackHelp[i].id)
+                        trackIdPicksArr.push(parseId)
+                        trackSelectionsArr.push(picks[i].id)
+                        finalPicksArrHelper.push(trackSelectionsArr[i].split(',', 2))
+                        let finalPick = finalPicksArrHelper[i][1]
+            
+                        picksObj.push({
+                            trackId: parseId,
+                            trackSelection: finalPick
+                        })
+                    }
+            
+                    console.log(picksObj)
+            
+                    for(i=0; i<picksObj.length; i++) {
+                        let idHelper = picksObj[i].trackId - 1;
+                        let available_picks = data[idHelper].available_picks
+                        let used_picks = data[idHelper].used_picks
+                        let current_pick = picksObj[i].trackSelection
+                        let user_id = data[idHelper].user_id
+                        let putTrackId = picksObj[i].trackId
+                        let colorTrack = document.getElementById(picksObj[i].trackId)
+                        let noDuplicates = document.getElementsByClassName('successfulPick')
+                        let noDuplicatesId =[]
 
-    if (totalPicks != totalPicksNeeded) {
-        alert('Please Make A Pick For Each Track')
-    } else {
-        
-        //figure out how to have track Id
-        
-        
+                        if(noDuplicates.length>0) {
+                            for(k=0; k<noDuplicates.length; k++) {
+                                noDuplicatesId.push(parseInt(noDuplicates[k].id))
+                            }
+                        }
 
-        const response = await fetch('api/tracks/:id', {
-            method: 'put',
-            body: JSON.stringify({
+                        console.log(noDuplicates)
+                        console.log(noDuplicatesId)
+                        console.log(putTrackId)
+
+                        if(!noDuplicatesId.includes(putTrackId)) {
+                            let tryAgain = document.getElementsByClassName('unsuccessfulPick')
+
+                            if(tryAgain.length>0) {
+                                for(j=0; j<tryAgain.length; j++) {
+                                    let tryAgainId = parseInt(tryAgain[j].id)
+                                    if(putTrackId === tryAgainId) {
+                                        let resetClass = tryAgain[j]
+                                        resetClass.classList.toggle('unsuccessfulPick')
+                                    }
+                                }
+                            }
+
+                            if(used_picks.includes(current_pick)) {
+                                let alertTrackNumber = i + 1
+                                colorTrack.classList.toggle('unsuccessfulPick')
+                                //alert(`Sorry, ${current_pick} has already been picked for track number ${alertTrackNumber}, try again!`)
+                            } else {
+                                used_picks.push(current_pick)
+                                available_picks = available_picks.filter(item => item !== current_pick)
+                                console.log('submitted!!!!')
+                                colorTrack.classList.toggle('successfulPick')
+                                makePick(available_picks, used_picks, current_pick, user_id, putTrackId)
+                            }
+                        }
+
+                    }
+                    let finishedCheck = document.getElementsByClassName('successfulPick')
+                    if (finishedCheck.length === picksObj.length) {
+                        alert('it worked')
+                        //location.href = "../dashboard.html"
+                    } else {
+                        alert('it didnt work')
+                    }
+                }
+
 
             })
-        })
-    }
-
-    /* const pick = document.querySelector('#inputUsername').value;
-
-    if (username && password) {
-        console.log(username);
-        console.log(password);
-        const response = await fetch('/api/users/login', {
-            method: 'post',
-            body: JSON.stringify({
-                username,
-                password
-            }),
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (response.ok) {
-            location.href = "../profile.html";
         } else {
-            alert('Sorry, incorrect username or password');
+            alert('Sorry, could not connect to database, please try again')
+            console.log(response)
         }
-    } */
+    })
+}
+
+
+async function makePick(available_picks, used_picks, current_pick, user_id, putTrackId) {
+
+    const response = await fetch(`api/tracks/${putTrackId}`, {
+        method: 'put',
+        body: JSON.stringify({
+            available_picks,
+            used_picks,
+            current_pick,
+            user_id
+        }),
+        headers: {'Content-Type': 'application/json'}
+    })
+    if(response.ok) {
+        console.log('updated')
+    } else {
+        alert(response.statusText)
+    }
 }
 
 function revealLoginPassword() {

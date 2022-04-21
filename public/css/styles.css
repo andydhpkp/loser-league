@@ -3,6 +3,8 @@
     --secondaryDark: #A23E48;
     --middle: #6C8EAD;
     --secondaryLight: #FF8C42;
+    --green: #629460;
+    --waitingBlue: #63ADF2;
     --lightest: #E8EBE4;
     --lightBlue: #97AEC4;
 }
@@ -137,6 +139,14 @@ hidden {
     width: 100%;
     margin: 10px;
     text-align: center;
+}
+
+.successfulPick {
+    background-color: var(--waitingBlue);
+}
+
+.unsuccessfulPick {
+    background-color: var(--secondaryDark);
 }
 
 #forgotPasswordLabel {

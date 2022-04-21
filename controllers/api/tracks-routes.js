@@ -73,7 +73,7 @@ router.put('/:id', (req, res) => {
     })
     .then(dbTrack => {
         if (!dbTrack) {
-            res.status(404).json({ message: 'No user found with this id' })
+            res.status(404).json({ message: 'No track found with this id' })
             return
         }
         res.json(dbTrack)
@@ -93,7 +93,7 @@ router.delete('/:id', (req, res) => {
     })
     .then(dbTrack => {
         if (!dbTrack) {
-            res.status(404).json({ message: 'No user found with this id' })
+            res.status(404).json({ message: 'No track found with this id' })
             return
         }
         res.json(dbTrack)
