@@ -156,7 +156,7 @@ async function getBodyForPicks() {
                             if(used_picks.includes(current_pick)) {
                                 let alertTrackNumber = i + 1
                                 colorTrack.classList.toggle('unsuccessfulPick')
-                                //alert(`Sorry, ${current_pick} has already been picked for track number ${alertTrackNumber}, try again!`)
+                                alert(`Sorry, ${current_pick} has already been picked for track number ${alertTrackNumber}, try again!`)
                             } else {
                                 used_picks.push(current_pick)
                                 available_picks = available_picks.filter(item => item !== current_pick)
@@ -169,11 +169,8 @@ async function getBodyForPicks() {
                     }
                     let finishedCheck = document.getElementsByClassName('successfulPick')
                     if (finishedCheck.length === picksObj.length) {
-                        alert('it worked')
-                        //location.href = "../dashboard.html"
-                    } else {
-                        alert('it didnt work')
-                    }
+                        location.href = "../league-page.html"
+                    } 
                 }
 
 
@@ -242,4 +239,84 @@ function registerClick(clicked_id) {
 
 function submitPicks() {
 
+}
+
+async function leagueUserTableHandler() {
+
+    fetch('/api/users').then(function(response) {
+        if (response.ok) {
+            response.json().then(function (data) {
+
+                //let orderUsersArr = 
+
+                let viewUsersTable = document.getElementById('leagueMain')
+
+                let mainTable = document.createElement('table')
+                mainTable.className = 'table'
+                let tHead = document.createElement('thead')
+                let trHead = document.createElement('tr')
+                let firstScope = document.createElement('th')
+                firstScope.setAttribute('scope', 'col')
+
+                let secondScope = document.createElement('th')
+                secondScope.setAttribute('scope', 'col')
+                secondScope.innerText = 'First'
+
+                let thirdScope = document.createElement('th')
+                thirdScope.setAttribute('scope', 'col')
+                thirdScope.innerText = 'Last'
+
+                let fourthScope = document.createElement('th')
+                fourthScope.setAttribute('scope', 'col')
+                fourthScope.innerText = 'Tracks Left'
+
+                let fifthScope = document.createElement('th')
+                fifthScope.setAttribute('scope', 'col')
+                fifthScope.innerText = 'Picks Submitted'
+
+                trHead.appendChild(firstScope)
+                trHead.appendChild(secondScope)
+                trHead.appendChild(thirdScope)
+                trHead.appendChild(fourthScope)
+                trHead.appendChild(fifthScope)
+                tHead.appendChild(trHead)
+                mainTable.appendChild(tHead)
+
+                console.log(mainTable)
+
+                let tBody = document.createElement('tbody')
+
+                for (i=0; i<data.length; i++) {
+                    let tr = document.createElement('tr')
+                    let th = document.createElement('th')
+                    th.setAttribute('scope', 'row')
+                    th.innerText = i+1
+                    tr.appendChild(th)
+
+                    let tdFirst = document.createElement('td')
+                    tdFirst.innerText = data[i].first_name
+                    let tdLast = document.createElement('td')
+                    tdLast.innerText = data[i].last_name
+                    let tdTracks = document.createElement('td')
+                    tdTracks.innerText = data[i].tracks.length
+                    let tdSubmitted = document.createElement('td')
+                    tdSubmitted.innerText = 'Yes'
+
+                    tr.appendChild(tdFirst)
+                    tr.appendChild(tdLast)
+                    tr.appendChild(tdTracks)
+                    tr.appendChild(tdSubmitted)
+
+                    tBody.appendChild(tr)
+                }
+
+                mainTable.appendChild(tBody)
+
+                viewUsersTable.appendChild(mainTable)
+
+            })
+        } else {
+            alert('Sorry, could not connect to database')
+        }
+    })
 }

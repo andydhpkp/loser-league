@@ -4,6 +4,11 @@ const { User, Track } = require('../../models')
 router.get('/', (req, res) => {
     User.findAll({
         //attributes: { exclude: ['password'] }
+            include: [
+            {
+                model: Track
+            }
+        ]
     })
     .then(dbUser => {
         res.json(dbUser)

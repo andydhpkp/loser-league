@@ -149,6 +149,15 @@ hidden {
     background-color: var(--secondaryDark);
 }
 
+.used_pick {
+    opacity: 0.2;
+    pointer-events: none;
+}
+
+.table {
+    text-align: center;
+}
+
 #forgotPasswordLabel {
     text-align: center;
 }

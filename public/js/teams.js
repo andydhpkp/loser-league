@@ -172,13 +172,20 @@ function getTrackNumber() {
                 for (i=0; i<totalTracks; i++) {
                     trackIdArray.push(data.tracks[i].id)
                 }
-                matchup(totalTracks, trackIdArray)
+                let used_picks = []
+                console.log(data)
+                for (let i = 0; i < totalTracks; i++) {
+                    //let tempUsed_picks = []
+                    used_picks.push(data.tracks[i].used_picks)
+                }
+                console.log(used_picks)
+                matchup(totalTracks, trackIdArray, used_picks)
             })
         }
     })
 }
 
-function matchup(totalTracks, trackIds) {
+function matchup(totalTracks, trackIds, used_picks) {
 
     let containerNumber = totalTracks
     let container = document.getElementById('gameMatchups')
@@ -226,7 +233,7 @@ function matchup(totalTracks, trackIds) {
         let trackContainer = document.createElement('div');
         
     
-        for (let i=0; i < 16; i++) {
+        for (let l=0; l < 16; l++) {
             
             let individualMatchup = document.createElement('div');
             let firstAnchor = document.createElement('a')
@@ -259,6 +266,16 @@ function matchup(totalTracks, trackIds) {
             teamLogoSecond.src = logos[logoCounter];
             secondTeamName.innerText = matchups[logoCounter];
             secondTeamInfo.innerText = info[logoCounter];
+
+            for(j=0; j<used_picks[i].length; j++) {
+                if(used_picks[i][j] === firstTeamName.innerText) {
+                    firstTeamDiv.classList.toggle('used_pick')
+                }
+                if(used_picks[i][j] === secondTeamName.innerText) {
+                    secondTeamDiv.classList.toggle('used_pick')
+                } 
+            }
+
             secondTeamDiv.setAttribute('id', `${extraCountIdHelp},${matchups[logoCounter]}`)
             secondTeamDiv.setAttribute('onclick', 'registerClick(this.id)')
             //secondAnchor.setAttribute('id', matchups[logoCounter])
