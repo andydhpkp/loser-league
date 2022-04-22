@@ -320,3 +320,16 @@ async function leagueUserTableHandler() {
         }
     })
 }
+
+let actualAdminPass = 'hitheretatethisisfun'
+
+function adminHandler() {
+    let adminPassword = document.getElementById('adminPasswordInput').value.trim()
+    console.log(adminPassword)
+    console.log(actualAdminPass)
+    if(adminPassword === actualAdminPass) {
+        location.href = "../admin.html"
+    } else {
+        alert('Sorry, you are not invited to this party')
+    }
+}
