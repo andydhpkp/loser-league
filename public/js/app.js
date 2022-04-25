@@ -27,24 +27,32 @@ function getTeamNames(names) {
 
 
 async function displayUsers() {
-
+    //data-bs-toggle="modal" data-bs-target="#adminPassword" href="#
     fetch('/api/users').then(function(response) {
         if (response.ok) {
             response.json().then(function (data) {
                 let adminViewUserDiv = document.getElementById('adminUsers')
+
+                let viewHelper = document.getElementById('andrew')
+                console.log(viewHelper)
 
                 for (i=0; i<data.length; i++) {
                     let hiddenUserId = document.createElement('hidden')
                     let trackAmountDiv = document.createElement('div')
                     let usersNameDiv = document.createElement('div')
                     let trackAmountInput = document.createElement('input')
+                    let userNameAnchor = document.createElement('a')
+                    userNameAnchor.setAttribute('data-bs-toggle', 'modal')
+                    userNameAnchor.setAttribute('data-bs-target', `#${data[i].first_name}`)
+                    userNameAnchor.setAttribute('href', '#')
                     trackAmountInput.setAttribute('type', 'text')
                     trackAmountInput.setAttribute('class', 'trackAmounts')
                     trackAmountInput.setAttribute('placeholder', 'Number of Tracks')
                     let individualUserDiv = document.createElement('div') 
                     individualUserDiv.className = 'adminUsersView'
-                    usersNameDiv.innerHTML = data[i].first_name
+                    userNameAnchor.innerHTML = data[i].first_name
                     hiddenUserId.innerText = data[i].id
+                    individualUserDiv.appendChild(userNameAnchor)
                     trackAmountDiv.appendChild(trackAmountInput)
                     individualUserDiv.appendChild(usersNameDiv)
                     individualUserDiv.appendChild(trackAmountDiv)

@@ -158,6 +158,10 @@ hidden {
     text-align: center;
 }
 
+.btn-delete-track:focus {
+    background-color: #629460;
+}
+
 #forgotPasswordLabel {
     text-align: center;
 }

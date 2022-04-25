@@ -16,11 +16,9 @@ Current status is Users can create accounts and login, and they can manually inp
 ## Deployment
 https://loser-league.herokuapp.com/
 
-Currently not working
-
 ## Installation
 
-To run this application, please do the following installation:
+To run this application locally, please do the following installation:
 
 `
 npm i
