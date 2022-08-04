@@ -1,5 +1,30 @@
 
 
+function getMatchups() {
+
+    var nflScoreApi = "https://pacific-anchorage-21728.herokuapp.com/https://fixturedownload.com/feed/json/nfl-2022";
+    fetch(nflScoreApi)
+        .then(function(response) {
+            if (response.ok) {
+                response.json().then(function(data) {
+                    console.log(data)
+
+                    //AFTER A WEEK SEE IF THIS TURNS TO AN ARRAY
+
+                    let weekNumber = data
+                    console.log('========')
+                    console.log(weekNumber)
+                })
+            } else {
+                alert('didnt work')
+                console.log(nflScoreApi)
+            }
+        })
+        .catch(function (error) {
+            alert('unable to connect')
+        })
+}
+
 
 
 
@@ -304,5 +329,3 @@ function matchup(totalTracks, trackIds, used_picks) {
         main.appendChild(secondSubmitPicksBtn)
     }
 }
-
-
