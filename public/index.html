@@ -27,63 +27,67 @@
                 <button type="submit" class="btn btn-primary login-btn">Login</button>
 
                 <div class="mb-3">
-                    <!-- Button trigger modal -->
+                    <!-- Forgot Password Button trigger modal -->
                     <a class="account-helpers" data-bs-toggle="modal" data-bs-target="#exampleModal" href="#">
                         Forgot Password
                     </a>
                     
-                    <!-- Modal -->
-                    <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="forgotPasswordLabel">Enter Email to send Password</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="mb-3">
-                                    <input type="text" class="form-control" id="forgotPasswordEmail" aria-describedby="emailHelp" placeholder="Email">
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                <button type="button" class="btn btn-primary" onclick="alert('sorry, maybe create a new account for now')">Send Password to Email</button>
-                            </div>
-                        </div>
-                        </div>
-                    </div>
                 </div>
                 <div class="mb-3">
                     <a class="account-helpers" href="./create-account.html">Create Account</a>
                 </div>
                 <div class="mb-3">
-                    <!-- Button trigger modal -->
+                    <!-- Admin Login Button trigger modal -->
                     <a class="account-helpers" data-bs-toggle="modal" data-bs-target="#adminPassword" href="#">
                         Admin Login
                     </a>
-                    
-                    <!-- Modal -->
-                    <div class="modal fade" id="adminPassword" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="forgotPasswordLabel">Login with Admin Password</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="mb-3">
-                                    <input type="password" class="form-control" id="adminPasswordInput" aria-describedby="emailHelp" placeholder="Password">
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                <button type="button" class="btn btn-primary" onclick="adminHandler()">Submit</button>
-                            </div>
-                        </div>
-                        </div>
-                    </div>
                 </div>
             </form>
+
+
+            <!-- Forgot Password Modal -->
+            <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="forgotPasswordLabel">Enter Email to send Password</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="forgotPasswordEmail" aria-describedby="emailHelp" placeholder="Email">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" onclick="alert('sorry, maybe create a new account for now')">Send Password to Email</button>
+                    </div>
+                </div>
+                </div>
+            </div>
+
+
+            <!-- Admin Login Modal -->
+            <div class="modal fade" id="adminPassword" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="forgotPasswordLabel">Login with Admin Password</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <input type="password" class="form-control" id="adminPasswordInput" aria-describedby="emailHelp" placeholder="Password">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" onclick="adminHandler()">Submit</button>
+                    </div>
+                </div>
+                </div>
+            </div>
+
         </div>
 
     </main>

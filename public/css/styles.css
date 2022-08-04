@@ -183,6 +183,14 @@ hidden {
     justify-content: center;
 }
 
+label {
+    display: contents;
+}
+
+#userDelete {
+    margin-top: 12%;
+}
+
 @media screen and (max-width: 550px) {
     #gameMatchups div {
         margin: 10px;

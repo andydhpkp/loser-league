@@ -1,3 +1,10 @@
+
+
+
+
+
+
+
 let nflArray2 = [
     {
         teamName: "49ers",

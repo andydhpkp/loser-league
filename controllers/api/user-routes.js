@@ -196,4 +196,24 @@ router.delete('/:id', (req, res) => {
     })
 })
 
+//delete by username
+router.delete('/username/:username', (req, res) => {
+    User.destroy({
+        where: {
+            username: req.params.username
+        }
+    })
+    .then(dbUser => {
+        if (!dbUser) {
+            res.status(404).json({ message: 'No user found with this username' })
+            return
+        }
+        res.json(dbUser)
+    })
+    .catch(err => {
+        console.log(err)
+        res.status(500).json(err)
+    })
+})
+
 module.exports = router;

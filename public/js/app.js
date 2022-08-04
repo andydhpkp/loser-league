@@ -35,6 +35,7 @@ async function displayUsers() {
 
                 let viewHelper = document.getElementById('andrew')
                 console.log(viewHelper)
+                console.log(data)
 
                 for (i=0; i<data.length; i++) {
                     let hiddenUserId = document.createElement('hidden')
@@ -42,6 +43,115 @@ async function displayUsers() {
                     let usersNameDiv = document.createElement('div')
                     let trackAmountInput = document.createElement('input')
                     let userNameAnchor = document.createElement('a')
+
+                    let userModal = document.createElement('div')
+                    userModal.setAttribute('class', 'modal fade')
+                    userModal.setAttribute('id', `${data[i].first_name}`)
+                    userModal.setAttribute('tabindex', '-1')
+                    userModal.setAttribute('aria-labelledby', 'exampleModalLabel')
+                    userModal.setAttribute('aria-hidden', 'true')
+
+                    let userModalCentered = document.createElement('div')
+                    userModalCentered.setAttribute('class', 'modal-dialog modal-dialog-centered')
+
+                    let userModalContent = document.createElement('div')
+                    userModalContent.setAttribute('class', 'modal-content')
+
+                    let userModalHeader = document.createElement('div')
+                    userModalHeader.setAttribute('class', 'modal-header')
+
+                    let userModalTitle = document.createElement('h5')
+                    userModalTitle.setAttribute('class', 'modal-title')
+                    userModalTitle.setAttribute('id', 'name')
+                    userModalTitle.innerText = `${data[i].first_name}`
+
+                    let userModalHeaderClose = document.createElement('button')
+                    userModalHeaderClose.setAttribute('type', 'button')
+                    userModalHeaderClose.setAttribute('class', 'btn-close')
+                    userModalHeaderClose.setAttribute('data-bs-dismiss', 'modal')
+                    userModalHeaderClose.setAttribute('aria-label', 'Close')
+
+                    userModalHeader.appendChild(userModalTitle)
+                    userModalHeader.appendChild(userModalHeaderClose)
+
+                    userModalContent.appendChild(userModalHeader)
+
+                    let userModalBody = document.createElement('div')
+                    userModalBody.setAttribute('class', 'modal-body')
+
+                    let userModalBodymb = document.createElement('div')
+                    userModalBodymb.setAttribute('class', 'mb-3')
+
+                    let form = document.createElement('form')
+                    
+                    let deleteFormDiv = document.createElement('div')
+                    deleteFormDiv.setAttribute('id', 'deleteForm')
+
+                    let individualTrackNumber = data[i].tracks
+                    for(j=0; j<individualTrackNumber.length; j++) {
+                        let input = document.createElement('input')
+                        let label = document.createElement('label')
+                        let br = document.createElement('br')
+                        input.setAttribute('type', 'checkbox')
+                        input.setAttribute('id', `${individualTrackNumber[j].id}`)
+                        input.setAttribute('name', 'track')
+                        input.setAttribute('value', 'delete')
+
+                        label.setAttribute('for', `${individualTrackNumber[j].id}`)
+                        label.innerText = ` Track ${j+1}`
+
+                        deleteFormDiv.appendChild(input)
+                        deleteFormDiv.appendChild(label)
+                        deleteFormDiv.appendChild(br)
+                    }
+
+                    let userNameDiv = document.createElement('div')
+
+                    let nameInput = document.createElement('input')
+                    nameInput.setAttribute('type', 'checkbox')
+                    nameInput.setAttribute('id', `${data[i].username}`)
+                    nameInput.setAttribute('name', 'user')
+                    nameInput.setAttribute('value', 'delete')
+
+                    let nameLabel = document.createElement('label')
+                    nameLabel.setAttribute('for', 'userDelete')
+                    nameLabel.innerText = ` Delete User: ${data[i].first_name}`
+
+                    userNameDiv.appendChild(nameInput)
+                    userNameDiv.appendChild(nameLabel)
+
+                    let modalFooterDiv = document.createElement('div')
+                    modalFooterDiv.setAttribute('class', 'modal-footer')
+
+                    let closeBtn = document.createElement('button')
+                    closeBtn.setAttribute('type', 'button')
+                    closeBtn.setAttribute('class', 'btn btn-secondary')
+                    closeBtn.setAttribute('data-bs-dismiss', 'modal')
+                    closeBtn.innerText = 'Close'
+
+                    let deleteBtn = document.createElement('button')
+                    deleteBtn.setAttribute('type', 'button')
+                    deleteBtn.setAttribute('class', 'btn btn-primary')
+                    deleteBtn.setAttribute('onclick', 'deleteTracksAdmin()')
+                    deleteBtn.innerText = 'Delete Selected'
+
+                    modalFooterDiv.appendChild(closeBtn)
+                    modalFooterDiv.appendChild(deleteBtn)
+
+                    form.appendChild(deleteFormDiv)
+                    form.appendChild(userNameDiv)
+                    form.appendChild(modalFooterDiv)
+
+                    userModalBodymb.appendChild(form)
+
+                    userModalBody.appendChild(userModalBodymb)
+
+                    userModalContent.appendChild(userModalBody)
+
+                    userModalCentered.appendChild(userModalContent)
+
+                    userModal.appendChild(userModalCentered)
+
                     userNameAnchor.setAttribute('data-bs-toggle', 'modal')
                     userNameAnchor.setAttribute('data-bs-target', `#${data[i].first_name}`)
                     userNameAnchor.setAttribute('href', '#')
@@ -58,6 +168,7 @@ async function displayUsers() {
                     individualUserDiv.appendChild(trackAmountDiv)
                     individualUserDiv.appendChild(hiddenUserId)
                     adminViewUserDiv.appendChild(individualUserDiv)
+                    adminViewUserDiv.appendChild(userModal)
                 }
 
                 let trackSubmitBtn = document.createElement('button')
@@ -339,5 +450,70 @@ function adminHandler() {
         location.href = "../admin.html"
     } else {
         alert('Sorry, you are not invited to this party')
+    }
+}
+
+//make it async
+async function deleteTracksAdmin() {
+
+    let altFormResults = document.getElementsByName('track')
+    let deleteUserForm = document.getElementsByName('user')
+
+    var CheckedTracks = 0;
+    for(i=0; i<altFormResults.length; i++) {
+        if(altFormResults[i].checked) {
+            CheckedTracks++
+            let deleteId = parseInt(altFormResults[i].id)
+            let response = await fetch(`api/tracks/${deleteId}`, {
+                method: 'delete'
+            })
+            if (response.ok) {
+                console.log('it worked')
+            }
+            else {
+                alert(response.statusText)
+            }
+        }
+    }
+
+    for(j=0; j<deleteUserForm.length; j++) {
+        if(deleteUserForm[j].checked) {
+            let deleteUsername = deleteUserForm[j].id
+            let response = await fetch(`api/users/username/${deleteUsername}`, {
+                method: 'delete'
+            })
+            if (response.ok) {
+                console.log('it worked')
+            }
+            else {
+                alert(response.statusText)
+            }
+        }
+    }
+
+    location.reload()
+}
+
+
+async function createTrack(user_id) {
+    let available_picks = nflArray2.map(getTeamNames)
+    let used_picks = []
+    let current_pick = ''
+
+    const response = await fetch('/api/tracks', {
+        method: 'post',
+        body: JSON.stringify({
+            available_picks,
+            used_picks,
+            current_pick,
+            user_id
+        }),
+        headers: { 'Content-Type': 'application/json' }
+    });
+    if (response.ok) {
+        console.log('CREATED TRACK')
+        console.log(response)
+    } else {
+        alert(response.statusText)
     }
 }
