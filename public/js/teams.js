@@ -1,5 +1,17 @@
 
 
+    /*Clearly you havent figured it out yet, but try splitting the date to an array, and comparing the items. Knowing the format if split on spaces
+    Would be [Weekday, Month, Day Number, Year Number, Unimportnant time stuff]
+    */
+
+
+    // Once you get the above, set week 1 to start immediately until week 2. This way you can get matchups working starting now with the fetch API
+
+    // You can already set Homescore > Awayscore to do what you want with the outcome of the game. If null than nothing, if tie than loss for both
+
+
+
+
 function getMatchups() {
 
     var nflScoreApi = "https://pacific-anchorage-21728.herokuapp.com/https://fixturedownload.com/feed/json/nfl-2022";
@@ -9,11 +21,68 @@ function getMatchups() {
                 response.json().then(function(data) {
                     console.log(data)
 
-                    //AFTER A WEEK SEE IF THIS TURNS TO AN ARRAY
+                    console.log('--------')
 
-                    let weekNumber = data
-                    console.log('========')
-                    console.log(weekNumber)
+
+
+                    let currentWeek;
+
+                    let seasonStart = true;
+
+/*                     if(currentMonth < 9 && currentMonth > 1) {
+                        thisWeeksDate = 1;
+                        seasonStart = false;
+                    } */
+
+                    let weekDatesArr = []
+                    let weekSecondsArr = []
+                    //to figure out actual week number
+                    for(k=1; k<=18; k++) {
+
+                        let weekTempArr = []
+                        for(j=0; j<data.length; j++) {
+                            if (data[j].RoundNumber === k) {
+                                weekTempArr.push(data[j])
+                            }
+                        }
+
+                        let first = weekTempArr.at(0)
+                        let last = weekTempArr.at(-1)
+
+                        //let firstSeconds = new Date(first.DateUtc)
+                        let finalDaySeconds = new Date(last.DateUtc)
+
+                        weekDatesArr.push(first, last)
+                        weekSecondsArr.push(finalDaySeconds.getTime())
+                    }
+
+                    console.log('THIS IS WEEK DATES')
+                    console.log(weekDatesArr)
+                    console.log(weekSecondsArr)
+
+                    if(seasonStart) {
+
+                        const currentDate = new Date()
+
+                        for(d=0; d<=weekSecondsArr.length; d++) {
+
+                            if (currentDate.getTime() <= weekSecondsArr[0]) {
+                                currentWeek = 1;
+                            } 
+
+                            if (currentDate.getTime() > weekSecondsArr[d] && currentDate.getTime() < (weekSecondsArr[d+1] + 28800000)) {
+                                currentWeek = d+2
+                            }
+                        }
+
+                        console.log('THIS IS CURRENT WEEK')
+                        console.log(currentWeek)
+
+
+
+                        let thisWeeksGames = [];
+                    }
+
                 })
             } else {
                 alert('didnt work')
