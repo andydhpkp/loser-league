@@ -23,18 +23,8 @@ function getMatchups() {
 
                     console.log('--------')
 
-
-
                     let currentWeek;
 
-                    let seasonStart = true;
-
-/*                     if(currentMonth < 9 && currentMonth > 1) {
-                        thisWeeksDate = 1;
-                        seasonStart = false;
-                    } */
-
-                    let weekDatesArr = []
                     let weekSecondsArr = []
                     //to figure out actual week number
                     for(k=1; k<=18; k++) {
@@ -45,43 +35,44 @@ function getMatchups() {
                                 weekTempArr.push(data[j])
                             }
                         }
-
-                        let first = weekTempArr.at(0)
                         let last = weekTempArr.at(-1)
 
-                        //let firstSeconds = new Date(first.DateUtc)
                         let finalDaySeconds = new Date(last.DateUtc)
 
-                        weekDatesArr.push(first, last)
                         weekSecondsArr.push(finalDaySeconds.getTime())
                     }
 
                     console.log('THIS IS WEEK DATES')
-                    console.log(weekDatesArr)
                     console.log(weekSecondsArr)
 
-                    if(seasonStart) {
 
-                        const currentDate = new Date()
+                    const currentDate = new Date()
 
-                        for(d=0; d<=weekSecondsArr.length; d++) {
+                    for(d=0; d<=weekSecondsArr.length; d++) {
 
-                            if (currentDate.getTime() <= weekSecondsArr[0]) {
-                                currentWeek = 1;
-                            } 
+                        if (currentDate.getTime() <= weekSecondsArr[0]) {
+                            currentWeek = 1;
+                        } 
 
-                            if (currentDate.getTime() > weekSecondsArr[d] && currentDate.getTime() < (weekSecondsArr[d+1] + 28800000)) {
-                                currentWeek = d+2
-                            }
+                        if (currentDate.getTime() > weekSecondsArr[d] && currentDate.getTime() < (weekSecondsArr[d+1] + 28800000)) {
+                            currentWeek = d+2
                         }
-
-                        console.log('THIS IS CURRENT WEEK')
-                        console.log(currentWeek)
-
-
-
-                        let thisWeeksGames = [];
                     }
+
+                    let thisWeeksGames = [];
+
+                    for(w=0; w<data.length; w++) {
+                        if (data[w].RoundNumber === currentWeek) {
+                            thisWeeksGames.push(data[w])
+                        }
+                    }
+
+                    
+                    console.log(thisWeeksGames)
+                    console.log('THIS IS CURRENT WEEK')
+                    console.log(currentWeek)
+
+
 
                 })
             } else {
@@ -101,162 +92,162 @@ function getMatchups() {
 
 let nflArray2 = [
     {
-        teamName: "49ers",
+        teamName: "San Francisco 49ers",
         teamLogo: '../css/assets/san-francisco-49ers-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Cardinals",
+        teamName: "Arizona Cardinals",
         teamLogo: '../css/assets/arizona-cardinals-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Falcons",
+        teamName: "Atlanta Falcons",
         teamLogo: '../css/assets/atlanta-falcons-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Ravens",
+        teamName: "Baltimore Ravens",
         teamLogo: '../css/assets/baltimore-ravens-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Bills",
+        teamName: "Buffalo Bills",
         teamLogo: '../css/assets/buffalo-bills-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Eagles",
+        teamName: "Philadelphia Eagles",
         teamLogo: '../css/assets/philadelphia-eagles-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Panthers",
+        teamName: "Carolina Panthers",
         teamLogo: '../css/assets/carolina-panthers-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Bears",
+        teamName: "Chicago Bears",
         teamLogo: '../css/assets/chicago-bears-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Bengals",
+        teamName: "Cincinnati Bengals",
         teamLogo: '../css/assets/cincinnati-bengals-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Browns",
+        teamName: "Cleveland Browns",
         teamLogo: '../css/assets/cleveland-browns-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Cowboys",
+        teamName: "Dallas Cowboys",
         teamLogo: '../css/assets/dallas-cowboys-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Broncos",
+        teamName: "Denver Broncos",
         teamLogo: '../css/assets/denver-broncos-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Lions",
+        teamName: "Detroit Lions",
         teamLogo: '../css/assets/detroit-lions-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Packers",
+        teamName: "Green Bay Packers",
         teamLogo: '../css/assets/green-bay-packers-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Texans",
+        teamName: "Houston Texans",
         teamLogo: '../css/assets/houston-texans-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Colts",
+        teamName: "Indianapolis Colts",
         teamLogo: '../css/assets/indianapolis-colts-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Jaguars",
+        teamName: "Jacksonville Jaguars",
         teamLogo: '../css/assets/jacksonville-jaguars-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Chiefs",
+        teamName: "Kansas City Chiefs",
         teamLogo: '../css/assets/kansas-city-chiefs-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Chargers",
+        teamName: "Los Angeles Chargers",
         teamLogo: '../css/assets/los-angeles-chargers-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Dolphins",
+        teamName: "Miami Dolphins",
         teamLogo: '../css/assets/miami-dolphins-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Vikings",
+        teamName: "Minnesota Vikings",
         teamLogo: '../css/assets/minnesota-vikings-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Patriots",
+        teamName: "New England Patriots",
         teamLogo: '../css/assets/new-england-patriots-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Saints",
+        teamName: "New Orleans Saints",
         teamLogo: '../css/assets/new-orleans-saints-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Giants",
+        teamName: "New York Giants",
         teamLogo: '../css/assets/new-york-giants-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Jets",
+        teamName: "New York Jets",
         teamLogo: '../css/assets/new-york-jets-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Raiders",
+        teamName: "Las Vegas Raiders",
         teamLogo: '../css/assets/oakland-raiders-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Steelers",
+        teamName: "Pittsburgh Steelers",
         teamLogo: '../css/assets/pittsburgh-steelers-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Rams",
+        teamName: "Los Angeles Rams",
         teamLogo: '../css/assets/Rams-icon.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Seahawks",
+        teamName: "Seattle Seahawks",
         teamLogo: '../css/assets/seattle-seahawks-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Buccaneers",
+        teamName: "Tampa Bay Buccaneers",
         teamLogo: '../css/assets/tampa-bay-buccaneers-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Titans",
+        teamName: "Tennessee Titans",
         teamLogo: '../css/assets/tennessee-titans-logo.png',
         teamRecord: '1-1'
     },
     {
-        teamName: "Commanders",
+        teamName: "Washington Commanders",
         teamLogo: '../css/assets/Washington-Commanders-icon.png',
         teamRecord: '1-1'
     },
