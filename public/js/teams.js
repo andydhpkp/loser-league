@@ -1,11 +1,6 @@
 
 
-    /*Clearly you havent figured it out yet, but try splitting the date to an array, and comparing the items. Knowing the format if split on spaces
-    Would be [Weekday, Month, Day Number, Year Number, Unimportnant time stuff]
-    */
-
-
-    // Once you get the above, set week 1 to start immediately until week 2. This way you can get matchups working starting now with the fetch API
+//get matchups working bitch
 
     // You can already set Homescore > Awayscore to do what you want with the outcome of the game. If null than nothing, if tie than loss for both
 

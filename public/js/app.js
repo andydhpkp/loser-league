@@ -186,9 +186,12 @@ async function displayUsers() {
 function submitTrackNumberHandler() {
     let idGetter = document.getElementsByClassName('adminUsersView')
     let trackGetter = document.getElementsByClassName('trackAmounts')
+    console.log('IDGETTER')
+    console.log(idGetter)
+    console.log(trackGetter)
     let postTrackHelp = []
     for (i=0; i<idGetter.length; i++) {
-        let user_id = idGetter[i].children[2].innerText
+        let user_id = idGetter[i].children[3].innerText
         let track_number = trackGetter[i].value.trim()
         postTrackHelp.push({
             userId: parseInt(user_id),

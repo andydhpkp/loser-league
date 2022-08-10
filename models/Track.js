@@ -13,7 +13,7 @@ Track.init(
             autoIncrement: true
         },
         available_picks: {
-            type: DataTypes.STRING,
+            type: DataTypes.TEXT,
             allowNull: false,
             get() {
                 return this.getDataValue('available_picks').split(';');
