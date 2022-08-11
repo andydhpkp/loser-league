@@ -261,6 +261,14 @@ function matchup(totalTracks, trackIds, used_picks) {
 
                         let currentWeek = getWeek(data)
 
+                        let headerHelp = document.getElementsByTagName('header')[0]
+                        console.log(headerHelp)
+                        let currentWeekDiv = document.createElement('div')
+                        let currentWeekH1 = document.createElement('h1')
+                        currentWeekH1.innerHTML = `Week ${currentWeek}`
+                        currentWeekDiv.appendChild(currentWeekH1)
+                        headerHelp.appendChild(currentWeekDiv)
+
                         let thisWeeksGames = [];
 
                         for(w=0; w<data.length; w++) {
@@ -268,11 +276,13 @@ function matchup(totalTracks, trackIds, used_picks) {
                                 thisWeeksGames.push(data[w])
                             }
                         }
+
+                        console.log(thisWeeksGames)
                         
                         let thisWeeksMatchups = [];
 
                         for (m=0; m<thisWeeksGames.length; m++) {
-                            thisWeeksMatchups.push(data[m].HomeTeam, data[m].AwayTeam)
+                            thisWeeksMatchups.push(thisWeeksGames[m].HomeTeam, thisWeeksGames[m].AwayTeam)
                         }
 
                         let matchupsLogos = []
@@ -290,7 +300,7 @@ function matchup(totalTracks, trackIds, used_picks) {
 
                         let matchupRecordsFormat = []
 
-                        let matchups = []
+                        let matchups = [];
                         let logos = [];
                         let info = [];
                         let chooser = 0
@@ -302,6 +312,8 @@ function matchup(totalTracks, trackIds, used_picks) {
                             let record = `(${wins} - ${losses})`
                             matchupRecordsFormat.push(record)
                         }
+
+                        console.log(matchups)
                     
                         while(matchups.length < (thisWeeksMatchups.length)) {
                     
@@ -324,6 +336,8 @@ function matchup(totalTracks, trackIds, used_picks) {
 
                             chooser++;
                         }
+
+                        console.log(matchups)
                 
                         let extraCountIdHelp = 0;
                 

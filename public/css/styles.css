@@ -21,10 +21,18 @@ header {
     margin: 5px;
 }
 
+header div {
+    display: flex;
+    width: 100%;
+}
+
 header h1 {
     text-align: center;
     width: 100%;
 }
+
+
+
 
 header a {
     text-align: center;
