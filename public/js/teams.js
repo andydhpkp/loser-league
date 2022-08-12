@@ -7,7 +7,9 @@
 
 
 
-function keepingRecords() {
+function keepingRecords(winner, loser, tie) {
+    tie = tie || false;
+    console.log(winner, loser, tie)
     //find a way to keep track of records so they can be pulled straight from nflarray2
 }
 
@@ -194,6 +196,15 @@ function getTrackNumber() {
                 }
                 console.log(used_picks)
                 matchup(totalTracks, trackIdArray, used_picks)
+                if(trackIdArray.length === 0) {
+                    let sectionHelp = document.getElementById('games')
+                    console.log(sectionHelp)
+                    let nothingDiv = document.createElement('div')
+                    let nothingMessageH1 = document.createElement('h1')
+                    nothingMessageH1.innerHTML = 'It looks like you do not have any tracks... try texting Tate'
+                    nothingDiv.appendChild(nothingMessageH1)
+                    sectionHelp.appendChild(nothingDiv)
+                }
             })
         }
     })
@@ -240,8 +251,17 @@ function getWeek(data) {
     localStorage.setItem('thisWeek', currentWeek)
 
     return currentWeek;
+}
+
+
+function getEndofDay() {
+    let currentMoment = new Date()
+    let checkdate = 0;
+
 
 }
+
+
 
 function matchup(totalTracks, trackIds, used_picks) {
 
@@ -421,4 +441,57 @@ function matchup(totalTracks, trackIds, used_picks) {
         .catch(function (error) {
             alert('unable to connect')
         })
+}
+
+
+function matchupResult() {
+    var nflScoreApi = "https://pacific-anchorage-21728.herokuapp.com/https://fixturedownload.com/feed/json/nfl-2022";
+    fetch(nflScoreApi)
+        .then(function(response) {
+            if (response.ok) {
+                    response.json().then(function(data) {
+                        console.log(data)
+
+                        let currentWeek = getWeek(data)
+
+                        let thisWeeksGames = [];
+
+                        for(w=0; w<data.length; w++) {
+                            if (data[w].RoundNumber === currentWeek) {
+                                thisWeeksGames.push(data[w])
+                            }
+                        }
+
+                        console.log(thisWeeksGames)
+                        
+                        let thisWeeksMatchups = [];
+
+                        for (m=0; m<thisWeeksGames.length; m++) {
+                            thisWeeksMatchups.push(thisWeeksGames[m].HomeTeam, thisWeeksGames[m].AwayTeam)
+                        }
+
+                        for(i=0; i<thisWeeksGames.length; i++) {
+/*                             if(thisWeeksGames[i].HomeTeamScore === null || thisWeeksGames[i].AwayTeamScore === null) {
+                                return;
+                            } */
+                            if(thisWeeksGames[i].HomeTeamScore > thisWeeksGames[i].AwayTeamScore) {
+                                keepingRecords(thisWeeksGames[i].HomeTeam, thisWeeksGames[i].AwayTeam)
+                            }
+                            if(thisWeeksGames[i].AwayTeamScore > thisWeeksGames[i].HomeTeamScore) {
+                                keepingRecords(thisWeeksGames[i].AwayTeam, thisWeeksGames[i].HomeTeam)
+                            }
+                            if(thisWeeksGames[i].AwayTeamScore === thisWeeksGames[i].HomeTeamScore) {
+                                keepingRecords(thisWeeksGames[i].AwayTeam, thisWeeksGames[i].HomeTeam, true)
+                            }
+                        }
+
+                    })
+            } else {
+                alert('didnt work')
+                console.log(nflScoreApi)
+            }
+        })
+        .catch(function (error) {
+        alert('unable to connect')
+    })
 }

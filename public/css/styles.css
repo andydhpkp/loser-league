@@ -191,6 +191,10 @@ hidden {
     justify-content: center;
 }
 
+#games h1 {
+    text-align: center;
+}
+
 label {
     display: contents;
 }
