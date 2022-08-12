@@ -357,6 +357,13 @@ function registerClick(clicked_id) {
     let pickedTeam = clicked_id
     let pickedTeamDiv = document.getElementById(pickedTeam)
     pickedTeamDiv.setAttribute('class', 'tempPick')
+    console.log(pickedTeamDiv)
+    let colorHelp = document.getElementsByClassName("tempPick")
+    let coloredTrack
+    for(x=0; x<colorHelp.length; x++) {
+        coloredTrack = colorHelp[x].parentNode.parentNode;
+        coloredTrack.classList.add('successfulPick')
+    }
 }
 
 function submitPicks() {
@@ -364,6 +371,15 @@ function submitPicks() {
 }
 
 async function leagueUserTableHandler() {
+
+    let headerHelp = document.getElementsByTagName('header')[0]
+    console.log(headerHelp)
+    let currentWeekDiv = document.createElement('div')
+    let currentWeekH1 = document.createElement('h1')
+    let currentWeek = localStorage.getItem('thisWeek')
+    currentWeekH1.innerHTML = `Week ${currentWeek}`
+    currentWeekDiv.appendChild(currentWeekH1)
+    headerHelp.appendChild(currentWeekDiv)
 
     fetch('/api/users').then(function(response) {
         if (response.ok) {
@@ -462,10 +478,10 @@ async function deleteTracksAdmin() {
     let altFormResults = document.getElementsByName('track')
     let deleteUserForm = document.getElementsByName('user')
 
-    var CheckedTracks = 0;
+    var checkedTracks = 0;
     for(i=0; i<altFormResults.length; i++) {
         if(altFormResults[i].checked) {
-            CheckedTracks++
+            checkedTracks++
             let deleteId = parseInt(altFormResults[i].id)
             let response = await fetch(`api/tracks/${deleteId}`, {
                 method: 'delete'

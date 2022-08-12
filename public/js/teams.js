@@ -237,6 +237,8 @@ function getWeek(data) {
         }
     }
 
+    localStorage.setItem('thisWeek', currentWeek)
+
     return currentWeek;
 
 }
