@@ -357,7 +357,6 @@ function registerClick(clicked_id) {
     let pickedTeam = clicked_id
     let pickedTeamDiv = document.getElementById(pickedTeam)
     pickedTeamDiv.setAttribute('class', 'tempPick')
-    console.log(pickedTeamDiv)
     let colorHelp = document.getElementsByClassName("tempPick")
     let coloredTrack
     for(x=0; x<colorHelp.length; x++) {
