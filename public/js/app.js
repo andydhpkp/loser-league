@@ -212,90 +212,145 @@ async function getBodyForPicks() {
         if(response.ok) {
             response.json().then(function(data) {
                 console.log(data)
-                let picks = document.getElementsByClassName('tempPick')
-                let totalPicks = picks.length
-                let trackHelp = document.getElementsByClassName('trackContainer')
-                let trackTotal = trackHelp.length
-                let trackIdPicksArr = []
-                let trackSelectionsArr = []
-                let finalPicksArrHelper = []
-                let picksObj = []
-                
 
-                if (totalPicks != trackTotal) {
-                    alert('Please Make A Pick For Each Track')
-                } else {
-                    
-                    for(i=0; i<trackTotal; i++) {
-                        let parseId = parseInt(trackHelp[i].id)
-                        trackIdPicksArr.push(parseId)
-                        trackSelectionsArr.push(picks[i].id)
-                        finalPicksArrHelper.push(trackSelectionsArr[i].split(',', 2))
-                        let finalPick = finalPicksArrHelper[i][1]
-            
-                        picksObj.push({
-                            trackId: parseId,
-                            trackSelection: finalPick
-                        })
+                let weekCheck = localStorage.getItem('thisWeek')
+
+                //weekCheck = 3
+
+                let allPicksIn = 0;
+                let alreadyPicked = [];
+                let donePicking = false;
+                for(w=0; w<data.length; w++) {
+                    if(data[w].used_picks.length > weekCheck) {
+                        allPicksIn++;
+                        alreadyPicked.push(data[w].id)
+                        console.log(allPicksIn)
+                        console.log(alreadyPicked)
                     }
-            
-                    console.log(picksObj)
-            
-                    for(i=0; i<picksObj.length; i++) {
-                        let idHelper = picksObj[i].trackId - 1;
-                        let available_picks = data[idHelper].available_picks
-                        let used_picks = data[idHelper].used_picks
-                        let current_pick = picksObj[i].trackSelection
-                        let user_id = data[idHelper].user_id
-                        let putTrackId = picksObj[i].trackId
-                        let colorTrack = document.getElementById(picksObj[i].trackId)
-                        let noDuplicates = document.getElementsByClassName('successfulPick')
-                        let noDuplicatesId =[]
-
-                        if(noDuplicates.length>0) {
-                            for(k=0; k<noDuplicates.length; k++) {
-                                noDuplicatesId.push(parseInt(noDuplicates[k].id))
-                            }
-                        }
-
-                        console.log(noDuplicates)
-                        console.log(noDuplicatesId)
-                        console.log(putTrackId)
-
-                        if(!noDuplicatesId.includes(putTrackId)) {
-                            let tryAgain = document.getElementsByClassName('unsuccessfulPick')
-
-                            if(tryAgain.length>0) {
-                                for(j=0; j<tryAgain.length; j++) {
-                                    let tryAgainId = parseInt(tryAgain[j].id)
-                                    if(putTrackId === tryAgainId) {
-                                        let resetClass = tryAgain[j]
-                                        resetClass.classList.toggle('unsuccessfulPick')
-                                    }
-                                }
-                            }
-
-                            if(used_picks.includes(current_pick)) {
-                                let alertTrackNumber = i + 1
-                                colorTrack.classList.toggle('unsuccessfulPick')
-                                alert(`Sorry, ${current_pick} has already been picked for track number ${alertTrackNumber}, try again!`)
-                            } else {
-                                used_picks.push(current_pick)
-                                available_picks = available_picks.filter(item => item !== current_pick)
-                                console.log('submitted!!!!')
-                                colorTrack.classList.toggle('successfulPick')
-                                makePick(available_picks, used_picks, current_pick, user_id, putTrackId)
-                            }
-                        }
-
+                    if(allPicksIn === data.length) {
+                        alert('It looks like you have already made picks for this week!')
+                        donePicking = true
                     }
-                    let finishedCheck = document.getElementsByClassName('successfulPick')
-                    if (finishedCheck.length === picksObj.length) {
-                        location.href = "../league-page.html"
-                    } 
                 }
 
+                console.log(alreadyPicked)
 
+                if(donePicking === false) {
+                    let picks = document.getElementsByClassName('tempPick')
+                    let totalPicks = picks.length
+                    let trackHelp = document.getElementsByClassName('trackContainer')
+                    let trackTotal = trackHelp.length
+                    let trackIdPicksArr = []
+                    let trackSelectionsArr = []
+                    let finalPicksArrHelper = []
+                    let picksObj = []
+                    
+    
+                    if (totalPicks != trackTotal) {
+                        alert('Please Make A Pick For Each Track')
+                    } else {
+                        
+                        for(i=0; i<trackTotal; i++) {
+                            let parseId = parseInt(trackHelp[i].id)
+                            trackIdPicksArr.push(parseId)
+                            trackSelectionsArr.push(picks[i].id)
+                            finalPicksArrHelper.push(trackSelectionsArr[i].split(',', 2))
+                            let finalPick = finalPicksArrHelper[i][1]
+                
+                            picksObj.push({
+                                trackId: parseId,
+                                trackSelection: finalPick
+                            })
+                        }
+    
+                        if(alreadyPicked.length <= picksObj.length) {
+    
+                            console.log(picksObj)
+                
+                            for(i=0; i<picksObj.length; i++) {
+                                console.log('PICKSOBJ')
+                                console.log(picksObj)
+                                console.log(data)
+    
+                                let idHelper;
+                                let available_picks;
+                                let used_picks;
+                                let current_pick;
+                                let user_id;
+                                let putTrackId;
+    
+                                for(t=0; t<picksObj.length; t++) {
+                                    if(picksObj[i].trackId === data[t].id) {
+                                        available_picks = data[i].available_picks
+                                        used_picks = data[i].used_picks
+                                        current_pick = picksObj[i].trackSelection
+                                        user_id = data[i].user_id
+                                        putTrackId = picksObj[i].trackId
+                                    }
+                                    console.log('this is the i number times')
+                                    console.log(available_picks)
+                                    console.log(used_picks)
+                                    console.log(current_pick)
+                                    console.log(user_id)
+                                    console.log(putTrackId)
+                                }
+    
+    
+    
+                                let colorTrack = document.getElementById(picksObj[i].trackId)
+                                let noDuplicates = document.getElementsByClassName('successfulPick')
+                                let noDuplicatesId =[]
+    
+                                if(noDuplicates.length>0) {
+                                    for(k=0; k<noDuplicates.length; k++) {
+                                        noDuplicatesId.push(parseInt(noDuplicates[k].id))
+                                    }
+                                }
+    
+                                console.log('NO DUPLICATES')
+                                console.log(noDuplicates)
+                                console.log(noDuplicatesId)
+                                console.log(putTrackId)
+    
+                                if(!noDuplicatesId.includes(putTrackId)) {
+                                    let tryAgain = document.getElementsByClassName('unsuccessfulPick')
+    
+                                    if(tryAgain.length>0) {
+                                        for(j=0; j<tryAgain.length; j++) {
+                                            let tryAgainId = parseInt(tryAgain[j].id)
+                                            if(putTrackId === tryAgainId) {
+                                                let resetClass = tryAgain[j]
+                                                resetClass.classList.toggle('unsuccessfulPick')
+                                            }
+                                        }
+                                    }
+    
+                                    if(used_picks.includes(current_pick)) {
+                                        let alertTrackNumber = i + 1
+                                        colorTrack.classList.toggle('unsuccessfulPick')
+                                        alert(`Sorry, ${current_pick} has already been picked for track number ${alertTrackNumber}, try again!`)
+                                    } 
+    
+    
+    
+                                } else {
+                                    used_picks.push(current_pick)
+                                    available_picks = available_picks.filter(item => item !== current_pick)
+                                    console.log('submitted!!!!')
+                                    //colorTrack.classList.toggle('successfulPick')
+                                    makePick(available_picks, used_picks, current_pick, user_id, putTrackId)
+                                }
+                            }
+    
+                        } 
+                        let finishedCheck = document.getElementsByClassName('successfulPick')
+                        if (finishedCheck.length === picksObj.length || alreadyPicked.length >= picksObj.length) {
+                            location.href = "../league-page.html"
+                        } 
+                    }
+                } else {
+                    location.href = "../league-page.html"
+                }
             })
         } else {
             alert('Sorry, could not connect to database, please try again')
