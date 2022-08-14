@@ -213,7 +213,7 @@ async function getBodyForPicks() {
             response.json().then(function(data) {
                 console.log(data)
 
-                let weekCheck = localStorage.getItem('thisWeek')
+                let weekCheck = parseInt(localStorage.getItem('thisWeek'))
 
                 //weekCheck = 3
 
@@ -439,6 +439,7 @@ async function leagueUserTableHandler() {
         if (response.ok) {
             response.json().then(function (data) {
 
+                console.log(data)
                 //let orderUsersArr = 
 
                 let viewUsersTable = document.getElementById('leagueMain')
@@ -492,7 +493,20 @@ async function leagueUserTableHandler() {
                     let tdTracks = document.createElement('td')
                     tdTracks.innerText = data[i].tracks.length
                     let tdSubmitted = document.createElement('td')
-                    tdSubmitted.innerText = 'Yes'
+                    let submitted = 'No'
+
+                    console.log(data[i])
+                    let trackChecker = parseInt(currentWeek);
+                    trackChecker++
+                    for(t=0; t<data[i].tracks.length; t++) {
+                        console.log(trackChecker)
+                        console.log(data[i].tracks[t].used_picks.length)
+                        if(data[i].tracks[t].used_picks.length === trackChecker) {
+                            submitted = 'Yes'
+                        }
+                    }
+
+                    tdSubmitted.innerText = submitted
 
                     tr.appendChild(tdFirst)
                     tr.appendChild(tdLast)
