@@ -1,6 +1,7 @@
 //going to need to do a belongs to for future model of picks
 const User = require('./User')
 const Track = require('./Track')
+const Team = require('./Team')
 
 User.hasMany(Track, {
     foreignKey: 'user_id'
@@ -12,4 +13,4 @@ Track.belongsTo(User, {
 })
 
 
-module.exports = { User, Track };
+module.exports = { User, Track, Team };

@@ -11,8 +11,12 @@ function keepingRecords(winner, loser, tie) {
     tie = tie || false;
     console.log(winner, loser, tie)
     //find a way to keep track of records so they can be pulled straight from nflarray2
+
 }
 
+function saveRecordsToStorage(nflArray2) {
+
+}
 
 let nflArray2 = [
     {
@@ -254,12 +258,25 @@ function getWeek(data) {
 }
 
 
-function getEndofDay() {
+function getEndOfGameTime() {
     let currentMoment = new Date()
-    let checkdate = 0;
 
+    let checkMatchupDay = currentMoment.getUTCDay()
 
+    let checkMatchupHour = currentMoment.getUTCHours()
+
+    console.log('check day, then hour')
+
+    console.log(checkMatchupDay)
+    console.log(checkMatchupHour)
+
+    if((checkMatchupDay <= 2 || checkMatchupDay >= 4) && (checkMatchupHour === 1 || checkMatchupHour === 21 || checkMatchupHour === 4 || checkMatchupHour === 15 || checkMatchupHour === 9)) {
+        console.log('Checking Mathcup!!')
+        matchupResult()
+    }
 }
+//3600000
+setInterval(getEndOfGameTime, 120000)
 
 
 
@@ -452,9 +469,11 @@ function matchupResult() {
                     response.json().then(function(data) {
                         console.log(data)
 
-                        let currentWeek = getWeek(data)
-
                         let thisWeeksGames = [];
+                        let currentWeek = getWeek(data)
+//
+                        let testerScores;
+//
 
                         for(w=0; w<data.length; w++) {
                             if (data[w].RoundNumber === currentWeek) {
@@ -494,4 +513,60 @@ function matchupResult() {
         .catch(function (error) {
         alert('unable to connect')
     })
+}
+
+
+async function createTeams() {
+    
+    for(i=0; i<nflArray2.length; i++) {
+
+        let team_name = nflArray2[i].teamName
+        let team_logo = nflArray2[i].teamLogo
+        let team_record = nflArray2[i].teamRecord
+
+        const response = await fetch('/api/teams', {
+            method: 'post',
+            body: JSON.stringify({
+                team_name,
+                team_logo,
+                team_record
+            }),
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (response.ok) {
+            console.log('CREATED TEAM')
+            console.log(response)
+        } else {
+            alert(response.statusText)
+        }
+    }
+}
+
+async function doTeamsExist() {
+    fetch('/api/teams').then(function(response) {
+        if (response.ok) {
+            response.json().then(function(data) {
+                console.log(data)
+                
+                if(data.length < 32 || data.length > 32) {
+                    console.log('DELETING ALL TEAMS AND RECREATING THEM')
+                    deleteAllTeams()
+                }
+            })
+        } else {
+            alert('did not work')
+        }
+    })
+}
+
+async function deleteAllTeams() {
+    let response = await fetch('/api/teams', {
+        method: 'delete'
+    })
+    if (response.ok) {
+        console.log('it worked')
+    }
+    else {
+        console.log('It has been working')
+    }
 }
