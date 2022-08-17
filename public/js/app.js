@@ -206,6 +206,25 @@ function submitTrackNumberHandler() {
     }
 }
 
+async function getUserId() {
+    fetch(`/api/users/`).then(function(response) {
+        if(response.ok) {
+            response.json().then(function(data) {
+                let loggedInUsername = localStorage.getItem('loggedInUser')
+                let loggedInUserId;
+                for(i=0; i<data.length; i++) {
+                    if(data[i].username === loggedInUsername) {
+                        loggedInUserId = data[i].id
+                    }
+                }
+                localStorage.setItem('loggedInUserId', loggedInUserId)
+            })
+        } else {
+            alert(response.error)
+        }
+    })
+}
+
 
 async function getBodyForPicks() {
     fetch(`/api/tracks/`).then(function(response) {
@@ -220,18 +239,26 @@ async function getBodyForPicks() {
                 let allPicksIn = 0;
                 let alreadyPicked = [];
                 let donePicking = false;
+                let thisUsersTracks = [];
+                let thisUsersId = parseInt(localStorage.getItem('loggedInUserId'));
+                let trackTotalHelp = document.getElementsByClassName('trackContainer')
+                console.log(thisUsersId)
                 for(w=0; w<data.length; w++) {
-                    if(data[w].used_picks.length > weekCheck) {
-                        allPicksIn++;
-                        alreadyPicked.push(data[w].id)
-                        console.log(allPicksIn)
-                        console.log(alreadyPicked)
-                    }
-                    if(allPicksIn === data.length) {
-                        alert('It looks like you have already made picks for this week!')
-                        donePicking = true
+                    if(data[w].user_id === thisUsersId) {
+                        thisUsersTracks.push(data[w])
+                        if(data[w].used_picks.length > weekCheck) {
+                            allPicksIn++;
+                            alreadyPicked.push(data[w].id)
+                            console.log(allPicksIn)
+                            console.log(alreadyPicked)
+                        }
+                        if(allPicksIn === trackTotalHelp.length) {
+                            alert('It looks like you have already made picks for this week!')
+                            donePicking = true
+                        }
                     }
                 }
+                console.log(thisUsersTracks)
 
                 console.log(alreadyPicked)
 
@@ -270,7 +297,7 @@ async function getBodyForPicks() {
                             for(i=0; i<picksObj.length; i++) {
                                 console.log('PICKSOBJ')
                                 console.log(picksObj)
-                                console.log(data)
+                                console.log(thisUsersTracks)
     
                                 let idHelper;
                                 let available_picks;
@@ -280,11 +307,11 @@ async function getBodyForPicks() {
                                 let putTrackId;
     
                                 for(t=0; t<picksObj.length; t++) {
-                                    if(picksObj[i].trackId === data[t].id) {
-                                        available_picks = data[i].available_picks
-                                        used_picks = data[i].used_picks
+                                    if(picksObj[i].trackId === thisUsersTracks[t].id) {
+                                        available_picks = thisUsersTracks[i].available_picks
+                                        used_picks = thisUsersTracks[i].used_picks
                                         current_pick = picksObj[i].trackSelection
-                                        user_id = data[i].user_id
+                                        user_id = thisUsersTracks[i].user_id
                                         putTrackId = picksObj[i].trackId
                                     }
                                     console.log('this is the i number times')
@@ -514,6 +541,16 @@ async function leagueUserTableHandler() {
                     tr.appendChild(tdSubmitted)
 
                     tBody.appendChild(tr)
+
+                    for(x=0; x<data[i].tracks.length; x++) {
+                        let tdTeamName = document.createElement('td')
+                        console.log(data)
+                        tdTeamName.innerText = data[i].tracks[x].current_pick
+                        //th.innerText = i+2
+                        //tr.appendChild(th)
+                        tr.appendChild(tdTeamName)
+                        tBody.appendChild(tr)
+                    }
                 }
 
                 mainTable.appendChild(tBody)

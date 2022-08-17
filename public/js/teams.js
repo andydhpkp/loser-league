@@ -279,8 +279,18 @@ function getEndOfGameTime() {
 setInterval(getEndOfGameTime, 120000)
 
 
+const matchup = async (totalTracks, trackIds, used_picks) => {
+    //const nflObj = await nflArrayFunction()
+    let nflObj;
+    fetch('/api/teams').then(function(response) {
+        if(response.ok) {
+            response.json().then(function(data) {
+                nflObj = data
+            })
+        }
+    })
 
-function matchup(totalTracks, trackIds, used_picks) {
+//function matchup(totalTracks, trackIds, used_picks) {
 
     let containerNumber = totalTracks
     let container = document.getElementById('gameMatchups')
@@ -290,6 +300,7 @@ function matchup(totalTracks, trackIds, used_picks) {
     secondSubmitPicksBtn.setAttribute('onclick', 'getBodyForPicks()')
     secondSubmitPicksBtn.innerText = 'Submit Picks'
     container.innerHTML = "";
+    //let nflObj = nflArrayFunction()
 
     var nflScoreApi = "https://pacific-anchorage-21728.herokuapp.com/https://fixturedownload.com/feed/json/nfl-2022";
     fetch(nflScoreApi)
@@ -329,10 +340,12 @@ function matchup(totalTracks, trackIds, used_picks) {
 
                         for(l=0; l<(thisWeeksMatchups.length); l++) {
 
-                            for(x=0; x<nflArray2.length; x++) {
-                                if(thisWeeksMatchups[l] === nflArray2[x].teamName) {
-                                    matchupsLogos.push(nflArray2[x].teamLogo)
-                                    matchupRecords.push(nflArray2[x].teamRecord)
+                            console.log(nflObj)
+
+                            for(x=0; x<nflObj.length; x++) {
+                                if(thisWeeksMatchups[l] === nflObj[x].team_name) {
+                                    matchupsLogos.push(nflObj[x].team_logo)
+                                    matchupRecords.push(nflObj[x].team_record)
                                 }
                             }
                         }
@@ -551,6 +564,7 @@ async function doTeamsExist() {
                 if(data.length < 32 || data.length > 32) {
                     console.log('DELETING ALL TEAMS AND RECREATING THEM')
                     deleteAllTeams()
+                    createTeams()
                 }
             })
         } else {

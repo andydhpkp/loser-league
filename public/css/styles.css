@@ -195,6 +195,17 @@ hidden {
     text-align: center;
 }
 
+#adminView {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+#createTeams {
+    text-align: center;
+}
+
 label {
     display: contents;
 }
