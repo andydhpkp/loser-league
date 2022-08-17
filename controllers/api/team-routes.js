@@ -48,7 +48,7 @@ router.post('/', (req, res) => {
     })
 })
 
-//Make Pick
+//update win/loss
 router.put('/:id', (req, res) => {
     Team.update(req.body, {
         where: {

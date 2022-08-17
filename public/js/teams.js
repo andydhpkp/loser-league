@@ -4,13 +4,112 @@
 
     // You can already set Homescore > Awayscore to do what you want with the outcome of the game. If null than nothing, if tie than loss for both
 
+//add logic so logged in users who have made their picks go straight to league view
 
 
-
-function keepingRecords(winner, loser, tie) {
+async function keepingRecords(winner, loser, tie) {
     tie = tie || false;
     console.log(winner, loser, tie)
     //find a way to keep track of records so they can be pulled straight from nflarray2
+    let winnerId;
+    let winnerRecord;
+    let wins
+    let winnerLosses;
+    let updatedWinnerRecord;
+
+    let loserId;
+    let loserRecord;
+    let losses;
+    let loserWins;
+    let updatedLoserRecord;
+
+    let won = 1;
+    let loss = 1;
+
+    let nflObj;
+    fetch('/api/teams').then(function(response) {
+        if(response.ok) {
+            response.json().then(function(data) {
+                nflObj = data
+            })
+        }
+    })
+
+    if(tie) {
+        if(nflObj[i].teamName === winner) {
+            let tie1Id = nflObj[i].id
+        }
+        if(nflObj[i].teamName === loser) {
+            let tie2Id = nflObj[i].id
+        }
+    }
+
+    for(i=0; i<nflObj.length; i++) {
+        if(nflObj[i].teamName === winner) {
+            winnerId = nflObj[i].id
+            winnerRecord = nflObj[i].team_record
+            wins = parseInt(winnerRecord[0])
+            winnerLosses = parseInt(winnerRecord[1])
+        }
+        if(nflObj[i].teamName === loser) {
+            loserId = nflObj[i].id
+            loserRecord = nflObj[i].team_record
+            losses = parseInt(loserRecord[1])
+            loserWins = parseInt(loserRecord[0])
+        }
+    }
+
+    wins++;
+    losses++;
+
+    updatedWinnerRecord.push(wins.toString())
+    updatedWinnerRecord.push(winnerLosses.toString())
+
+    updatedLoserRecord.push(loserWins.toString())
+    updatedLoserRecord.push(losses.toString())
+
+    let id = winnerId
+    let team_record = updatedWinnerRecord
+
+    for(x=0; x<2; x++) {
+
+        if(id === winnerId) {
+            const response = await fetch(`/api/teams/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    team_record
+                }),
+                headers: { 'Content-Type': 'application/json' }
+            })
+            if(response.ok) {
+                console.log('RECORD UPDATED')
+            } else {
+                alert(response.statusText)
+            }
+        }
+
+        if(id === loserId) {
+            const response = await fetch(`/api/teams/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    team_record
+                }),
+                headers: { 'Content-Type': 'application/json' }
+            })
+            if(response.ok) {
+                console.log('RECORD UPDATED')
+            } else {
+                alert(response.statusText)
+            }
+        }
+
+        id = loserId
+        team_record = updatedLoserRecord
+
+    }
+
+
+
 
 }
 
@@ -476,6 +575,7 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
 
 function matchupResult() {
     var nflScoreApi = "https://pacific-anchorage-21728.herokuapp.com/https://fixturedownload.com/feed/json/nfl-2022";
+
     fetch(nflScoreApi)
         .then(function(response) {
             if (response.ok) {
