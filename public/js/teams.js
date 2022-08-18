@@ -7,111 +7,132 @@
 //add logic so logged in users who have made their picks go straight to league view
 
 
-async function keepingRecords(winner, loser, tie) {
+const keepingRecords = async (winner, loser, tie) => {
     tie = tie || false;
-    console.log(winner, loser, tie)
-    //find a way to keep track of records so they can be pulled straight from nflarray2
-    let winnerId;
-    let winnerRecord;
-    let wins
-    let winnerLosses;
-    let updatedWinnerRecord;
-
-    let loserId;
-    let loserRecord;
-    let losses;
-    let loserWins;
-    let updatedLoserRecord;
-
-    let won = 1;
-    let loss = 1;
-
     let nflObj;
+    let currentWeek = localStorage.getItem('thisWeek')
     fetch('/api/teams').then(function(response) {
         if(response.ok) {
             response.json().then(function(data) {
                 nflObj = data
+
+                console.log(winner, loser, tie)
+
+                let winnerId;
+                let winnerRecord;
+                let wins
+                let winnerLosses;
+                let updatedWinnerRecord = [];
+
+                let loserId;
+                let loserRecord;
+                let losses;
+                let loserWins;
+                let updatedLoserRecord = [];
+
+                let won = 1;
+                let loss = 1;
+
+                console.log(nflObj)
+
+                for(i=0; i<nflObj.length; i++) {
+
+                    if(nflObj[i].team_name === winner) {
+                        winnerId = nflObj[i].id
+                        winnerRecord = nflObj[i].team_record
+                        wins = parseInt(winnerRecord[0])
+                        winnerLosses = parseInt(winnerRecord[1])
+                    }
+                    if(nflObj[i].team_name === loser) {
+                        loserId = nflObj[i].id
+                        loserRecord = nflObj[i].team_record
+                        losses = parseInt(loserRecord[1])
+                        loserWins = parseInt(loserRecord[0])
+                    }
+                }
+
+                if((wins + winnerLosses) != currentWeek || (losses + loserWins) != currentWeek) {
+
+                    wins++;
+                    losses++;
+
+                    //update winner as loser
+                    if(tie) {
+                        updatedWinnerRecord.push(winnerLosses.toString())
+                        updatedWinnerRecord.push(wins.toString())
+                    } else {
+                        updatedWinnerRecord.push(wins.toString())
+                        updatedWinnerRecord.push(winnerLosses.toString())
+                    }
+
+                    updatedLoserRecord.push(loserWins.toString())
+                    updatedLoserRecord.push(losses.toString())
+
+                    let id = winnerId
+                    let team_record = updatedWinnerRecord
+
+                    for(x=0; x<2; x++) {
+
+                        if(id === winnerId) {
+                            postWinnerRecord(winnerId, team_record)
+                        }
+
+                        if(id === loserId) {
+                            postLoserRecord(loserId, team_record)
+                        }
+
+                        id = loserId
+                        team_record = updatedLoserRecord
+                    }
+
+                }
             })
         }
     })
-
-    if(tie) {
-        if(nflObj[i].teamName === winner) {
-            let tie1Id = nflObj[i].id
-        }
-        if(nflObj[i].teamName === loser) {
-            let tie2Id = nflObj[i].id
-        }
-    }
-
-    for(i=0; i<nflObj.length; i++) {
-        if(nflObj[i].teamName === winner) {
-            winnerId = nflObj[i].id
-            winnerRecord = nflObj[i].team_record
-            wins = parseInt(winnerRecord[0])
-            winnerLosses = parseInt(winnerRecord[1])
-        }
-        if(nflObj[i].teamName === loser) {
-            loserId = nflObj[i].id
-            loserRecord = nflObj[i].team_record
-            losses = parseInt(loserRecord[1])
-            loserWins = parseInt(loserRecord[0])
-        }
-    }
-
-    wins++;
-    losses++;
-
-    updatedWinnerRecord.push(wins.toString())
-    updatedWinnerRecord.push(winnerLosses.toString())
-
-    updatedLoserRecord.push(loserWins.toString())
-    updatedLoserRecord.push(losses.toString())
-
-    let id = winnerId
-    let team_record = updatedWinnerRecord
-
-    for(x=0; x<2; x++) {
-
-        if(id === winnerId) {
-            const response = await fetch(`/api/teams/${id}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    team_record
-                }),
-                headers: { 'Content-Type': 'application/json' }
-            })
-            if(response.ok) {
-                console.log('RECORD UPDATED')
-            } else {
-                alert(response.statusText)
-            }
-        }
-
-        if(id === loserId) {
-            const response = await fetch(`/api/teams/${id}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    team_record
-                }),
-                headers: { 'Content-Type': 'application/json' }
-            })
-            if(response.ok) {
-                console.log('RECORD UPDATED')
-            } else {
-                alert(response.statusText)
-            }
-        }
-
-        id = loserId
-        team_record = updatedLoserRecord
-
-    }
-
-
-
-
 }
+
+async function postWinnerRecord(winnerId, team_record) {
+    const response = await fetch(`/api/teams/${winnerId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+            team_record
+        }),
+        headers: { 'Content-Type': 'application/json' }
+    })
+    if(response.ok) {
+        console.log('RECORD UPDATED')
+    } else {
+        alert(response.statusText)
+    }
+}
+
+async function postLoserRecord(loserId, team_record) {
+    const response = await fetch(`/api/teams/${loserId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+            team_record
+        }),
+        headers: { 'Content-Type': 'application/json' }
+    })
+    if(response.ok) {
+        console.log('RECORD UPDATED')
+    } else {
+        alert(response.statusText)
+    }
+}
+
+async function getTeam(teamId) {
+    const response = await fetch(`/api/teams/${teamId}`, {})
+    if(response.ok) {
+        response.json().then(function(data) {
+            console.log(data)
+        })
+    } else {
+        alert(response.statusText)
+    }
+}
+
+async function loseTrack(){}
 
 function saveRecordsToStorage(nflArray2) {
 
@@ -369,7 +390,7 @@ function getEndOfGameTime() {
     console.log(checkMatchupDay)
     console.log(checkMatchupHour)
 
-    if((checkMatchupDay <= 2 || checkMatchupDay >= 4) && (checkMatchupHour === 1 || checkMatchupHour === 21 || checkMatchupHour === 4 || checkMatchupHour === 15 || checkMatchupHour === 9)) {
+    if((checkMatchupDay === 2) && (checkMatchupHour >= 10)) {
         console.log('Checking Mathcup!!')
         matchupResult()
     }
@@ -603,17 +624,19 @@ function matchupResult() {
                         }
 
                         for(i=0; i<thisWeeksGames.length; i++) {
-/*                             if(thisWeeksGames[i].HomeTeamScore === null || thisWeeksGames[i].AwayTeamScore === null) {
-                                return;
-                            } */
-                            if(thisWeeksGames[i].HomeTeamScore > thisWeeksGames[i].AwayTeamScore) {
-                                keepingRecords(thisWeeksGames[i].HomeTeam, thisWeeksGames[i].AwayTeam)
-                            }
-                            if(thisWeeksGames[i].AwayTeamScore > thisWeeksGames[i].HomeTeamScore) {
-                                keepingRecords(thisWeeksGames[i].AwayTeam, thisWeeksGames[i].HomeTeam)
-                            }
-                            if(thisWeeksGames[i].AwayTeamScore === thisWeeksGames[i].HomeTeamScore) {
-                                keepingRecords(thisWeeksGames[i].AwayTeam, thisWeeksGames[i].HomeTeam, true)
+                            if(thisWeeksGames[i].HomeTeamScore === null || thisWeeksGames[i].AwayTeamScore === null) {
+                                console.log(thisWeeksGames[i])
+                                
+                            } else {
+                                if(thisWeeksGames[i].HomeTeamScore > thisWeeksGames[i].AwayTeamScore) {
+                                    keepingRecords(thisWeeksGames[i].HomeTeam, thisWeeksGames[i].AwayTeam)
+                                }
+                                if(thisWeeksGames[i].AwayTeamScore > thisWeeksGames[i].HomeTeamScore) {
+                                    keepingRecords(thisWeeksGames[i].AwayTeam, thisWeeksGames[i].HomeTeam)
+                                }
+                                if(thisWeeksGames[i].AwayTeamScore === thisWeeksGames[i].HomeTeamScore) {
+                                    keepingRecords(thisWeeksGames[i].AwayTeam, thisWeeksGames[i].HomeTeam, true)
+                                }
                             }
                         }
 
