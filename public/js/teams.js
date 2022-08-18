@@ -116,6 +116,7 @@ async function postLoserRecord(loserId, team_record) {
     })
     if(response.ok) {
         console.log('RECORD UPDATED')
+        loseTrack(loserId)
     } else {
         alert(response.statusText)
     }
@@ -126,16 +127,52 @@ async function getTeam(teamId) {
     if(response.ok) {
         response.json().then(function(data) {
             console.log(data)
+            let teamName = data.team_name
+            console.log(teamName)
+            return teamName
         })
     } else {
         alert(response.statusText)
     }
 }
 
-async function loseTrack(){}
+async function loseTrack(teamId) {
 
-function saveRecordsToStorage(nflArray2) {
+    let loserTeam = getTeam(teamId)
+    let allTracks = getAllTracks()
 
+    console.log(loserTeam)
+    console.log(allTracks)
+
+    for (i=0; i<allTracks.length; i++) {
+        console.log(loserTeam)
+        console.log(allTracks)
+        if(allTracks[i].current_pick === loserTeam) {
+
+            let deleteId = allTracks[i].id
+            let response = await fetch(`api/tracks/${deleteId}`, {
+                method: 'delete'
+            })
+            if (response.ok) {
+                console.log('it worked')
+            }
+            else {
+                alert(response.statusText)
+            }
+        }
+    }
+}
+
+async function getAllTracks() {
+    const response = await fetch(`/api/tracks`, {})
+    if(response.ok) {
+        response.json().then(function(data) {
+            console.log(data)
+            let tracksObj = data
+            console.log(tracksObj)
+            return tracksObj
+        })
+    }
 }
 
 let nflArray2 = [
