@@ -1,7 +1,14 @@
+function capitalizeFirstLetter(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  }
+  
+
 async function signupFormHandler(event) {
     event.preventDefault();
-    const first_name = document.querySelector('#createFirstName').value.trim();
-    const last_name = document.querySelector('#createLastName').value.trim();
+    let first_name = document.querySelector('#createFirstName').value.trim();
+    first_name = capitalizeFirstLetter(first_name)
+    let last_name = document.querySelector('#createLastName').value.trim();
+    last_name = capitalizeFirstLetter(last_name)
     const username = document.querySelector('#createUsername').value.trim();
     const email = document.querySelector('#createEmail').value.trim();
     const password = document.querySelector('#createPassword').value.trim();
