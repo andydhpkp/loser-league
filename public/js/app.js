@@ -467,12 +467,20 @@ async function leagueUserTableHandler() {
             response.json().then(function (data) {
 
                 console.log(data)
+                let largestPickLength = 0
+                //find the picks length
+                for(p=0; p<data.length; p++) {
+                    let pickTester = data[p].tracks.length
+                    if (pickTester >= largestPickLength) {
+                        largestPickLength = pickTester
+                    }
+                }
                 //let orderUsersArr = 
 
                 let viewUsersTable = document.getElementById('leagueMain')
 
                 let mainTable = document.createElement('table')
-                mainTable.className = 'table'
+                mainTable.className = 'table table-striped'
                 let tHead = document.createElement('thead')
                 let trHead = document.createElement('tr')
                 let firstScope = document.createElement('th')
@@ -494,11 +502,17 @@ async function leagueUserTableHandler() {
                 fifthScope.setAttribute('scope', 'col')
                 fifthScope.innerText = 'Picks Submitted'
 
+                let sixthScope = document.createElement('th')
+                sixthScope.setAttribute('scope', 'col')
+                sixthScope.setAttribute('colspan', largestPickLength)
+                sixthScope.innerText = 'Current Picks'
+
                 trHead.appendChild(firstScope)
                 trHead.appendChild(secondScope)
                 trHead.appendChild(thirdScope)
                 trHead.appendChild(fourthScope)
                 trHead.appendChild(fifthScope)
+                trHead.appendChild(sixthScope)
                 tHead.appendChild(trHead)
                 mainTable.appendChild(tHead)
 
@@ -507,6 +521,7 @@ async function leagueUserTableHandler() {
                 let tBody = document.createElement('tbody')
 
                 for (i=0; i<data.length; i++) {
+                    let eliminated = false;
                     let tr = document.createElement('tr')
                     let th = document.createElement('th')
                     th.setAttribute('scope', 'row')
@@ -519,6 +534,9 @@ async function leagueUserTableHandler() {
                     tdLast.innerText = data[i].last_name
                     let tdTracks = document.createElement('td')
                     tdTracks.innerText = data[i].tracks.length
+                    if(tdTracks.innerText === '0') {
+                        eliminated = true
+                    }
                     let tdSubmitted = document.createElement('td')
                     let submitted = 'No'
 
@@ -539,17 +557,30 @@ async function leagueUserTableHandler() {
                     tr.appendChild(tdLast)
                     tr.appendChild(tdTracks)
                     tr.appendChild(tdSubmitted)
+                    tr.setAttribute('colspan', largestPickLength)
+                    if(eliminated === true) {
+                        tr.className = 'eliminated'
+                    }
 
                     tBody.appendChild(tr)
 
-                    for(x=0; x<data[i].tracks.length; x++) {
-                        let tdTeamName = document.createElement('td')
-                        console.log(data)
-                        tdTeamName.innerText = data[i].tracks[x].current_pick
-                        //th.innerText = i+2
-                        //tr.appendChild(th)
-                        tr.appendChild(tdTeamName)
-                        tBody.appendChild(tr)
+                    for(x=0; x<largestPickLength; x++) {
+                        try {
+                            console.log(data)
+                            let tdTeamName = document.createElement('td')
+                            tdTeamName.innerText = data[i].tracks[x].current_pick
+                            //th.innerText = i+2
+                            //tr.appendChild(th)
+                            tr.appendChild(tdTeamName)
+                            tBody.appendChild(tr)
+                        }
+                        catch(err) {
+                            let tdTeamName = document.createElement('td')
+                            //tdTeamName.innerText = '&nbsp;'
+                            tr.appendChild(tdTeamName)
+                            tBody.appendChild(tr)
+                        }
+
                     }
                 }
 

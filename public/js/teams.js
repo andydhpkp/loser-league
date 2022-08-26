@@ -4,7 +4,11 @@
 
     // You can already set Homescore > Awayscore to do what you want with the outcome of the game. If null than nothing, if tie than loss for both
 
+
 //add logic so logged in users who have made their picks go straight to league view
+
+//add button to originally create teams
+//add button to manually check matchup
 
 
 const keepingRecords = async (winner, loser, tie) => {
@@ -51,7 +55,7 @@ const keepingRecords = async (winner, loser, tie) => {
                     }
                 }
 
-                if((wins + winnerLosses) != currentWeek || (losses + loserWins) != currentWeek) {
+                if((wins + winnerLosses) < currentWeek && (losses + loserWins) < currentWeek) {
 
                     wins++;
                     losses++;
@@ -78,7 +82,7 @@ const keepingRecords = async (winner, loser, tie) => {
                         }
 
                         if(id === loserId) {
-                            postLoserRecord(loserId, team_record)
+                            postLoserRecord(loserId, team_record, loser)
                         }
 
                         id = loserId
@@ -106,7 +110,7 @@ async function postWinnerRecord(winnerId, team_record) {
     }
 }
 
-async function postLoserRecord(loserId, team_record) {
+async function postLoserRecord(loserId, team_record, loserName) {
     const response = await fetch(`/api/teams/${loserId}`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -116,7 +120,7 @@ async function postLoserRecord(loserId, team_record) {
     })
     if(response.ok) {
         console.log('RECORD UPDATED')
-        loseTrack(loserId)
+        loseTrack(loserName)
     } else {
         alert(response.statusText)
     }
@@ -136,30 +140,33 @@ async function getTeam(teamId) {
     }
 }
 
-async function loseTrack(teamId) {
+async function loseTrack(loserTeam) {
 
-    let loserTeam = getTeam(teamId)
-    let allTracks = getAllTracks()
-
-    console.log(loserTeam)
-    console.log(allTracks)
-
-    for (i=0; i<allTracks.length; i++) {
-        console.log(loserTeam)
-        console.log(allTracks)
-        if(allTracks[i].current_pick === loserTeam) {
-
-            let deleteId = allTracks[i].id
-            let response = await fetch(`api/tracks/${deleteId}`, {
-                method: 'delete'
+    let allTracks;
+    fetch('/api/tracks').then(function(response) {
+        if(response.ok) {
+            response.json().then(function(data) {
+                allTracks = data
+                for (i=0; i<allTracks.length; i++) {
+                    if(allTracks[i].current_pick === loserTeam) {
+                        let deleteId = allTracks[i].id
+                        deleteTrack(deleteId)
+                    }
+                }
             })
-            if (response.ok) {
-                console.log('it worked')
-            }
-            else {
-                alert(response.statusText)
-            }
         }
+    })
+}
+
+async function deleteTrack(deleteId) {
+    let response = await fetch(`api/tracks/${deleteId}`, {
+        method: 'delete'
+    })
+    if (response.ok) {
+        console.log('it worked')
+    }
+    else {
+        alert(response.statusText)
     }
 }
 
@@ -427,13 +434,15 @@ function getEndOfGameTime() {
     console.log(checkMatchupDay)
     console.log(checkMatchupHour)
 
+    //Utah is -7 or -6 UTC depending on daylight savings FYI
+
     if((checkMatchupDay === 2) && (checkMatchupHour >= 10)) {
         console.log('Checking Mathcup!!')
         matchupResult()
     }
 }
 //3600000
-setInterval(getEndOfGameTime, 120000)
+setInterval(getEndOfGameTime, 3600000)
 
 
 const matchup = async (totalTracks, trackIds, used_picks) => {

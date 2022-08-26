@@ -206,6 +206,33 @@ hidden {
     text-align: center;
 }
 
+/* #leagueMain {
+    display: flex;
+} */
+.table { 
+    table-layout:fixed;
+    empty-cells: show;
+}
+td { 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    word-wrap: break-word;
+}
+@media only screen and (max-width: 480px) {
+    /* horizontal scrollbar for tables if mobile screen */
+    .table {
+        overflow-x: auto;
+        display: block;
+    }
+}
+
+.eliminated {
+    color: var(--secondaryDark);
+    background-color: var(--darkest);
+    --bs-table-striped-color: var(--secondaryDark);
+}
+
+
 label {
     display: contents;
 }
