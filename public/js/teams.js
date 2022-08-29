@@ -394,10 +394,9 @@ function getWeek(data) {
         }
         console.log(weekTempArr)
         let last = weekTempArr[weekTempArr.length - 1]
-        let practiceDate = new Date()
-        console.log(last.DateUtc)
 
         let finalDaySeconds = new Date(last.DateUtc)
+        console.log(finalDaySeconds)
 
         weekSecondsArr.push(finalDaySeconds.getTime())
     }
