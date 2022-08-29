@@ -392,7 +392,8 @@ function getWeek(data) {
                 weekTempArr.push(data[j])
             }
         }
-        let last = weekTempArr.at(-1)
+        console.log(weekTempArr)
+        let last = weekTempArr[weekTempArr.length - 1]
 
         let finalDaySeconds = new Date(last.DateUtc)
 
