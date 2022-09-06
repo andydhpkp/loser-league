@@ -227,6 +227,7 @@ async function getUserId() {
 
 
 async function getBodyForPicks() {
+    getUserId()
     fetch(`/api/tracks/`).then(function(response) {
         if(response.ok) {
             response.json().then(function(data) {
