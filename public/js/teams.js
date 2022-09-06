@@ -400,7 +400,7 @@ function getWeek(data) {
         console.log(testDate)
         let newTestDate = testDate.replace(/-/g, "/")
         console.log(newTestDate)
-        let finalDate = new Date('2023/01/07 18:00:00')
+        let finalDate = new Date('2023/01/07 18:00:00Z')
         console.log(finalDate)
         console.log(finalDate.toString())
 
