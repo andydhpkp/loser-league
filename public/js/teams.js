@@ -348,6 +348,7 @@ let nflArray2 = [
 function getTrackNumber() {
 
     let username = localStorage.getItem('loggedInUser')
+    let currentWeek = localStorage.getItem('thisWeek')
     fetch(`/api/users/username/${username}`).then(function(response) {
         if (response.ok) {
             response.json().then(function(data) {
@@ -363,6 +364,25 @@ function getTrackNumber() {
                     used_picks.push(data.tracks[i].used_picks)
                 }
                 console.log(used_picks)
+                currentWeek++
+                let picksCompleteChecker = false
+                console.log(trackIdArray)
+                if(trackIdArray.length > 0) {
+                    console.log(currentWeek)
+                    console.log(data.tracks)
+                    for(r=0; r<data.tracks.length; r++) {
+                        console.log(data)
+                        if(data.tracks[r].used_picks.length === currentWeek) {
+                            picksCompleteChecker = true
+                        } else {
+                            picksCompleteChecker = false
+                        }
+                    }
+                }
+                if(picksCompleteChecker) {
+                    location.href = "../league-page.html"
+                }
+                
                 matchup(totalTracks, trackIdArray, used_picks)
                 if(trackIdArray.length === 0) {
                     let sectionHelp = document.getElementById('games')
@@ -714,7 +734,7 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
             }
         })
         .catch(function (error) {
-            alert('unable to connect')
+            console.log('unable to connect')
         })
 }
 

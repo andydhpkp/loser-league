@@ -676,6 +676,10 @@ async function createTrack(user_id) {
     }
 }
 
+async function checkIfPicked() {
+
+}
+
 async function forcePicks() {
 
     fetch('/api/users').then(function(response) {
