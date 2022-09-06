@@ -212,7 +212,9 @@ async function getUserId() {
             response.json().then(function(data) {
                 let loggedInUsername = localStorage.getItem('loggedInUser')
                 let loggedInUserId;
+                console.log(loggedInUsername)
                 for(i=0; i<data.length; i++) {
+                    console.log(data)
                     if(data[i].username === loggedInUsername) {
                         loggedInUserId = data[i].id
                     }
