@@ -18,7 +18,7 @@ async function loginFormHandler(event) {
         });
 
         if (response.ok) {
-            window.localStorage.setItem("loggedInUser", username)
+            window.localStorage.setItem("loggedInUser", username.toLowerCase())
             location.href = "../profile.html";
             console.log(response)
         } else {

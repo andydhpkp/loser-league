@@ -215,8 +215,9 @@ async function getUserId() {
                 console.log(loggedInUsername)
                 for(i=0; i<data.length; i++) {
                     console.log(data)
-                    if(data[i].username === loggedInUsername) {
+                    if(data[i].username.toLowerCase() === loggedInUsername) {
                         loggedInUserId = data[i].id
+                        console.log(loggedInUserId)
                     }
                 }
                 localStorage.setItem('loggedInUserId', loggedInUserId)
@@ -229,7 +230,6 @@ async function getUserId() {
 
 
 async function getBodyForPicks() {
-    getUserId()
     fetch(`/api/tracks/`).then(function(response) {
         if(response.ok) {
             response.json().then(function(data) {
