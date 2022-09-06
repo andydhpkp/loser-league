@@ -400,9 +400,45 @@ function getWeek(data) {
         console.log(testDate)
         let newTestDate = testDate.replace(/-/g, "/")
         console.log(newTestDate)
-        let finalDate = new Date('2023/01/07 18:00:00Z')
+        let splitDate = newTestDate.split(" ")
+        console.log(splitDate)
+        let splitWeekDayArr = splitDate[0].split("/")
+        console.log(splitWeekDayArr)
+        let splitDateArr = splitDate[1].split(":")
+        console.log(splitDateArr)
+        let hourUTC = parseInt(splitDateArr[0])
+        let year = parseInt(splitWeekDayArr[0])
+        let month = parseInt(splitWeekDayArr[1])
+        let weekDay = parseInt(splitWeekDayArr[2])
+        if(hourUTC < 6) {
+            hourUTC = hourUTC + 18
+            
+            if(weekDay === 1) {
+                
+                if(month === 2 || month === 4 || month === 6 || month === 8 || month === 9 || month === 11 || month === 1) {
+                    if(month === 1) {
+                        month = 12
+                        
+                        year = year - 1
+                    } else {
+                        month = month - 1
+                    }
+                    weekDay = 31
+                }
+                if(month === 5 || month === 7 || month === 10 || month === 12) {
+                    month = month - 1
+                    weekDay = 30
+                }
+            } else {
+                weekDay = weekDay - 1
+            }
+        }
+        if(hourUTC >= 6) {
+            hourUTC = hourUTC - 6
+        }
+        
+        let finalDate = new Date(`${year}/${month}/${weekDay} ${hourUTC.toString()}:${splitDateArr[1]}:${splitDateArr[2]}`)
         console.log(finalDate)
-        console.log(finalDate.toString())
 
         let finalDaySeconds = new Date(finalDate)
         console.log(finalDaySeconds)
@@ -517,7 +553,7 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
 
                         for(l=0; l<(thisWeeksMatchups.length); l++) {
 
-                            console.log(nflObj)
+                            //console.log(nflObj)
 
                             for(x=0; x<nflObj.length; x++) {
                                 if(thisWeeksMatchups[l] === nflObj[x].team_name) {
