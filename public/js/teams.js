@@ -406,6 +406,8 @@ function getWeek(data) {
         console.log(splitWeekDayArr)
         let splitDateArr = splitDate[1].split(":")
         console.log(splitDateArr)
+        let noZ = splitDateArr[2].split("")
+        console.log(noZ)
         let hourUTC = parseInt(splitDateArr[0])
         let year = parseInt(splitWeekDayArr[0])
         let month = parseInt(splitWeekDayArr[1])
@@ -432,12 +434,13 @@ function getWeek(data) {
             } else {
                 weekDay = weekDay - 1
             }
-        }
-        if(hourUTC >= 6) {
+        } else {
             hourUTC = hourUTC - 6
         }
         
-        let finalDate = new Date(`${year}/${month}/${weekDay} ${hourUTC.toString()}:${splitDateArr[1]}:${splitDateArr[2]}`)
+        let dateString = `${year}/${month}/${weekDay} ${hourUTC.toString()}:${splitDateArr[1]}:${noZ[0]}${noZ[1]}`
+        console.log(dateString)
+        let finalDate = new Date(dateString)
         console.log(finalDate)
 
         let finalDaySeconds = new Date(finalDate)
