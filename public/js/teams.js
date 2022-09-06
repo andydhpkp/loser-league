@@ -395,6 +395,10 @@ function getWeek(data) {
         console.log(weekTempArr)
         let last = weekTempArr[weekTempArr.length - 1]
 
+        console.log(last)
+        let testDate = new Date()
+        console.log(testDate)
+
         let finalDaySeconds = new Date(last.DateUtc)
         console.log(finalDaySeconds)
 
