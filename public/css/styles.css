@@ -224,6 +224,7 @@ td {
     .table {
         overflow-x: auto;
         display: block;
+        position: relative;
     }
 }
 
