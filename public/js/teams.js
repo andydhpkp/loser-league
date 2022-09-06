@@ -398,7 +398,9 @@ function getWeek(data) {
         console.log(last)
         let testDate = last.DateUtc
         console.log(testDate)
-        let finalDate = new Date(testDate.replace(/-/g, "/"))
+        testDate.replace(/-/g, "/")
+        console.log(testDate)
+        let finalDate = new Date(testDate)
         console.log(finalDate)
         console.log(finalDate.toString())
 
