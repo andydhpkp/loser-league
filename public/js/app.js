@@ -675,3 +675,74 @@ async function createTrack(user_id) {
         alert(response.statusText)
     }
 }
+
+async function forcePicks() {
+
+    fetch('/api/users').then(function(response) {
+        if (response.ok) {
+            response.json().then(function (data) {
+                let currentWeek = localStorage.getItem('thisWeek')
+
+                console.log(data)
+
+                for (i=0; i<data.length; i++) {
+
+                    let submitted = 'No'
+                    let trackChecker = parseInt(currentWeek);
+                    trackChecker++
+
+                    for(t=0; t<data[i].tracks.length; t++) {
+                        console.log(data[i].tracks[t].used_picks.length)
+                        console.log(data[i].username)
+                        if(data[i].tracks[t].used_picks.length === trackChecker) {
+                            submitted = 'Yes'
+                        }
+                        console.log(submitted)
+                    }
+
+                    if(submitted === 'No') {
+                        if(data[i].tracks.length > 0) {
+                            for(x=0; x < data[i].tracks.length; x++) {
+                                let putTrackId = data[i].tracks[x].id
+                                let randomPicker = Math.floor(Math.random() * data[i].tracks[x].available_picks.length)
+                                console.log('create function')
+                                let randomPick = data[i].tracks[x].available_picks[randomPicker]
+                                console.log(randomPick)
+                                let used_picks = data[i].tracks[x].used_picks
+                                used_picks.push(randomPick)
+                                let available_picks = data[i].tracks[x].available_picks
+                                available_picks = available_picks.filter(item => item !== randomPick)
+                                let user_id = data[i].id
+                                makePick(available_picks, used_picks, randomPick, user_id, putTrackId)
+                            }
+                        }
+                    }
+                }
+            })
+        } else {
+            alert('Could not connect')
+        }
+    })
+}
+
+function timeToForce() {
+    let currentMoment = new Date()
+
+    let checkMatchupDay = currentMoment.getUTCDay()
+
+    let checkMatchupHour = currentMoment.getUTCHours()
+
+    console.log('check day, then hour')
+
+    console.log(checkMatchupDay)
+    console.log(checkMatchupHour)
+
+    //Utah is -7 or -6 UTC depending on daylight savings FYI
+
+    if((checkMatchupDay >= 5)) {
+        console.log('You Snooze You Loose')
+        forcePicks()
+    }
+}
+//3600000
+setInterval(timeToForce, 3600000)

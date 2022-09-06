@@ -412,31 +412,60 @@ function getWeek(data) {
         let year = parseInt(splitWeekDayArr[0])
         let month = parseInt(splitWeekDayArr[1])
         let weekDay = parseInt(splitWeekDayArr[2])
-        if(hourUTC < 6) {
-            hourUTC = hourUTC + 18
-            
-            if(weekDay === 1) {
+        if(month >= 3 || ((month < 11) && (weekDay < 6)) || month <= 10) {
+            if(hourUTC < 6) {
+                hourUTC = hourUTC + 18
                 
-                if(month === 2 || month === 4 || month === 6 || month === 8 || month === 9 || month === 11 || month === 1) {
-                    if(month === 1) {
-                        month = 12
-                        
-                        year = year - 1
-                    } else {
-                        month = month - 1
+                if(weekDay === 1) {
+                    
+                    if(month === 2 || month === 4 || month === 6 || month === 8 || month === 9 || month === 11 || month === 1) {
+                        if(month === 1) {
+                            month = 12
+                            
+                            year = year - 1
+                        } else {
+                            month = month - 1
+                        }
+                        weekDay = 31
                     }
-                    weekDay = 31
-                }
-                if(month === 5 || month === 7 || month === 10 || month === 12) {
-                    month = month - 1
-                    weekDay = 30
+                    if(month === 5 || month === 7 || month === 10 || month === 12) {
+                        month = month - 1
+                        weekDay = 30
+                    }
+                } else {
+                    weekDay = weekDay - 1
                 }
             } else {
-                weekDay = weekDay - 1
+                hourUTC = hourUTC - 6
             }
         } else {
-            hourUTC = hourUTC - 6
+            if(hourUTC < 7) {
+                hourUTC = hourUTC + 17
+                
+                if(weekDay === 1) {
+                    
+                    if(month === 2 || month === 4 || month === 6 || month === 8 || month === 9 || month === 11 || month === 1) {
+                        if(month === 1) {
+                            month = 12
+                            
+                            year = year - 1
+                        } else {
+                            month = month - 1
+                        }
+                        weekDay = 31
+                    }
+                    if(month === 5 || month === 7 || month === 10 || month === 12) {
+                        month = month - 1
+                        weekDay = 30
+                    }
+                } else {
+                    weekDay = weekDay - 1
+                }
+            } else {
+                hourUTC = hourUTC - 7
+            }
         }
+        
         
         let dateString = `${year}/${month}/${weekDay} ${hourUTC.toString()}:${splitDateArr[1]}:${noZ[0]}${noZ[1]}`
         console.log(dateString)

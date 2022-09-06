@@ -9,7 +9,8 @@ async function signupFormHandler(event) {
     first_name = capitalizeFirstLetter(first_name)
     let last_name = document.querySelector('#createLastName').value.trim();
     last_name = capitalizeFirstLetter(last_name)
-    const username = document.querySelector('#createUsername').value.trim();
+    let username = document.querySelector('#createUsername').value.trim();
+    username = username.toLowerCase()
     const email = document.querySelector('#createEmail').value.trim();
     const password = document.querySelector('#createPassword').value.trim();
 
