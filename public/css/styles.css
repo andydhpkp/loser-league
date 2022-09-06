@@ -222,7 +222,7 @@ td {
 @media only screen and (max-width: 480px) {
     /* horizontal scrollbar for tables if mobile screen */
     .table {
-        overflow-x: auto;
+        overflow-x: scroll;
         display: block;
         position: relative;
     }
@@ -244,6 +244,9 @@ label {
 }
 
 @media screen and (max-width: 550px) {
+    #leagueMain {
+        overflow-x: auto;
+    }
     #gameMatchups div {
         margin: 10px;
     }
