@@ -375,11 +375,11 @@ async function getBodyForPicks() {
                         } 
                         let finishedCheck = document.getElementsByClassName('successfulPick')
                         if (finishedCheck.length === picksObj.length || alreadyPicked.length >= picksObj.length) {
-                            location.href = "../league-page.html"
+                            //location.href = "../league-page.html"
                         } 
                     }
                 } else {
-                    location.href = "../league-page.html"
+                    //location.href = "../league-page.html"
                 }
             })
         } else {

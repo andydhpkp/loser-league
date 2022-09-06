@@ -412,22 +412,13 @@ function getWeek(data) {
                 weekTempArr.push(data[j])
             }
         }
-        console.log(weekTempArr)
         let last = weekTempArr[weekTempArr.length - 1]
-
-        console.log(last)
         let testDate = last.DateUtc
-        console.log(testDate)
         let newTestDate = testDate.replace(/-/g, "/")
-        console.log(newTestDate)
         let splitDate = newTestDate.split(" ")
-        console.log(splitDate)
         let splitWeekDayArr = splitDate[0].split("/")
-        console.log(splitWeekDayArr)
         let splitDateArr = splitDate[1].split(":")
-        console.log(splitDateArr)
         let noZ = splitDateArr[2].split("")
-        console.log(noZ)
         let hourUTC = parseInt(splitDateArr[0])
         let year = parseInt(splitWeekDayArr[0])
         let month = parseInt(splitWeekDayArr[1])
@@ -488,12 +479,10 @@ function getWeek(data) {
         
         
         let dateString = `${year}/${month}/${weekDay} ${hourUTC.toString()}:${splitDateArr[1]}:${noZ[0]}${noZ[1]}`
-        console.log(dateString)
+
         let finalDate = new Date(dateString)
-        console.log(finalDate)
 
         let finalDaySeconds = new Date(finalDate)
-        console.log(finalDaySeconds)
 
         weekSecondsArr.push(finalDaySeconds.getTime())
     }
