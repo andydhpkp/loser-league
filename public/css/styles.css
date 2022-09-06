@@ -225,6 +225,7 @@ td {
         overflow-x: scroll;
         display: block;
         position: relative;
+        table-layout: auto;
     }
 }
 
