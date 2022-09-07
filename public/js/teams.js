@@ -380,7 +380,7 @@ function getTrackNumber() {
                     }
                 }
                 if(picksCompleteChecker) {
-                    location.href = "../league-page.html"
+                    //location.href = "../league-page.html"
                 }
                 
                 matchup(totalTracks, trackIdArray, used_picks)
