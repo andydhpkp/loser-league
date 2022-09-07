@@ -24,7 +24,7 @@ Track.init(
         },
         //figure out how to make sure available != used 
         used_picks: {
-            type: DataTypes.STRING,
+            type: DataTypes.TEXT,
             allowNull: true,
             get() {
                 return this.getDataValue('used_picks').split(';');

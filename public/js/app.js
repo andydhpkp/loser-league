@@ -1,26 +1,3 @@
-async function createTrack(user_id) {
-    let available_picks = nflArray2.map(getTeamNames)
-    let used_picks = []
-    let current_pick = ''
-
-    const response = await fetch('/api/tracks', {
-        method: 'post',
-        body: JSON.stringify({
-            available_picks,
-            used_picks,
-            current_pick,
-            user_id
-        }),
-        headers: { 'Content-Type': 'application/json' }
-    });
-    if (response.ok) {
-        console.log('CREATED TRACK')
-        console.log(response)
-    } else {
-        alert(response.statusText)
-    }
-}
-
 function getTeamNames(names) {
     return names.teamName
 }
