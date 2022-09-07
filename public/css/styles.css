@@ -211,7 +211,7 @@ hidden {
     display: flex;
 } */
 .table { 
-    table-layout:fixed;
+    /* table-layout:fixed; */
     empty-cells: show;
 }
 td { 
