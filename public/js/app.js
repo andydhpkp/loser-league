@@ -632,6 +632,7 @@ async function deleteTracksAdmin() {
 
 async function createTrack(user_id) {
     let available_picks = nflArray2.map(getTeamNames)
+    console.log(available_picks)
     let used_picks = []
     let current_pick = ''
 
