@@ -370,17 +370,19 @@ function getTrackNumber() {
                 if(trackIdArray.length > 0) {
                     console.log(currentWeek)
                     console.log(data.tracks)
+                    let picksCompleteHelper = 0
                     for(r=0; r<data.tracks.length; r++) {
                         console.log(data)
-                        if(data.tracks[r].used_picks.length === currentWeek) {
-                            picksCompleteChecker = true
-                        } else {
-                            picksCompleteChecker = false
-                        }
+                        if(data.tracks[r].used_picks.length >= currentWeek) {
+                            picksCompleteHelper++
+                        } 
+                    }
+                    if(picksCompleteHelper === data.tracks.length) {
+                        picksCompleteChecker = true
                     }
                 }
                 if(picksCompleteChecker) {
-                    //location.href = "../league-page.html"
+                    location.href = "../league-page.html"
                 }
                 
                 matchup(totalTracks, trackIdArray, used_picks)

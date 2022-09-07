@@ -527,7 +527,7 @@ async function leagueUserTableHandler() {
                     for(t=0; t<data[i].tracks.length; t++) {
                         console.log(trackChecker)
                         console.log(data[i].tracks[t].used_picks.length)
-                        if(data[i].tracks[t].used_picks.length === trackChecker) {
+                        if(data[i].tracks[t].used_picks.length >= trackChecker) {
                             trackValidatorHelp++
                         }
                         if(trackValidatorHelp === data[i].tracks.length) {
