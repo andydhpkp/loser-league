@@ -523,10 +523,14 @@ async function leagueUserTableHandler() {
                     console.log(data[i])
                     let trackChecker = parseInt(currentWeek);
                     trackChecker++
+                    let trackValidatorHelp = 0
                     for(t=0; t<data[i].tracks.length; t++) {
                         console.log(trackChecker)
                         console.log(data[i].tracks[t].used_picks.length)
                         if(data[i].tracks[t].used_picks.length === trackChecker) {
+                            trackValidatorHelp++
+                        }
+                        if(trackValidatorHelp === data[i].tracks.length) {
                             submitted = 'Yes'
                         }
                     }
