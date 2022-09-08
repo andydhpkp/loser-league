@@ -683,7 +683,7 @@ async function forcePicks() {
                     for(t=0; t<data[i].tracks.length; t++) {
                         console.log(data[i].tracks[t].used_picks.length)
                         console.log(data[i].username)
-                        if(data[i].tracks[t].used_picks.length === trackChecker) {
+                        if(data[i].tracks[t].used_picks.length >= trackChecker) {
                             submitted = 'Yes'
                         }
                         console.log(submitted)
