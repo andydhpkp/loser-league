@@ -269,12 +269,12 @@ async function getBodyForPicks() {
                                 trackSelection: finalPick
                             })
                         }
+
+                        let finishedCheck = 0
     
                         if(alreadyPicked.length <= picksObj.length) {
     
                             console.log(picksObj)
-
-                            let finishedCheck = 0
                 
                             for(i=0; i<picksObj.length; i++) {
                                 console.log('PICKSOBJ')
