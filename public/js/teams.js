@@ -382,7 +382,7 @@ function getTrackNumber() {
                     }
                 }
                 if(picksCompleteChecker) {
-                    location.href = "../league-page.html"
+                    //location.href = "../league-page.html"
                 }
                 
                 matchup(totalTracks, trackIdArray, used_picks)
@@ -398,6 +398,10 @@ function getTrackNumber() {
             })
         }
     })
+}
+
+function goToLeaguePage() {
+    location.href = "../league-page.html"
 }
 
 function getWeek(data) {
@@ -555,6 +559,10 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
     secondSubmitPicksBtn.setAttribute('class', 'btn btn-primary testerBtn')
     secondSubmitPicksBtn.setAttribute('onclick', 'getBodyForPicks()')
     secondSubmitPicksBtn.innerText = 'Submit Picks'
+    let secondLeaguePageBtn = document.createElement('button')
+    secondLeaguePageBtn.setAttribute('class', 'btn btn-primary testerBtn')
+    secondLeaguePageBtn.setAttribute('onclick', 'goToLeaguePage()')
+    secondLeaguePageBtn.innerText = 'View The League'
     container.innerHTML = "";
     //let nflObj = nflArrayFunction()
 
@@ -717,6 +725,7 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
                         trackContainer.setAttribute('id', trackIds[i]);
                         container.appendChild(trackContainer)
                         main.appendChild(secondSubmitPicksBtn)
+                        main.appendChild(secondLeaguePageBtn)
                     }
                 })
             } else {

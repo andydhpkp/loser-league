@@ -355,11 +355,11 @@ async function getBodyForPicks() {
                         } 
 
                         if(finishedCheck >= picksObj.length) {
-                            location.href = "../league-page.html"
+                            //location.href = "../league-page.html"
                         } 
                     }
                 } else {
-                    location.href = "../league-page.html"
+                    //location.href = "../league-page.html"
                 }
             })
         } else {
