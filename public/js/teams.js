@@ -530,7 +530,7 @@ function getEndOfGameTime() {
 
     //Utah is -7 or -6 UTC depending on daylight savings FYI
 
-    if((checkMatchupDay === 2) && (checkMatchupHour >= 10)) {
+    if((checkMatchupDay === 2) && (checkMatchupHour >= 7)) {
         console.log('Checking Mathcup!!')
         matchupResult()
     }

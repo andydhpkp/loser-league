@@ -719,12 +719,9 @@ function timeToForce() {
 
     let checkMatchupDay = currentMoment.getUTCDay()
 
-    let checkMatchupHour = currentMoment.getUTCHours()
-
-    console.log('check day, then hour')
+    console.log('check day for force')
 
     console.log(checkMatchupDay)
-    console.log(checkMatchupHour)
 
     //Utah is -7 or -6 UTC depending on daylight savings FYI
 
