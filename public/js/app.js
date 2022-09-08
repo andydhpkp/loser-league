@@ -273,6 +273,8 @@ async function getBodyForPicks() {
                         if(alreadyPicked.length <= picksObj.length) {
     
                             console.log(picksObj)
+
+                            let finishedCheck = 0
                 
                             for(i=0; i<picksObj.length; i++) {
                                 console.log('PICKSOBJ')
@@ -344,19 +346,20 @@ async function getBodyForPicks() {
                                     used_picks.push(current_pick)
                                     available_picks = available_picks.filter(item => item !== current_pick)
                                     console.log('submitted!!!!')
+                                    finishedCheck++
                                     //colorTrack.classList.toggle('successfulPick')
                                     makePick(available_picks, used_picks, current_pick, user_id, putTrackId)
                                 }
                             }
     
                         } 
-                        let finishedCheck = document.getElementsByClassName('successfulPick')
-                        if (finishedCheck.length === picksObj.length || alreadyPicked.length >= picksObj.length) {
-                            //location.href = "../league-page.html"
+
+                        if(finishedCheck >= picksObj.length) {
+                            location.href = "../league-page.html"
                         } 
                     }
                 } else {
-                    //location.href = "../league-page.html"
+                    location.href = "../league-page.html"
                 }
             })
         } else {
