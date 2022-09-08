@@ -356,7 +356,7 @@ async function getBodyForPicks() {
                         } 
                     }
                 } else {
-                    location.href = "../league-page.html"
+                    //location.href = "../league-page.html"
                 }
             })
         } else {
