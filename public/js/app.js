@@ -727,7 +727,7 @@ function timeToForce() {
 
     if((checkMatchupDay >= 5)) {
         console.log('You Snooze You Loose')
-        forcePicks()
+        //forcePicks()
     }
 }
 //3600000
