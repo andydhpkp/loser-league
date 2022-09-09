@@ -565,6 +565,10 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
     secondSubmitPicksBtn.setAttribute('onclick', 'getBodyForPicks()')
     secondSubmitPicksBtn.innerText = 'Submit Picks'
     let secondLeaguePageBtn = document.createElement('button')
+    let firstLeaguePageBtn = document.createElement('button')
+    firstLeaguePageBtn.setAttribute('class', 'btn btn-primary testerBtn')
+    firstLeaguePageBtn.setAttribute('onclick', 'goToLeaguePage()')
+    firstLeaguePageBtn.innerText = 'View The League'
     secondLeaguePageBtn.setAttribute('class', 'btn btn-primary testerBtn')
     secondLeaguePageBtn.setAttribute('onclick', 'goToLeaguePage()')
     secondLeaguePageBtn.innerText = 'View The League'
@@ -729,6 +733,7 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
                         extraCountIdHelp++;
                         trackContainer.setAttribute('id', trackIds[i]);
                         main.prepend(firstSubmitPicksBtn)
+                        main.prepend(firstLeaguePageBtn)
                         container.appendChild(trackContainer)
                         main.appendChild(secondSubmitPicksBtn)
                         main.appendChild(secondLeaguePageBtn)
@@ -745,6 +750,234 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
             console.log('unable to connect')
         })
 }
+
+
+
+
+
+
+const matchup2 = async (totalTracks, trackIds, used_picks) => {
+    //const nflObj = await nflArrayFunction()
+    let nflObj;
+    fetch('http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard').then(function(response) {
+        if(response.ok) {
+            response.json().then(function(data) {
+                nflObj = data
+            })
+        }
+    })
+
+//function matchup(totalTracks, trackIds, used_picks) {
+
+    let containerNumber = totalTracks
+    let container = document.getElementById('gameMatchups')
+    let main = document.getElementById('games')
+    let secondSubmitPicksBtn = document.createElement('button')
+    let firstSubmitPicksBtn = document.createElement('button')
+    let getLoading = document.getElementById('loading')
+    firstSubmitPicksBtn.setAttribute('class', 'btn btn-primary testerBtn')
+    firstSubmitPicksBtn.setAttribute('onclick', 'getBodyForPicks()')
+    firstSubmitPicksBtn.innerText = 'Submit Picks'
+    secondSubmitPicksBtn.setAttribute('class', 'btn btn-primary testerBtn')
+    secondSubmitPicksBtn.setAttribute('onclick', 'getBodyForPicks()')
+    secondSubmitPicksBtn.innerText = 'Submit Picks'
+    let secondLeaguePageBtn = document.createElement('button')
+    let firstLeaguePageBtn = document.createElement('button')
+    firstLeaguePageBtn.setAttribute('class', 'btn btn-primary testerBtn')
+    firstLeaguePageBtn.setAttribute('onclick', 'goToLeaguePage()')
+    firstLeaguePageBtn.innerText = 'View The League'
+    secondLeaguePageBtn.setAttribute('class', 'btn btn-primary testerBtn')
+    secondLeaguePageBtn.setAttribute('onclick', 'goToLeaguePage()')
+    secondLeaguePageBtn.innerText = 'View The League'
+    container.innerHTML = "";
+    //let nflObj = nflArrayFunction()
+
+    var nflScoreApi = "https://pacific-anchorage-21728.herokuapp.com/https://fixturedownload.com/feed/json/nfl-2022";
+    fetch(nflScoreApi)
+        .then(function(response) {
+            if (response.ok) {
+                    response.json().then(function(data) {
+                        console.log(data)
+
+                        let currentWeek = getWeek(data)
+
+                        let headerHelp = document.getElementsByTagName('header')[0]
+                        console.log(headerHelp)
+                        let currentWeekDiv = document.createElement('div')
+                        let currentWeekH1 = document.createElement('h1')
+                        currentWeekH1.innerHTML = `Week ${currentWeek}`
+                        currentWeekDiv.appendChild(currentWeekH1)
+                        headerHelp.appendChild(currentWeekDiv)
+
+                        let thisWeeksGames = [];
+
+                        for(w=0; w<data.length; w++) {
+                            if (data[w].RoundNumber === currentWeek) {
+                                thisWeeksGames.push(data[w])
+                            }
+                        }
+
+                        console.log(thisWeeksGames)
+                        
+                        let thisWeeksMatchups = [];
+
+                        for (m=0; m<thisWeeksGames.length; m++) {
+                            thisWeeksMatchups.push(thisWeeksGames[m].HomeTeam, thisWeeksGames[m].AwayTeam)
+                        }
+
+                        let matchupsLogos = []
+                        let matchupRecords = []
+
+                        for(l=0; l<(thisWeeksMatchups.length); l++) {
+
+                            //console.log(nflObj)
+
+                            for(x=0; x<nflObj.length; x++) {
+                                if(thisWeeksMatchups[l] === nflObj[x].team_name) {
+                                    matchupsLogos.push(nflObj[x].team_logo)
+                                    matchupRecords.push(nflObj[x].team_record)
+                                }
+                            }
+                        }
+
+                        let matchupRecordsFormat = []
+
+                        let matchups = [];
+                        let logos = [];
+                        let info = [];
+                        let chooser = 0
+
+                        for(r=0; r<thisWeeksMatchups.length; r++) {
+                            
+                            let wins = matchupRecords[r][0].toString()
+                            let losses = matchupRecords[r][1].toString()
+                            let record = `(${wins} - ${losses})`
+                            matchupRecordsFormat.push(record)
+                        }
+
+                        console.log(matchups)
+                    
+                        while(matchups.length < (thisWeeksMatchups.length)) {
+                    
+                            let firstTeam = thisWeeksMatchups[chooser];
+                            let firstTeamLogo = matchupsLogos[chooser];
+                            let firstTeamRecord = matchupRecordsFormat[chooser];
+
+                            chooser++;
+
+                            let secondTeam = thisWeeksMatchups[chooser];
+                            let secondTeamLogo = matchupsLogos[chooser];
+                            let secondTeamRecord = matchupRecordsFormat[chooser];
+
+                            matchups.push(firstTeam);
+                            matchups.push(secondTeam);
+                            info.push(firstTeamRecord);
+                            info.push(secondTeamRecord)
+                            logos.push(firstTeamLogo);
+                            logos.push(secondTeamLogo)
+
+                            chooser++;
+                        }
+
+                        console.log(matchups)
+                
+                        let extraCountIdHelp = 0;
+                
+                        for (i = 0; i < containerNumber; i++) {
+                    
+                        let logoCounter = 0;
+                        let trackContainer = document.createElement('div');
+                        
+                    
+                        for (let l=0; l < 16; l++) {
+                            
+                            let individualMatchup = document.createElement('div');
+                            let firstAnchor = document.createElement('a')
+                            trackContainer.setAttribute('class', `trackContainer`);
+                
+                
+                            let secondAnchor = document.createElement('a')
+                            let vs = document.createElement('h1');
+                            let firstTeamDiv = document.createElement('div');
+                            let firstTeamName = document.createElement('h2');
+                            let firstTeamInfo = document.createElement('h3')
+                            let secondTeamDiv = document.createElement('div')
+                            let secondTeamName = document.createElement('h2')
+                            let secondTeamInfo = document.createElement('h3')
+                            let teamLogoFirst = document.createElement('img');
+                            let teamLogoSecond = document.createElement('img');
+                            firstTeamDiv.setAttribute('id', `${extraCountIdHelp},${matchups[logoCounter]}`)
+                            firstTeamDiv.setAttribute('onclick', 'registerClick(this.id)')
+                            teamLogoFirst.setAttribute('class', 'teamLogos')
+                            teamLogoSecond.setAttribute('class', 'teamLogos')
+                            teamLogoFirst.src = logos[logoCounter];
+                            firstTeamName.innerText = matchups[logoCounter];
+                            firstTeamInfo.innerText = info[logoCounter];
+                            //firstAnchor.setAttribute('id', matchups[logoCounter])
+                            firstAnchor.appendChild(teamLogoFirst)
+                            firstAnchor.appendChild(firstTeamName)
+                            firstAnchor.appendChild(firstTeamInfo)
+                            firstTeamDiv.appendChild(firstAnchor)
+                            logoCounter++;
+                            teamLogoSecond.src = logos[logoCounter];
+                            secondTeamName.innerText = matchups[logoCounter];
+                            secondTeamInfo.innerText = info[logoCounter];
+                
+                            for(j=0; j<used_picks[i].length; j++) {
+                                if(used_picks[i][j] === firstTeamName.innerText) {
+                                    firstTeamDiv.classList.toggle('used_pick')
+                                }
+                                if(used_picks[i][j] === secondTeamName.innerText) {
+                                    secondTeamDiv.classList.toggle('used_pick')
+                                } 
+                            }
+                
+                            secondTeamDiv.setAttribute('id', `${extraCountIdHelp},${matchups[logoCounter]}`)
+                            secondTeamDiv.setAttribute('onclick', 'registerClick(this.id)')
+                            //secondAnchor.setAttribute('id', matchups[logoCounter])
+                            secondAnchor.appendChild(teamLogoSecond)
+                            secondAnchor.appendChild(secondTeamName)
+                            secondAnchor.appendChild(secondTeamInfo)
+                            secondTeamDiv.appendChild(secondAnchor)
+                            logoCounter++;
+                            vs.innerText = 'VS'
+                            individualMatchup.appendChild(firstTeamDiv);
+                            individualMatchup.appendChild(vs);
+                            individualMatchup.appendChild(secondTeamDiv);
+                            individualMatchup.setAttribute('class', 'individualMatchup')
+                            trackContainer.appendChild(individualMatchup)
+                        }
+                        extraCountIdHelp++;
+                        trackContainer.setAttribute('id', trackIds[i]);
+                        main.prepend(firstSubmitPicksBtn)
+                        main.prepend(firstLeaguePageBtn)
+                        container.appendChild(trackContainer)
+                        main.appendChild(secondSubmitPicksBtn)
+                        main.appendChild(secondLeaguePageBtn)
+
+                        getLoading.remove()
+                    }
+                })
+            } else {
+                alert('didnt work')
+                console.log(nflScoreApi)
+            }
+        })
+        .catch(function (error) {
+            console.log('unable to connect')
+        })
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 function matchupResult() {

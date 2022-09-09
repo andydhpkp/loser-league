@@ -235,6 +235,10 @@ td {
     --bs-table-striped-color: var(--secondaryDark);
 }
 
+/* .displayLogos {
+
+} */
+
 
 label {
     display: contents;
