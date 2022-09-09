@@ -556,6 +556,11 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
     let container = document.getElementById('gameMatchups')
     let main = document.getElementById('games')
     let secondSubmitPicksBtn = document.createElement('button')
+    let firstSubmitPicksBtn = document.createElement('button')
+    let getLoading = document.getElementById('loading')
+    firstSubmitPicksBtn.setAttribute('class', 'btn btn-primary testerBtn')
+    firstSubmitPicksBtn.setAttribute('onclick', 'getBodyForPicks()')
+    firstSubmitPicksBtn.innerText = 'Submit Picks'
     secondSubmitPicksBtn.setAttribute('class', 'btn btn-primary testerBtn')
     secondSubmitPicksBtn.setAttribute('onclick', 'getBodyForPicks()')
     secondSubmitPicksBtn.innerText = 'Submit Picks'
@@ -723,9 +728,12 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
                         }
                         extraCountIdHelp++;
                         trackContainer.setAttribute('id', trackIds[i]);
+                        main.prepend(firstSubmitPicksBtn)
                         container.appendChild(trackContainer)
                         main.appendChild(secondSubmitPicksBtn)
                         main.appendChild(secondLeaguePageBtn)
+
+                        getLoading.remove()
                     }
                 })
             } else {
