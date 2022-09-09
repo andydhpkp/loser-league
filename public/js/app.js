@@ -676,15 +676,15 @@ async function forcePicks() {
 
                 for (i=0; i<data.length; i++) {
 
-                    let submitted = 'No'
+                    let submitted = 'Yes'
                     let trackChecker = parseInt(currentWeek);
                     trackChecker++
 
                     for(t=0; t<data[i].tracks.length; t++) {
                         console.log(data[i].tracks[t].used_picks.length)
                         console.log(data[i].username)
-                        if(data[i].tracks[t].used_picks.length >= trackChecker) {
-                            submitted = 'Yes'
+                        if(data[i].tracks[t].used_picks.length < trackChecker) {
+                            submitted = 'No'
                         }
                         console.log(submitted)
                     }
