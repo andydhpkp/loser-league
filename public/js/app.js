@@ -555,7 +555,10 @@ async function leagueUserTableHandler() {
                         try {
                             console.log(data)
                             let tdTeamName = document.createElement('td')
-                            tdTeamName.innerText = data[i].tracks[x].current_pick
+                            let hiddenTeamName = document.createElement('p')
+                            hiddenTeamName.hidden = true
+                            hiddenTeamName.innerText = data[i].tracks[x].current_pick
+                            tdTeamName.appendChild(hiddenTeamName)
                             tdTeamName.className = 'teamNames'
                             //th.innerText = i+2
                             //tr.appendChild(th)
@@ -745,11 +748,10 @@ async function displayTeamLogo() {
                 console.log(textPicks)
                 for(x=0; x<textPicks.length; x++) {
                     for(y=0; y<data.sports[0].leagues[0].teams.length; y++) {
-                        if(textPicks[x].innerText === data.sports[0].leagues[0].teams[y].team.displayName) {
+                        if(textPicks[x].children[0].innerText === data.sports[0].leagues[0].teams[y].team.displayName) {
                             let logoImg = document.createElement('img')
                             logoImg.className = 'teamLogos'
                             logoImg.src = data.sports[0].leagues[0].teams[y].team.logos[0].href
-                            textPicks[x].innerText = ""
                             textPicks[x].appendChild(logoImg)
                         }
                     }

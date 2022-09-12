@@ -239,6 +239,13 @@ td {
 
 } */
 
+.winner {
+    background-color: var(--green) !important;
+}
+
+.loser {
+    background-color: var(--secondaryDark) !important;
+}
 
 label {
     display: contents;
