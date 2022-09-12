@@ -754,12 +754,31 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
 
 
 
+async function espnFetchScoreboard() {
+    fetch('http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard').then(function(response) {
+        if(response.ok) {
+            response.json().then(function(data) {
+                console.log(data)
+            })
+        }
+    })
+}
+
+async function espnFetchTeam() {
+    fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams').then(function(response) {
+        if(response.ok) {
+            response.json().then(function(data) {
+                console.log(data)
+            })
+        }
+    })
+}
 
 
 const matchup2 = async (totalTracks, trackIds, used_picks) => {
     //const nflObj = await nflArrayFunction()
     let nflObj;
-    fetch('http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard').then(function(response) {
+    fetch('http://site.api.espn.com/apis/site/v2/sports/football/nfl/teams').then(function(response) {
         if(response.ok) {
             response.json().then(function(data) {
                 nflObj = data
@@ -799,7 +818,8 @@ const matchup2 = async (totalTracks, trackIds, used_picks) => {
                     response.json().then(function(data) {
                         console.log(data)
 
-                        let currentWeek = getWeek(data)
+                        //let currentWeek = getWeek(data)
+                        let currentWeek = 1
 
                         let headerHelp = document.getElementsByTagName('header')[0]
                         console.log(headerHelp)
@@ -832,10 +852,10 @@ const matchup2 = async (totalTracks, trackIds, used_picks) => {
 
                             //console.log(nflObj)
 
-                            for(x=0; x<nflObj.length; x++) {
-                                if(thisWeeksMatchups[l] === nflObj[x].team_name) {
-                                    matchupsLogos.push(nflObj[x].team_logo)
-                                    matchupRecords.push(nflObj[x].team_record)
+                            for(x=0; x<nflObj.sports[0].leagues[0].teams.length; x++) {
+                                if(thisWeeksMatchups[l] === nflObj.sports[0].leagues[0].teams[x].team.displayName) {
+                                    matchupsLogos.push(nflObj.sports[0].leagues[0].teams[x].team.logos[0].href)
+                                    matchupRecords.push([0,0])
                                 }
                             }
                         }
@@ -955,7 +975,7 @@ const matchup2 = async (totalTracks, trackIds, used_picks) => {
                         main.appendChild(secondSubmitPicksBtn)
                         main.appendChild(secondLeaguePageBtn)
 
-                        getLoading.remove()
+                        //getLoading.remove()
                     }
                 })
             } else {
