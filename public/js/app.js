@@ -557,8 +557,6 @@ async function leagueUserTableHandler() {
                             let tdTeamName = document.createElement('td')
                             tdTeamName.innerText = data[i].tracks[x].current_pick
                             tdTeamName.className = 'teamNames'
-/*                             let displayLogoLink = displayTeamLogo(tdTeamName.innerText)
-                            console.log(displayLogoLink) */
                             //th.innerText = i+2
                             //tr.appendChild(th)
                             tr.appendChild(tdTeamName)
