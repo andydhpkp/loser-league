@@ -532,7 +532,7 @@ function getEndOfGameTime() {
 
     if((checkMatchupDay === 2) && (checkMatchupHour >= 7)) {
         console.log('Checking Mathcup!!')
-        matchupResult()
+        //matchupResult()
     }
 }
 //3600000
