@@ -385,7 +385,7 @@ function getTrackNumber() {
                     //location.href = "../league-page.html"
                 }
                 
-                matchup(totalTracks, trackIdArray, used_picks)
+                matchup2(totalTracks, trackIdArray, used_picks)
                 if(trackIdArray.length === 0) {
                     let sectionHelp = document.getElementById('games')
                     console.log(sectionHelp)
@@ -532,14 +532,14 @@ function getEndOfGameTime() {
 
     if((checkMatchupDay === 2) && (checkMatchupHour >= 7)) {
         console.log('Checking Mathcup!!')
-        matchupResult()
+        //matchupResult()
     }
 }
 //3600000
 setInterval(getEndOfGameTime, 3600000)
 
 
-const matchup = async (totalTracks, trackIds, used_picks) => {
+/* const matchup = async (totalTracks, trackIds, used_picks) => {
     //const nflObj = await nflArrayFunction()
     let nflObj;
     fetch('/api/teams').then(function(response) {
@@ -749,7 +749,7 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
         .catch(function (error) {
             console.log('unable to connect')
         })
-}
+} */
 
 
 
@@ -818,8 +818,7 @@ const matchup2 = async (totalTracks, trackIds, used_picks) => {
                     response.json().then(function(data) {
                         console.log(data)
 
-                        //let currentWeek = getWeek(data)
-                        let currentWeek = 1
+                        let currentWeek = getWeek(data)
 
                         let headerHelp = document.getElementsByTagName('header')[0]
                         console.log(headerHelp)
@@ -975,7 +974,7 @@ const matchup2 = async (totalTracks, trackIds, used_picks) => {
                         main.appendChild(secondSubmitPicksBtn)
                         main.appendChild(secondLeaguePageBtn)
 
-                        //getLoading.remove()
+                        getLoading.remove()
                     }
                 })
             } else {

@@ -557,7 +557,7 @@ async function leagueUserTableHandler() {
                             let tdTeamName = document.createElement('td')
                             tdTeamName.innerText = data[i].tracks[x].current_pick
                             tdTeamName.className = 'teamNames'
-/*                             let displayLogoLink = displayTeamLogo(tdTeamName)
+/*                             let displayLogoLink = displayTeamLogo(tdTeamName.innerText)
                             console.log(displayLogoLink) */
                             //th.innerText = i+2
                             //tr.appendChild(th)
@@ -577,6 +577,7 @@ async function leagueUserTableHandler() {
                 mainTable.appendChild(tBody)
 
                 viewUsersTable.appendChild(mainTable)
+                displayTeamLogo()
 
             })
         } else {
@@ -737,29 +738,33 @@ function timeToForce() {
 setInterval(timeToForce, 3600000)
 
 async function displayTeamLogo() {
-    fetch(`/api/teams/`).then(function(response) {
+
+    fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams`).then(function(response) {
         if(response.ok) {
             response.json().then(function(data) {
                 console.log(data)
-                
-                let logo
-                let allTeams = document.getElementsByClassName('teamNames')
-                for(i=0; i<allTeams.length; i++) {
-                    let image = document.createElement('img')
-                    image.classList = 'teamLogos rounded mx-auto d-block'
-                    for(x=0; x<data.length; x++) {
-                        if(allTeams[i].innerText === data[x].team_name) {
-                            logo = data[x].team_logo
-                            image.src = logo
-                            allTeams[i].innerHTML = ""
-                            allTeams[i].appendChild(image)
+                let textPicks = document.getElementsByClassName('teamNames')
+                console.log(textPicks)
+                for(x=0; x<textPicks.length; x++) {
+                    for(y=0; y<data.sports[0].leagues[0].teams.length; y++) {
+                        if(textPicks[x].innerText === data.sports[0].leagues[0].teams[y].team.displayName) {
+                            let logoImg = document.createElement('img')
+                            logoImg.className = 'teamLogos'
+                            logoImg.src = data.sports[0].leagues[0].teams[y].team.logos[0].href
+                            textPicks[x].innerText = ""
+                            textPicks[x].appendChild(logoImg)
                         }
                     }
                 }
-                console.log(allTeams)
+
+                console.log(textPicks)
             })
         } else {
             alert('Could Not Connect')
         }
     })
+}
+
+async function espnFetchTeam() {
+
 }
