@@ -430,10 +430,6 @@ function registerClick(clicked_id) {
     }
 }
 
-function submitPicks() {
-
-}
-
 async function leagueUserTableHandler() {
 
     let headerHelp = document.getElementsByTagName('header')[0]
@@ -458,7 +454,6 @@ async function leagueUserTableHandler() {
                         largestPickLength = pickTester
                     }
                 }
-                //let orderUsersArr = 
 
                 let viewUsersTable = document.getElementById('leagueMain')
 
@@ -555,15 +550,20 @@ async function leagueUserTableHandler() {
                         try {
                             console.log(data)
                             let tdTeamName = document.createElement('td')
-                            tdTeamName.innerText = data[i].tracks[x].current_pick
-                            //th.innerText = i+2
-                            //tr.appendChild(th)
+                            let hiddenTeamName = document.createElement('p')
+                            let hiddenTrackId = document.createElement('p')
+                            hiddenTeamName.hidden = true
+                            hiddenTrackId.hidden = true
+                            hiddenTrackId.innerText = data[i].tracks[x].id
+                            hiddenTeamName.innerText = data[i].tracks[x].current_pick
+                            tdTeamName.appendChild(hiddenTeamName)
+                            tdTeamName.appendChild(hiddenTrackId)
+                            tdTeamName.className = 'teamNames'
                             tr.appendChild(tdTeamName)
                             tBody.appendChild(tr)
                         }
                         catch(err) {
                             let tdTeamName = document.createElement('td')
-                            //tdTeamName.innerText = '&nbsp;'
                             tr.appendChild(tdTeamName)
                             tBody.appendChild(tr)
                         }
@@ -574,6 +574,8 @@ async function leagueUserTableHandler() {
                 mainTable.appendChild(tBody)
 
                 viewUsersTable.appendChild(mainTable)
+                displayTeamLogo()
+                finalScores()
 
             })
         } else {
@@ -595,7 +597,6 @@ function adminHandler() {
     }
 }
 
-//make it async
 async function deleteTracksAdmin() {
 
     let altFormResults = document.getElementsByName('track')
@@ -732,3 +733,32 @@ function timeToForce() {
 }
 //3600000
 setInterval(timeToForce, 3600000)
+
+async function displayTeamLogo() {
+
+    fetch(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams`).then(function(response) {
+        if(response.ok) {
+            response.json().then(function(data) {
+                console.log(data)
+                let textPicks = document.getElementsByClassName('teamNames')
+                console.log(textPicks)
+                for(x=0; x<textPicks.length; x++) {
+                    for(y=0; y<data.sports[0].leagues[0].teams.length; y++) {
+                        if(textPicks[x].children[0].innerText === data.sports[0].leagues[0].teams[y].team.displayName) {
+                            let logoImg = document.createElement('img')
+                            logoImg.className = 'teamLogos'
+                            logoImg.src = data.sports[0].leagues[0].teams[y].team.logos[0].href
+                            textPicks[x].appendChild(logoImg)
+                        }
+                    }
+                }
+            })
+        } else {
+            alert('Could Not Connect')
+        }
+    })
+}
+
+async function espnFetchTeam() {
+
+}

@@ -11,85 +11,113 @@
 //add button to manually check matchup
 
 
-const keepingRecords = async (winner, loser, tie) => {
-    tie = tie || false;
-    let nflObj;
-    let currentWeek = localStorage.getItem('thisWeek')
-    fetch('/api/teams').then(function(response) {
+
+
+//Maybe do the espn one just for Monday night? Seems easier to have the random time update
+/* async function finalScores() {
+    fetch(`http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard`).then(function(response) {
         if(response.ok) {
             response.json().then(function(data) {
-                nflObj = data
+                console.log(data)
+                for(i=0; i<data.events)
+            })
+        }
+    })
+} */
 
-                console.log(winner, loser, tie)
-
-                let winnerId;
-                let winnerRecord;
-                let wins
-                let winnerLosses;
-                let updatedWinnerRecord = [];
-
-                let loserId;
-                let loserRecord;
-                let losses;
-                let loserWins;
-                let updatedLoserRecord = [];
-
-                let won = 1;
-                let loss = 1;
-
-                console.log(nflObj)
-
-                for(i=0; i<nflObj.length; i++) {
-
-                    if(nflObj[i].team_name === winner) {
-                        winnerId = nflObj[i].id
-                        winnerRecord = nflObj[i].team_record
-                        wins = parseInt(winnerRecord[0])
-                        winnerLosses = parseInt(winnerRecord[1])
+async function finalScores() {
+    fetch('https://pacific-anchorage-21728.herokuapp.com/https://fixturedownload.com/feed/json/nfl-2022').then(function(response) {
+        if(response.ok) {
+            response.json().then(function(data) {
+                console.log(data)
+                let currentWeek = getWeek(data)
+                let thisWeeksGames = [];
+                let thisWeeksGamesCheckerMonday = [];
+                let makeSureMondayGameIsDone = currentWeek - 1;
+                let MondayGameFinished = true
+                if(makeSureMondayGameIsDone > 0) {
+                    for(c=0; c<data.length; c++) {
+                        if (data[c].RoundNumber === makeSureMondayGameIsDone) {
+                            thisWeeksGamesCheckerMonday.push(data[c])
+                        }
                     }
-                    if(nflObj[i].team_name === loser) {
-                        loserId = nflObj[i].id
-                        loserRecord = nflObj[i].team_record
-                        losses = parseInt(loserRecord[1])
-                        loserWins = parseInt(loserRecord[0])
+                    let lastGame = thisWeeksGamesCheckerMonday[Object.keys(thisWeeksGamesCheckerMonday)[Object.keys(thisWeeksGamesCheckerMonday).length -1]]
+                    console.log(lastGame)
+                    if(lastGame.AwayTeamScore == null) {
+                        MondayGameNotFinished = true
+                    }
+                }
+                for(w=0; w<data.length; w++) {
+                    if (data[w].RoundNumber === currentWeek) {
+                        thisWeeksGames.push(data[w])
+                    }
+                }
+                console.log(thisWeeksGames)
+                let textPicks = document.getElementsByClassName('teamNames')
+                console.log(textPicks)
+
+                for(i=0; i<textPicks.length; i++) {
+                    let didTheyLoseTeamName = textPicks[i].children[0].innerText
+                    console.log(didTheyLoseTeamName)
+                    for(x=0; x<thisWeeksGames.length; x++) {
+                        let notNull = true
+                        let specificMatchup = []
+                        if(Object.values(thisWeeksGames[x]).indexOf(didTheyLoseTeamName) > -1) {
+                            specificMatchup.push(thisWeeksGames[x].AwayTeam, thisWeeksGames[x].AwayTeamScore, thisWeeksGames[x].HomeTeam, thisWeeksGames[x].HomeTeamScore)
+                            if(Object.values(specificMatchup).indexOf(null) > -1) {
+                                notNull = false
+                            }
+                            if(notNull) {
+                                if(didTheyLoseTeamName === specificMatchup[0]) {
+                                    if(specificMatchup[1] <= specificMatchup[3]) {
+                                        //console.log(didTheyLoseTeamName + ' lost')
+                                        textPicks[i].classList = 'winner teamNames'
+                                    } else {
+                                        //console.log(didTheyLoseTeamName + ' won')
+                                        textPicks[i].classList = 'loser teamNames'
+                                    }
+                                }
+                                if(didTheyLoseTeamName === specificMatchup[2]) {
+                                    if(specificMatchup[1] >= specificMatchup[3]) {
+                                        //console.log(didTheyLoseTeamName + ' lost')
+                                        textPicks[i].classList = 'winner teamNames'
+                                    } else {
+                                        //console.log(didTheyLoseTeamName + ' won')
+                                        textPicks[i].classList = 'loser teamNames'
+                                    }
+                                }
+                            }
+
+                        }
+
                     }
                 }
 
-                if((wins + winnerLosses) < currentWeek && (losses + loserWins) < currentWeek) {
+                let totalWinners = document.getElementsByClassName('winner')
+                let totalLosers = document.getElementsByClassName('loser')
 
-                    wins++;
-                    losses++;
-
-                    //update winner as loser
-                    if(tie) {
-                        updatedWinnerRecord.push(winnerLosses.toString())
-                        updatedWinnerRecord.push(wins.toString())
-                    } else {
-                        updatedWinnerRecord.push(wins.toString())
-                        updatedWinnerRecord.push(winnerLosses.toString())
+                if((totalWinners.length + totalLosers.length) === textPicks.length) {
+                    for(l=0; l<totalLosers.length; l++) {
+                        let deleteTrackId = parseInt(totalLosers[l].children[1].innerText)
+                        deleteTrack(deleteTrackId)
                     }
-
-                    updatedLoserRecord.push(loserWins.toString())
-                    updatedLoserRecord.push(losses.toString())
-
-                    let id = winnerId
-                    let team_record = updatedWinnerRecord
-
-                    for(x=0; x<2; x++) {
-
-                        if(id === winnerId) {
-                            postWinnerRecord(winnerId, team_record)
+                    //THIS IS A BANDAID UNTIL YOU SEE HOW ESPN UPDATES RECORDS BY TUESDAY
+                    for(p=0; p<thisWeeksGames.length; p++){
+                        if(thisWeeksGames[p].AwayTeamScore > thisWeeksGames[p].HomeTeamScore) {
+                            postWinnerRecord(thisWeeksGames[p].AwayTeam, ['1','0'])
+                            postLoserRecord(thisWeeksGames[p].HomeTeam, ['0','1'])
                         }
-
-                        if(id === loserId) {
-                            postLoserRecord(loserId, team_record, loser)
+                        if(thisWeeksGames[p].HomeTeamScore > thisWeeksGames[p].AwayTeamScore) {
+                            postWinnerRecord(thisWeeksGames[p].HomeTeam, ['1','0'])
+                            postLoserRecord(thisWeeksGames[p].AwayTeam, ['0','1'])
                         }
-
-                        id = loserId
-                        team_record = updatedLoserRecord
+                        if(thisWeeksGames[p].AwayTeamScore === thisWeeksGames[p].HomeTeamScore) {
+                            postLoserRecord(thisWeeksGames[p].AwayTeam, ['0','1'])
+                            postLoserRecord(thisWeeksGames[p].HomeTeam, ['0','1'])
+                        }
                     }
-
                 }
+                
             })
         }
     })
@@ -110,7 +138,7 @@ async function postWinnerRecord(winnerId, team_record) {
     }
 }
 
-async function postLoserRecord(loserId, team_record, loserName) {
+async function postLoserRecord(loserId, team_record) {
     const response = await fetch(`/api/teams/${loserId}`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -120,7 +148,6 @@ async function postLoserRecord(loserId, team_record, loserName) {
     })
     if(response.ok) {
         console.log('RECORD UPDATED')
-        loseTrack(loserName)
     } else {
         alert(response.statusText)
     }
@@ -505,8 +532,8 @@ function getWeek(data) {
             currentWeek = 1;
         } 
 
-        if (currentDate.getTime() > weekSecondsArr[d] && currentDate.getTime() < (weekSecondsArr[d+1] + 28800000)) {
-            currentWeek = d+2
+        if (currentDate.getTime() > weekSecondsArr[d] && currentDate.getTime() < (weekSecondsArr[d+1] + 43200000)) {
+            currentWeek = d+1
         }
     }
 
@@ -538,11 +565,31 @@ function getEndOfGameTime() {
 //3600000
 setInterval(getEndOfGameTime, 3600000)
 
+async function espnFetchScoreboard() {
+    fetch('http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard').then(function(response) {
+        if(response.ok) {
+            response.json().then(function(data) {
+                console.log(data)
+            })
+        }
+    })
+}
+
+async function espnFetchTeam() {
+    fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams').then(function(response) {
+        if(response.ok) {
+            response.json().then(function(data) {
+                console.log(data)
+            })
+        }
+    })
+}
+
 
 const matchup = async (totalTracks, trackIds, used_picks) => {
     //const nflObj = await nflArrayFunction()
     let nflObj;
-    fetch('/api/teams').then(function(response) {
+    fetch('http://site.api.espn.com/apis/site/v2/sports/football/nfl/teams').then(function(response) {
         if(response.ok) {
             response.json().then(function(data) {
                 nflObj = data
@@ -556,10 +603,19 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
     let container = document.getElementById('gameMatchups')
     let main = document.getElementById('games')
     let secondSubmitPicksBtn = document.createElement('button')
+    let firstSubmitPicksBtn = document.createElement('button')
+    let getLoading = document.getElementById('loading')
+    firstSubmitPicksBtn.setAttribute('class', 'btn btn-primary testerBtn')
+    firstSubmitPicksBtn.setAttribute('onclick', 'getBodyForPicks()')
+    firstSubmitPicksBtn.innerText = 'Submit Picks'
     secondSubmitPicksBtn.setAttribute('class', 'btn btn-primary testerBtn')
     secondSubmitPicksBtn.setAttribute('onclick', 'getBodyForPicks()')
     secondSubmitPicksBtn.innerText = 'Submit Picks'
     let secondLeaguePageBtn = document.createElement('button')
+    let firstLeaguePageBtn = document.createElement('button')
+    firstLeaguePageBtn.setAttribute('class', 'btn btn-primary testerBtn')
+    firstLeaguePageBtn.setAttribute('onclick', 'goToLeaguePage()')
+    firstLeaguePageBtn.innerText = 'View The League'
     secondLeaguePageBtn.setAttribute('class', 'btn btn-primary testerBtn')
     secondLeaguePageBtn.setAttribute('onclick', 'goToLeaguePage()')
     secondLeaguePageBtn.innerText = 'View The League'
@@ -606,10 +662,10 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
 
                             //console.log(nflObj)
 
-                            for(x=0; x<nflObj.length; x++) {
-                                if(thisWeeksMatchups[l] === nflObj[x].team_name) {
-                                    matchupsLogos.push(nflObj[x].team_logo)
-                                    matchupRecords.push(nflObj[x].team_record)
+                            for(x=0; x<nflObj.sports[0].leagues[0].teams.length; x++) {
+                                if(thisWeeksMatchups[l] === nflObj.sports[0].leagues[0].teams[x].team.displayName) {
+                                    matchupsLogos.push(nflObj.sports[0].leagues[0].teams[x].team.logos[0].href)
+                                    matchupRecords.push([0,0])
                                 }
                             }
                         }
@@ -723,9 +779,13 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
                         }
                         extraCountIdHelp++;
                         trackContainer.setAttribute('id', trackIds[i]);
+                        main.prepend(firstSubmitPicksBtn)
+                        main.prepend(firstLeaguePageBtn)
                         container.appendChild(trackContainer)
                         main.appendChild(secondSubmitPicksBtn)
                         main.appendChild(secondLeaguePageBtn)
+
+                        getLoading.remove()
                     }
                 })
             } else {
@@ -736,64 +796,6 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
         .catch(function (error) {
             console.log('unable to connect')
         })
-}
-
-
-function matchupResult() {
-    var nflScoreApi = "https://pacific-anchorage-21728.herokuapp.com/https://fixturedownload.com/feed/json/nfl-2022";
-
-    fetch(nflScoreApi)
-        .then(function(response) {
-            if (response.ok) {
-                    response.json().then(function(data) {
-                        console.log(data)
-
-                        let thisWeeksGames = [];
-                        let currentWeek = getWeek(data)
-//
-                        let testerScores;
-//
-
-                        for(w=0; w<data.length; w++) {
-                            if (data[w].RoundNumber === currentWeek) {
-                                thisWeeksGames.push(data[w])
-                            }
-                        }
-
-                        console.log(thisWeeksGames)
-                        
-                        let thisWeeksMatchups = [];
-
-                        for (m=0; m<thisWeeksGames.length; m++) {
-                            thisWeeksMatchups.push(thisWeeksGames[m].HomeTeam, thisWeeksGames[m].AwayTeam)
-                        }
-
-                        for(i=0; i<thisWeeksGames.length; i++) {
-                            if(thisWeeksGames[i].HomeTeamScore === null || thisWeeksGames[i].AwayTeamScore === null) {
-                                console.log(thisWeeksGames[i])
-                                
-                            } else {
-                                if(thisWeeksGames[i].HomeTeamScore > thisWeeksGames[i].AwayTeamScore) {
-                                    keepingRecords(thisWeeksGames[i].HomeTeam, thisWeeksGames[i].AwayTeam)
-                                }
-                                if(thisWeeksGames[i].AwayTeamScore > thisWeeksGames[i].HomeTeamScore) {
-                                    keepingRecords(thisWeeksGames[i].AwayTeam, thisWeeksGames[i].HomeTeam)
-                                }
-                                if(thisWeeksGames[i].AwayTeamScore === thisWeeksGames[i].HomeTeamScore) {
-                                    keepingRecords(thisWeeksGames[i].AwayTeam, thisWeeksGames[i].HomeTeam, true)
-                                }
-                            }
-                        }
-
-                    })
-            } else {
-                alert('didnt work')
-                console.log(nflScoreApi)
-            }
-        })
-        .catch(function (error) {
-        alert('unable to connect')
-    })
 }
 
 

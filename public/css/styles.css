@@ -214,6 +214,11 @@ hidden {
     /* table-layout:fixed; */
     empty-cells: show;
 }
+
+.table .teamLogos {
+    width: 70px;
+}
+
 td { 
     overflow: hidden; 
     text-overflow: ellipsis; 
@@ -235,6 +240,17 @@ td {
     --bs-table-striped-color: var(--secondaryDark);
 }
 
+/* .displayLogos {
+
+} */
+
+.winner {
+    background-color: var(--green) !important;
+}
+
+.loser {
+    background-color: var(--secondaryDark) !important;
+}
 
 label {
     display: contents;
