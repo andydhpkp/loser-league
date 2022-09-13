@@ -88,6 +88,26 @@ router.put('/:id', (req, res) => {
     })
 })
 
+//update win/loss by name
+router.put('/team/:team_name', (req, res) => {
+    Team.update(req.body, {
+        where: {
+            team_name: req.params.team_name
+        }
+    })
+    .then(dbTeam => {
+        if (!dbTeam) {
+            res.status(404).json({ message: 'No Team found with this id' })
+            return
+        }
+        res.json(dbTeam)
+    })
+    .catch(err => {
+        console.log(err)
+        res.status(500).json(err)
+    })
+})
+
 //delete
 router.delete('/:id', (req, res) => {
     Team.destroy({

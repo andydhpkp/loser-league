@@ -430,10 +430,6 @@ function registerClick(clicked_id) {
     }
 }
 
-function submitPicks() {
-
-}
-
 async function leagueUserTableHandler() {
 
     let headerHelp = document.getElementsByTagName('header')[0]
@@ -458,7 +454,6 @@ async function leagueUserTableHandler() {
                         largestPickLength = pickTester
                     }
                 }
-                //let orderUsersArr = 
 
                 let viewUsersTable = document.getElementById('leagueMain')
 
@@ -556,18 +551,19 @@ async function leagueUserTableHandler() {
                             console.log(data)
                             let tdTeamName = document.createElement('td')
                             let hiddenTeamName = document.createElement('p')
+                            let hiddenTrackId = document.createElement('p')
                             hiddenTeamName.hidden = true
+                            hiddenTrackId.hidden = true
+                            hiddenTrackId.innerText = data[i].tracks[x].id
                             hiddenTeamName.innerText = data[i].tracks[x].current_pick
                             tdTeamName.appendChild(hiddenTeamName)
+                            tdTeamName.appendChild(hiddenTrackId)
                             tdTeamName.className = 'teamNames'
-                            //th.innerText = i+2
-                            //tr.appendChild(th)
                             tr.appendChild(tdTeamName)
                             tBody.appendChild(tr)
                         }
                         catch(err) {
                             let tdTeamName = document.createElement('td')
-                            //tdTeamName.innerText = '&nbsp;'
                             tr.appendChild(tdTeamName)
                             tBody.appendChild(tr)
                         }
@@ -579,6 +575,7 @@ async function leagueUserTableHandler() {
 
                 viewUsersTable.appendChild(mainTable)
                 displayTeamLogo()
+                finalScores()
 
             })
         } else {
@@ -600,7 +597,6 @@ function adminHandler() {
     }
 }
 
-//make it async
 async function deleteTracksAdmin() {
 
     let altFormResults = document.getElementsByName('track')
@@ -756,8 +752,6 @@ async function displayTeamLogo() {
                         }
                     }
                 }
-
-                console.log(textPicks)
             })
         } else {
             alert('Could Not Connect')

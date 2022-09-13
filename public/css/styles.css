@@ -214,6 +214,11 @@ hidden {
     /* table-layout:fixed; */
     empty-cells: show;
 }
+
+.table .teamLogos {
+    width: 70px;
+}
+
 td { 
     overflow: hidden; 
     text-overflow: ellipsis; 
