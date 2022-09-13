@@ -566,7 +566,7 @@ function getEndOfGameTime() {
 setInterval(getEndOfGameTime, 3600000)
 
 async function espnFetchScoreboard() {
-    fetch('http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard').then(function(response) {
+    fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard').then(function(response) {
         if(response.ok) {
             response.json().then(function(data) {
                 console.log(data)
@@ -589,7 +589,7 @@ async function espnFetchTeam() {
 const matchup = async (totalTracks, trackIds, used_picks) => {
     //const nflObj = await nflArrayFunction()
     let nflObj;
-    fetch('http://site.api.espn.com/apis/site/v2/sports/football/nfl/teams').then(function(response) {
+    fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams').then(function(response) {
         if(response.ok) {
             response.json().then(function(data) {
                 nflObj = data
