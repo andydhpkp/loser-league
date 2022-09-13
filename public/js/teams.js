@@ -731,9 +731,11 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
                             let firstTeamDiv = document.createElement('div');
                             let firstTeamName = document.createElement('h2');
                             let firstTeamInfo = document.createElement('h3')
+                            firstTeamInfo.className = 'record'
                             let secondTeamDiv = document.createElement('div')
                             let secondTeamName = document.createElement('h2')
                             let secondTeamInfo = document.createElement('h3')
+                            secondTeamInfo.className = 'record'
                             let teamLogoFirst = document.createElement('img');
                             let teamLogoSecond = document.createElement('img');
                             firstTeamDiv.setAttribute('id', `${extraCountIdHelp},${matchups[logoCounter]}`)
@@ -786,6 +788,8 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
                         main.appendChild(secondLeaguePageBtn)
 
                         getLoading.remove()
+
+                        getRecords()
                     }
                 })
             } else {
@@ -796,6 +800,37 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
         .catch(function (error) {
             console.log('unable to connect')
         })
+}
+
+async function getRecords() {
+    fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard').then(function(response) {
+        if(response.ok) {
+            response.json().then(function(data) {
+                console.log(data)
+                let recordHTML = document.getElementsByClassName('record')
+                console.log(recordHTML)
+
+                for(i=0; i<recordHTML.length; i++) {
+                    for(x=0; x<data.events.length; x++) {
+                        for(r=0; r<2; r++) {
+                            if(data.events[x].competitions[0].competitors[r].team.displayName === recordHTML[i].previousSibling.innerText) {
+                                let record = data.events[x].competitions[0].competitors[r].records[0].summary
+                                let splitRecord = record.split('')
+                                let finalRecord;
+                                if(splitRecord.length > 3) {
+                                    finalRecord = `(${splitRecord[0]} - ${splitRecord[2]} - ${splitRecord[4]})`
+                                } else {
+                                    finalRecord = `(${splitRecord[0]} - ${splitRecord[2]})`
+                                }
+                                recordHTML[i].innerText = finalRecord
+                            }
+                        }
+                    }
+                }
+
+            })
+        }
+    })
 }
 
 
