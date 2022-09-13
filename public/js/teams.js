@@ -104,16 +104,16 @@ async function finalScores() {
                     //THIS IS A BANDAID UNTIL YOU SEE HOW ESPN UPDATES RECORDS BY TUESDAY
                     for(p=0; p<thisWeeksGames.length; p++){
                         if(thisWeeksGames[p].AwayTeamScore > thisWeeksGames[p].HomeTeamScore) {
-                            postWinnerRecord(thisWeeksGames[p].AwayTeam, ['1','0'])
-                            postLoserRecord(thisWeeksGames[p].HomeTeam, ['0','1'])
+                            postWinnerRecord(thisWeeksGames[p].AwayTeam, [1,0])
+                            postLoserRecord(thisWeeksGames[p].HomeTeam, [0,1])
                         }
                         if(thisWeeksGames[p].HomeTeamScore > thisWeeksGames[p].AwayTeamScore) {
-                            postWinnerRecord(thisWeeksGames[p].HomeTeam, ['1','0'])
-                            postLoserRecord(thisWeeksGames[p].AwayTeam, ['0','1'])
+                            postWinnerRecord(thisWeeksGames[p].HomeTeam, [1,0])
+                            postLoserRecord(thisWeeksGames[p].AwayTeam, [0,1])
                         }
                         if(thisWeeksGames[p].AwayTeamScore === thisWeeksGames[p].HomeTeamScore) {
-                            postLoserRecord(thisWeeksGames[p].AwayTeam, ['0','1'])
-                            postLoserRecord(thisWeeksGames[p].HomeTeam, ['0','1'])
+                            postLoserRecord(thisWeeksGames[p].AwayTeam, [0,1])
+                            postLoserRecord(thisWeeksGames[p].HomeTeam, [0,1])
                         }
                     }
                 }
@@ -124,7 +124,7 @@ async function finalScores() {
 }
 
 async function postWinnerRecord(winnerId, team_record) {
-    const response = await fetch(`/api/teams/${winnerId}`, {
+    const response = await fetch(`/api/teams/team/${winnerId}`, {
         method: 'PUT',
         body: JSON.stringify({
             team_record
@@ -139,7 +139,7 @@ async function postWinnerRecord(winnerId, team_record) {
 }
 
 async function postLoserRecord(loserId, team_record) {
-    const response = await fetch(`/api/teams/${loserId}`, {
+    const response = await fetch(`/api/teams/team/${loserId}`, {
         method: 'PUT',
         body: JSON.stringify({
             team_record
@@ -532,8 +532,8 @@ function getWeek(data) {
             currentWeek = 1;
         } 
 
-        if (currentDate.getTime() > weekSecondsArr[d] && currentDate.getTime() < (weekSecondsArr[d+1] + 43200000)) {
-            currentWeek = d+1
+        if (currentDate.getTime() > (weekSecondsArr[d] + 18000000) && currentDate.getTime() < (weekSecondsArr[d+1])) {
+            currentWeek = d+2
         }
     }
 
