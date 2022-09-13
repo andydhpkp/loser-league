@@ -69,7 +69,7 @@ async function finalScores() {
                             }
                             if(notNull) {
                                 if(didTheyLoseTeamName === specificMatchup[0]) {
-                                    if(specificMatchup[1] <= specificMatchup[3]) {
+                                    if(specificMatchup[1] < specificMatchup[3]) {
                                         //console.log(didTheyLoseTeamName + ' lost')
                                         textPicks[i].classList = 'winner teamNames'
                                     } else {
@@ -78,7 +78,7 @@ async function finalScores() {
                                     }
                                 }
                                 if(didTheyLoseTeamName === specificMatchup[2]) {
-                                    if(specificMatchup[1] >= specificMatchup[3]) {
+                                    if(specificMatchup[1] > specificMatchup[3]) {
                                         //console.log(didTheyLoseTeamName + ' lost')
                                         textPicks[i].classList = 'winner teamNames'
                                     } else {
