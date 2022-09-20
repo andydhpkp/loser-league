@@ -537,7 +537,7 @@ function getWeek(data) {
         }
     }
 
-    localStorage.setItem('thisWeek', currentWeek)
+    localStorage.setItem('thisWeek', 2)
 
     return currentWeek;
 }
@@ -806,9 +806,7 @@ async function getRecords() {
     fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard').then(function(response) {
         if(response.ok) {
             response.json().then(function(data) {
-                console.log(data)
                 let recordHTML = document.getElementsByClassName('record')
-                console.log(recordHTML)
 
                 for(i=0; i<recordHTML.length; i++) {
                     for(x=0; x<data.events.length; x++) {
