@@ -95,6 +95,8 @@ async function finalScores() {
 
                 let totalWinners = document.getElementsByClassName('winner')
                 let totalLosers = document.getElementsByClassName('loser')
+                console.log(totalWinners)
+                console.log(totalLosers)
 
                 if((totalWinners.length + totalLosers.length) === textPicks.length) {
                     for(l=0; l<totalLosers.length; l++) {
