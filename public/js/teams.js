@@ -625,6 +625,10 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
     container.innerHTML = "";
     //let nflObj = nflArrayFunction()
 
+    if(totalTracks === 0 && trackIds.length === 0) {
+        main.prepend(firstLeaguePageBtn)
+    }
+
     var nflScoreApi = "https://pacific-anchorage-21728.herokuapp.com/https://fixturedownload.com/feed/json/nfl-2022";
     fetch(nflScoreApi)
         .then(function(response) {
