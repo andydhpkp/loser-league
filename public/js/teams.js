@@ -726,7 +726,7 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
                         let trackContainer = document.createElement('div');
                         
                     
-                        for (let l=0; l < 16; l++) {
+                        for (let l=0; l < thisWeeksGames.length; l++) {
                             
                             let individualMatchup = document.createElement('div');
                             let firstAnchor = document.createElement('a')
