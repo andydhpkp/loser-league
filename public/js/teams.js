@@ -693,7 +693,7 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
                         }
 
                         console.log(matchups)
-                        console.log(matchupRecordsFormat)
+                        
                     
                         while(matchups.length < (thisWeeksMatchups.length)) {
                     
@@ -817,6 +817,7 @@ async function getRecords() {
                 let recordHTML = document.getElementsByClassName('record')
 
                 for(i=0; i<recordHTML.length; i++) {
+                    console.log(data)
                     for(x=0; x<data.events.length; x++) {
                         for(r=0; r<2; r++) {
                             if(data.events[x].competitions[0].competitors[r].team.displayName === recordHTML[i].previousSibling.innerText) {
