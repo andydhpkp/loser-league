@@ -693,6 +693,7 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
                         }
 
                         console.log(matchups)
+                        console.log(matchupRecordsFormat)
                     
                         while(matchups.length < (thisWeeksMatchups.length)) {
                     
