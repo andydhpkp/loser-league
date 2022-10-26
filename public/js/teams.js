@@ -538,7 +538,7 @@ function getWeek(data) {
             currentWeek = d+2
         }
     }
-    currentWeek = 7;
+    currentWeek = 8;
 
     localStorage.setItem('thisWeek', currentWeek)
 
@@ -832,6 +832,12 @@ async function getRecords() {
                                 recordHTML[i].innerText = finalRecord
                             }
                         }
+                    }
+                }
+                let checkForBye = document.getElementsByClassName('record')
+                for(i=0; i<checkForBye.length; i++) {
+                    if(checkForBye[i].innerText === '(0 - 0)') {
+                        
                     }
                 }
 
