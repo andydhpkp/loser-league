@@ -538,7 +538,7 @@ function getWeek(data) {
             currentWeek = d+2
         }
     }
-    currentWeek = 9;
+    currentWeek = 10;
 
     localStorage.setItem('thisWeek', currentWeek)
 
