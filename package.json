@@ -29,5 +29,7 @@
   "bugs": {
     "url": "https://github.com/andydhpkp/loser-league/issues"
   },
-  "homepage": "https://github.com/andydhpkp/loser-league#readme"
+  "homepage": "https://github.com/andydhpkp/loser-league#readme",
+  "web": "node index.js"
+
 }
