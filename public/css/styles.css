@@ -1,243 +1,251 @@
 :root {
-    --darkest: #1C3144;
-    --secondaryDark: #A23E48;
-    --middle: #6C8EAD;
-    --secondaryLight: #FF8C42;
-    --green: #629460;
-    --waitingBlue: #63ADF2;
-    --lightest: #E8EBE4;
-    --lightBlue: #97AEC4;
+  --darkest: #1c3144;
+  --secondaryDark: #a23e48;
+  --middle: #6c8ead;
+  --secondaryLight: #ff8c42;
+  --green: #629460;
+  --waitingBlue: #63adf2;
+  --lightest: #e8ebe4;
+  --lightBlue: #97aec4;
 }
 
 body {
-    background-color: var(--lightest);
-    color: var(--darkest);
+  background-color: var(--lightest);
+  color: var(--darkest);
 }
 
 header {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    margin: 5px;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 5px;
 }
 
 header div {
-    display: flex;
-    width: 100%;
+  display: flex;
+  width: 100%;
 }
 
 header h1 {
-    text-align: center;
-    width: 100%;
+  text-align: center;
+  width: 100%;
 }
 
-
-
-
 header a {
-    text-align: center;
+  text-align: center;
 }
 
 header a:hover {
-    color: var(--darkest);
+  color: var(--darkest);
 }
 
 a {
-    text-decoration: none;
-    color: inherit;
+  text-decoration: none;
+  color: inherit;
 }
 
 hidden {
-    display: none;
+  display: none;
 }
 
 .pickBtn {
-    background-color: var(--lightBlue);
-
+  background-color: var(--lightBlue);
 }
 
 .btn-primary:hover {
-    background-color: var(--lightBlue);
-    border-color: var(--lightBlue);
+  background-color: var(--lightBlue);
+  border-color: var(--lightBlue);
 }
 
 .btn-primary {
-    background-color: var(--middle);
-    border-color: var(--middle);
+  background-color: var(--middle);
+  border-color: var(--middle);
+}
+
+.btn-outline-primary {
+  background-color: var(--lightest);
+  border-color: var(--middle);
+  color: var(--middle);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--middle);
+  border-color: var(--middle);
+  color: var(--lightest);
 }
 
 .btn-secondary {
-    background-color: var(--darkest);
-    border-color: var(--darkest);
+  background-color: var(--darkest);
+  border-color: var(--darkest);
 }
 
 .container-login-form {
-    display: flex;
-    justify-content: center;
-    margin-top: 2%;
+  display: flex;
+  justify-content: center;
+  margin-top: 2%;
 }
 
 .login-form {
-    margin: 3%;
-    text-align: center;
-    width: 500px;
+  margin: 3%;
+  text-align: center;
+  width: 500px;
 }
 
 .login-btn {
-    width: 100%;
-    margin-bottom: 25px;
-    background-color: var(--middle);
-    border-color: var(--middle);
+  width: 100%;
+  margin-bottom: 25px;
+  background-color: var(--middle);
+  border-color: var(--middle);
 }
 
 .logo {
-    width: 15em;
-    margin-top: 1.5%;
+  width: 15em;
+  margin-top: 1.5%;
 }
 
 .account-helpers:hover {
-    color: var(--secondaryDark);
+  color: var(--secondaryDark);
 }
 
 .games {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .testerBtn {
-    width: 100%;
-    margin-bottom: 10px;
+  width: 100%;
+  margin-bottom: 10px;
 }
 
 .teamLogos {
-    width: 100px;
-    height: auto;
+  width: 100px;
+  height: auto;
 }
 
 .trackContainer {
-    display: flex;
-    border-radius: 2px;
-    border-width: 2px;
-    border-style: solid;
-    flex-wrap: wrap;
-    align-items: center;
-    flex-direction: column;
+  display: flex;
+  border-radius: 2px;
+  border-width: 2px;
+  border-style: solid;
+  flex-wrap: wrap;
+  align-items: center;
+  flex-direction: column;
 }
 
 .individualMatchup {
-    display: flex;
-    align-items: center;
-    flex-wrap: nowrap;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
 }
 
 .individualMatchup div {
-    text-align: center;
+  text-align: center;
 }
 
 .tempPick {
-    border-style: solid;
-    border-radius: 2px;
-    border-width: 2px;
-    border-color: var(--darkest);
-    padding: 7px;
+  border-style: solid;
+  border-radius: 2px;
+  border-width: 2px;
+  border-color: var(--darkest);
+  padding: 7px;
 }
 
 .adminUsersView {
-    width: 100%;
-    margin: 10px;
-    text-align: center;
+  width: 100%;
+  margin: 10px;
+  text-align: center;
 }
 
 .successfulPick {
-    background-color: var(--waitingBlue);
+  background-color: var(--waitingBlue);
 }
 
 .unsuccessfulPick {
-    background-color: var(--secondaryDark);
+  background-color: var(--secondaryDark);
 }
 
 .used_pick {
-    opacity: 0.2;
-    pointer-events: none;
+  opacity: 0.2;
+  pointer-events: none;
 }
 
 .table {
-    text-align: center;
+  text-align: center;
 }
 
 .btn-delete-track:focus {
-    background-color: #629460;
+  background-color: #629460;
 }
 
 #forgotPasswordLabel {
-    text-align: center;
+  text-align: center;
 }
 
 #gameMatchups {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 #gameMatchups div {
-    margin: 25px;
-    flex: 1;
+  margin: 25px;
+  flex: 1;
 }
 
 #adminUsers {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 #games h1 {
-    text-align: center;
+  text-align: center;
 }
 
 #adminView {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 #createTeams {
-    text-align: center;
+  text-align: center;
 }
 
 /* #leagueMain {
     display: flex;
 } */
-.table { 
-    /* table-layout:fixed; */
-    empty-cells: show;
+.table {
+  /* table-layout:fixed; */
+  empty-cells: show;
 }
 
 .table .teamLogos {
-    width: 70px;
+  width: 70px;
 }
 
-td { 
-    overflow: hidden; 
-    text-overflow: ellipsis; 
-    word-wrap: break-word;
+td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-wrap: break-word;
 }
 @media only screen and (max-width: 480px) {
-    /* horizontal scrollbar for tables if mobile screen */
-    .table {
-        overflow-x: scroll;
-        display: block;
-        position: relative;
-        table-layout: auto;
-    }
+  /* horizontal scrollbar for tables if mobile screen */
+  .table {
+    overflow-x: scroll;
+    display: block;
+    position: relative;
+    table-layout: auto;
+  }
 }
 
 .eliminated {
-    color: var(--secondaryDark);
-    background-color: var(--darkest);
-    --bs-table-striped-color: var(--secondaryDark);
+  color: var(--secondaryDark);
+  background-color: var(--darkest);
+  --bs-table-striped-color: var(--secondaryDark);
 }
 
 /* .displayLogos {
@@ -245,33 +253,33 @@ td {
 } */
 
 .winner {
-    background-color: var(--green) !important;
+  background-color: var(--green) !important;
 }
 
 .loser {
-    background-color: var(--secondaryDark) !important;
+  background-color: var(--secondaryDark) !important;
 }
 
 label {
-    display: contents;
+  display: contents;
 }
 
 #userDelete {
-    margin-top: 12%;
+  margin-top: 12%;
 }
 
 @media screen and (max-width: 550px) {
-    #leagueMain {
-        overflow-x: auto;
-    }
-    #gameMatchups div {
-        margin: 10px;
-    }
+  #leagueMain {
+    overflow-x: auto;
+  }
+  #gameMatchups div {
+    margin: 10px;
+  }
 }
 
 @media screen and (max-width: 365px) {
-    #gameMatchups div {
-        margin: 2px;
-        margin-top: 10px;
-    }
+  #gameMatchups div {
+    margin: 2px;
+    margin-top: 10px;
+  }
 }
