@@ -55,6 +55,10 @@ router.get("/username/:username", (req, res) => {
     include: [
       {
         model: Track,
+        where: {
+          wrong_pick: null,
+        },
+        required: false, // This makes the JOIN LEFT OUTER instead of INNER, so that users without matching tracks are still returned.
       },
     ],
   })

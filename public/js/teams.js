@@ -103,7 +103,7 @@ async function finalScores() {
         if (totalWinners.length + totalLosers.length === textPicks.length) {
           for (l = 0; l < totalLosers.length; l++) {
             let deleteTrackId = parseInt(totalLosers[l].children[1].innerText);
-            deleteTrack(deleteTrackId);
+            addLoser(deleteTrackId, "bad placeholder");
           }
           //THIS IS A BANDAID UNTIL YOU SEE HOW ESPN UPDATES RECORDS BY TUESDAY
           for (p = 0; p < thisWeeksGames.length; p++) {
@@ -190,27 +190,17 @@ async function getTeam(teamId) {
   }
 }
 
-async function loseTrack(loserTeam) {
-  let allTracks;
-  fetch("/api/tracks").then(function (response) {
-    if (response.ok) {
-      response.json().then(function (data) {
-        allTracks = data;
-        for (i = 0; i < allTracks.length; i++) {
-          if (allTracks[i].current_pick === loserTeam) {
-            let loserId = allTracks[i].id;
-            deleteTrack(loserId);
-          }
-        }
-      });
-    }
+async function addLoser(trackId, loserTeam) {
+  let response = await fetch(`api/tracks/${trackId}/loser`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      wrong_pick: loserTeam,
+    }),
   });
-}
 
-async function deleteTrack(deleteId) {
-  let response = await fetch(`api/tracks/${deleteId}`, {
-    method: "delete",
-  });
   if (response.ok) {
     console.log("it worked");
   } else {

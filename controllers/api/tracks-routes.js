@@ -27,8 +27,8 @@ router.get("/", (req, res) => {
     });
 });
 
-//Get not null tracks
-router.get("/", (req, res) => {
+//Get not null tracks wrong_picks
+router.get("/alive", (req, res) => {
   Track.findAll({
     where: {
       wrong_pick: null,
@@ -116,6 +116,32 @@ router.put("/:id", (req, res) => {
   })
     .then((dbTrack) => {
       if (!dbTrack) {
+        res.status(404).json({ message: "No track found with this id" });
+        return;
+      }
+      res.json(dbTrack);
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json(err);
+    });
+});
+
+//Set Losing Team
+router.put("/:id/loser", (req, res) => {
+  const { wrong_pick } = req.body;
+
+  Track.update(
+    { wrong_pick },
+    {
+      where: {
+        id: req.params.id,
+      },
+    }
+  )
+    .then((dbTrack) => {
+      if (!dbTrack || dbTrack[0] === 0) {
+        // Also checking if no rows were affected
         res.status(404).json({ message: "No track found with this id" });
         return;
       }

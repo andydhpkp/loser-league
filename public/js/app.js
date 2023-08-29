@@ -1,3 +1,5 @@
+const match = require("nodemon/lib/monitor/match");
+
 function getTeamNames(names) {
   return names.teamName;
 }
@@ -237,7 +239,7 @@ async function getUserId() {
 }
 
 async function getBodyForPicks() {
-  fetch(`/api/tracks/`).then(function (response) {
+  fetch(`/api/tracks/alive`).then(function (response) {
     if (response.ok) {
       response.json().then(function (data) {
         console.log(data);
@@ -262,7 +264,7 @@ async function getBodyForPicks() {
             // @ts-ignore
             thisUsersTracks.push(data[w]);
             // @ts-ignore
-            if (data[w].used_picks.length > weekCheck) {
+            if (data[w].used_picks.length >= weekCheck) {
               allPicksIn++;
               // @ts-ignore
               alreadyPicked.push(data[w].id);
@@ -527,8 +529,9 @@ async function leagueUserTableHandler() {
         //find the picks length
         // @ts-ignore
         for (p = 0; p < data.length; p++) {
-          // @ts-ignore
-          let pickTester = data[p].tracks.length;
+          let validTracks = data[p].tracks.filter((track) => !track.wrong_pick);
+          let pickTester = validTracks.length;
+
           if (pickTester >= largestPickLength) {
             largestPickLength = pickTester;
           }
@@ -596,10 +599,15 @@ async function leagueUserTableHandler() {
           tdLast.innerText = data[i].last_name;
           let tdTracks = document.createElement("td");
           // @ts-ignore
-          tdTracks.innerText = data[i].tracks.length;
+          const wrongPicksCount = data[i].tracks.filter(
+            (track) => track.wrong_pick !== null
+          ).length;
+          tdTracks.innerText = data[i].tracks.length - wrongPicksCount;
+
           if (tdTracks.innerText === "0") {
             eliminated = true;
           }
+
           let tdSubmitted = document.createElement("td");
           let submitted = "No";
 
@@ -608,20 +616,25 @@ async function leagueUserTableHandler() {
           // @ts-ignore
           let trackChecker = parseInt(currentWeek);
           trackChecker++;
-          let trackValidatorHelp = 0;
           // @ts-ignore
-          for (t = 0; t < data[i].tracks.length; t++) {
+          for (t = 0; t < data[i].tracks.length - wrongPicksCount; t++) {
             console.log(trackChecker);
             // @ts-ignore
             console.log(data[i].tracks[t].used_picks.length);
             // @ts-ignore
-            if (data[i].tracks[t].used_picks.length >= trackChecker) {
-              trackValidatorHelp++;
-            }
             // @ts-ignore
-            if (trackValidatorHelp === data[i].tracks.length) {
+            //
+            const matchingTracksCount = data[i].tracks.filter(
+              (track) => track.used_picks.length === parseInt(currentWeek)
+            ).length;
+            if (
+              matchingTracksCount >=
+              data[i].tracks.length - wrongPicksCount
+            ) {
               submitted = "Yes";
             }
+
+            console.log(matchingTracksCount);
           }
 
           tdSubmitted.innerText = submitted;
@@ -639,6 +652,11 @@ async function leagueUserTableHandler() {
           tBody.appendChild(tr);
 
           // @ts-ignore
+          // Filter the tracks first
+          let validTracks = data[i].tracks.filter(
+            (track) => track.wrong_pick === null
+          );
+
           for (x = 0; x < largestPickLength; x++) {
             try {
               console.log(data);
@@ -647,10 +665,11 @@ async function leagueUserTableHandler() {
               let hiddenTrackId = document.createElement("p");
               hiddenTeamName.hidden = true;
               hiddenTrackId.hidden = true;
-              // @ts-ignore
-              hiddenTrackId.innerText = data[i].tracks[x].id;
-              // @ts-ignore
-              hiddenTeamName.innerText = data[i].tracks[x].current_pick;
+
+              // Using validTracks here
+              hiddenTrackId.innerText = validTracks[x].id;
+              hiddenTeamName.innerText = validTracks[x].current_pick;
+
               tdTeamName.appendChild(hiddenTeamName);
               tdTeamName.appendChild(hiddenTrackId);
               tdTeamName.className = "teamNames";
@@ -678,9 +697,8 @@ async function leagueUserTableHandler() {
   });
 }
 
-let actualAdminPass = "hi";
-
 function adminHandler() {
+  let actualAdminPass = "hi";
   // @ts-ignore
   let adminPassword = document
     .getElementById("adminPasswordInput")

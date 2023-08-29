@@ -16,10 +16,13 @@ Track.init(
       type: DataTypes.TEXT,
       allowNull: false,
       get() {
-        return this.getDataValue("available_picks").split(";");
+        const data = this.getDataValue("available_picks");
+        return data ? data.split(";") : [];
       },
       set(val) {
-        this.setDataValue("available_picks", val.join(";"));
+        if (Array.isArray(val)) {
+          this.setDataValue("available_picks", val.join(";"));
+        }
       },
     },
     //figure out how to make sure available != used
@@ -27,10 +30,13 @@ Track.init(
       type: DataTypes.TEXT,
       allowNull: true,
       get() {
-        return this.getDataValue("used_picks").split(";");
+        const data = this.getDataValue("used_picks");
+        return data ? data.split(";") : [];
       },
       set(val) {
-        this.setDataValue("used_picks", val.join(";"));
+        if (Array.isArray(val)) {
+          this.setDataValue("used_picks", val.join(";"));
+        }
       },
     },
     current_pick: {
