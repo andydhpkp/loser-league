@@ -571,7 +571,14 @@ function getWeek(data) {
       currentWeek = d + 2;
     }
   }
-  currentWeek = 1;
+
+  getCurrentWeek().then((value) => {
+    if (value) {
+      currentWeek = value;
+    } else {
+      console.log("Could not determine the current week.");
+    }
+  });
 
   localStorage.setItem("thisWeek", currentWeek);
 
@@ -674,6 +681,7 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
           console.log(data);
 
           let currentWeek = getWeek(data);
+          console.log(currentWeek);
 
           let headerHelp = document.getElementsByTagName("header")[0];
           console.log(headerHelp);
@@ -757,8 +765,6 @@ const matchup = async (totalTracks, trackIds, used_picks) => {
 
             chooser++;
           }
-
-          console.log(matchups);
 
           let extraCountIdHelp = 0;
 
@@ -936,17 +942,6 @@ async function doTeamsExist() {
   });
 }
 
-async function deleteAllTeams() {
-  let response = await fetch("/api/teams", {
-    method: "delete",
-  });
-  if (response.ok) {
-    console.log("it worked");
-  } else {
-    console.log("It has been working");
-  }
-}
-
 async function getCurrentWeek() {
   try {
     const response = await fetch(
@@ -958,36 +953,36 @@ async function getCurrentWeek() {
     }
 
     const data = await response.json();
+    const currentDate = getMyDate(); // Current date and time in UTC
 
-    const currentDate = new Date(); // Current date and time in UTC
-    let firstStartDate = null;
+    const league = data.leagues[0];
+    const regularSeasonCalendar = league.calendar.find(
+      (item) => item.label === "Regular Season"
+    );
 
-    for (const league of data.leagues) {
-      for (const calendarItem of league.calendar) {
-        for (const entry of calendarItem.entries) {
-          const startDate = new Date(entry.startDate);
-          const endDate = new Date(entry.endDate);
+    if (!regularSeasonCalendar) {
+      throw new Error("Could not find the Regular Season data");
+    }
 
-          // Check and store the first startDate for future comparison
-          if (!firstStartDate || startDate < firstStartDate) {
-            firstStartDate = startDate;
-          }
+    let firstStartDate = new Date(regularSeasonCalendar.startDate);
+    firstStartDate.setHours(firstStartDate.getHours() - 16); // Subtract 16 hours
 
-          if (currentDate >= startDate && currentDate <= endDate) {
-            return {
-              label: entry.label,
-              value: entry.value,
-            };
-          }
-        }
+    for (const entry of regularSeasonCalendar.entries) {
+      const startDate = new Date(entry.startDate);
+      startDate.setHours(startDate.getHours() - 16); // Subtract 16 hours
+
+      const endDate = new Date(entry.endDate);
+      endDate.setHours(endDate.getHours() - 16); // Subtract 16 hours
+
+      if (currentDate >= startDate && currentDate <= endDate) {
+        localStorage.setItem("thisWeek", entry.value.toString());
+        return entry.value; // Return the value directly
       }
     }
 
     if (currentDate < firstStartDate) {
-      return {
-        label: "Week 1",
-        value: "1",
-      };
+      localStorage.setItem("thisWeek", "1");
+      return "1"; // Return the value directly
     }
 
     return null;
@@ -995,4 +990,11 @@ async function getCurrentWeek() {
     console.error("Error fetching data:", error);
     return null;
   }
+}
+
+function getMyDate() {
+  const today = new Date();
+  //for testing different days
+  //today.setDate(today.getDate() + 15);
+  return today;
 }

@@ -48,20 +48,11 @@
     ></script>
     <script src="./js/teams.js"></script>
     <script src="./js/app.js"></script>
-    <script src="./js/login.js"></script>
+    <script src="./js/logout.js"></script>
     <script>
       getTrackNumber();
       getUserId();
-
-      getCurrentWeek().then((week) => {
-        if (week) {
-          console.log(
-            `The current week is: ${week.label} with value: ${week.value}`
-          );
-        } else {
-          console.log("Could not determine the current week.");
-        }
-      });
+      getCurrentWeek();
     </script>
   </body>
 </html>

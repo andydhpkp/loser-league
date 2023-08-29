@@ -451,6 +451,7 @@ async function makePick(
   });
   if (response.ok) {
     console.log("updated");
+    location.href = "../league-page.html";
   } else {
     alert(response.statusText);
   }

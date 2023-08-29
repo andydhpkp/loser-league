@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const bcrypt = require("bcrypt");
 const { User, Track } = require("../../models/my-index");
 
 router.get("/", (req, res) => {
@@ -214,6 +215,45 @@ router.delete("/username/:username", (req, res) => {
         return;
       }
       res.json(dbUser);
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json(err);
+    });
+});
+
+router.post("/reset-password", (req, res) => {
+  const { email, newPassword, newUsername } = req.body;
+
+  User.findOne({
+    where: {
+      email: email,
+    },
+  })
+    .then((user) => {
+      if (!user) {
+        return res
+          .status(404)
+          .json({ message: "No user with that email address!" });
+      }
+
+      // Hash the new password and update the user's record
+      user.password = bcrypt.hashSync(newPassword, 10);
+
+      //update if offered
+      if (newUsername) {
+        user.username = newUsername;
+      }
+
+      user
+        .save()
+        .then(() => {
+          res.status(200).json({ message: "Password updated successfully!" });
+        })
+        .catch((err) => {
+          console.log(err);
+          res.status(500).json(err);
+        });
     })
     .catch((err) => {
       console.log(err);

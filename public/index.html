@@ -88,7 +88,9 @@
           <div class="modal-content">
             <div class="modal-header">
               <h5 class="modal-title" id="forgotPasswordLabel">
-                Enter Email to send Password
+                Feel free to reset that password, even that username if you're
+                feeling it. If you don't remember your email, maybe it's time to
+                make a new account
               </h5>
               <button
                 type="button"
@@ -107,7 +109,32 @@
                   placeholder="Email"
                 />
               </div>
+              <div class="mb-3">
+                <input
+                  type="text"
+                  class="form-control"
+                  id="forgotPasswordUsername"
+                  placeholder="New Username"
+                />
+              </div>
+              <div class="mb-3">
+                <input
+                  type="password"
+                  class="form-control"
+                  id="resetPasswordInput"
+                  placeholder="New Password"
+                />
+              </div>
+              <div class="mb-3">
+                <input
+                  type="password"
+                  class="form-control"
+                  id="confirmResetPasswordInput"
+                  placeholder="Confirm Password"
+                />
+              </div>
             </div>
+
             <div class="modal-footer">
               <button
                 type="button"
@@ -116,8 +143,12 @@
               >
                 Close
               </button>
-              <button type="button" class="btn btn-primary">
-                Send Password to Email
+              <button
+                type="button"
+                class="btn btn-primary"
+                id="resetPasswordBtn"
+              >
+                Reset
               </button>
             </div>
           </div>
@@ -185,6 +216,7 @@
     <script src="./js/login.js"></script>
     <script src="./js/app.js"></script>
     <script src="./js/teams.js"></script>
+    <script src="./js/reset-password.js"></script>
     <script>
       window.onload = function () {
         const loggedInUser = window.localStorage.getItem("loggedInUser");
@@ -197,6 +229,7 @@
       doTeamsExist();
       getEndOfGameTime();
       timeToForce();
+      getCurrentWeek();
     </script>
   </body>
 </html>
