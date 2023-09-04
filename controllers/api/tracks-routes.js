@@ -173,4 +173,40 @@ router.delete("/:id", (req, res) => {
     });
 });
 
+// Get all alive tracks for a specific user
+router.get("/user/:userId/alive", (req, res) => {
+  Track.findAll({
+    where: {
+      user_id: req.params.userId,
+      wrong_pick: null,
+    },
+    include: [
+      {
+        model: User,
+        attributes: [
+          "id",
+          "first_name",
+          "last_name",
+          "username",
+          "email",
+          "password",
+        ],
+      },
+    ],
+  })
+    .then((dbTracks) => {
+      if (!dbTracks || dbTracks.length === 0) {
+        res
+          .status(404)
+          .json({ message: "No alive tracks found for this user" });
+        return;
+      }
+      res.json(dbTracks);
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json(err);
+    });
+});
+
 module.exports = router;

@@ -909,3 +909,31 @@ async function displayTeamLogo() {
 }
 
 async function espnFetchTeam() {}
+
+async function getAliveTracksByUserId(userId) {
+  let response = await fetch(`/api/tracks/user/${userId}/alive`);
+  if (response.ok) {
+    let tracks = await response.json();
+    return tracks;
+  } else {
+    console.error(
+      "Failed to fetch alive tracks for user",
+      await response.text()
+    );
+    return [];
+  }
+}
+
+function pushToLeaguePage(userId, currentWeek) {
+  getAliveTracksByUserId(userId)
+    .then((tracks) => {
+      if (tracks.every((track) => track.user_picks.length === currentWeek)) {
+        window.location.href = "../league-page";
+      } else {
+        console.log("Not all tracks meet the current week criteria.");
+      }
+    })
+    .catch((error) => {
+      console.error("Error in fetching tracks:", error);
+    });
+}

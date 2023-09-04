@@ -53,6 +53,9 @@
       getTrackNumber();
       getUserId();
       getCurrentWeek();
+      pushToLeaguePage(
+        localStorage.getItem("loggedInUserId", localStorage.getItem("thisWeek"))
+      );
     </script>
   </body>
 </html>
