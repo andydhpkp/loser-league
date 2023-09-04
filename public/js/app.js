@@ -914,6 +914,7 @@ async function getAliveTracksByUserId(userId) {
   let response = await fetch(`/api/tracks/user/${userId}/alive`);
   if (response.ok) {
     let tracks = await response.json();
+    console.log(tracks);
     return tracks;
   } else {
     console.error(
@@ -926,12 +927,13 @@ async function getAliveTracksByUserId(userId) {
 
 function pushToLeaguePage() {
   let userId = localStorage.getItem("loggedInUserId");
-  let currentWeek = localStorage.getItem("thisWeek");
+  let currentWeek = parseInt(localStorage.getItem("thisWeek"), 10);
 
   getAliveTracksByUserId(userId)
     .then((tracks) => {
-      if (tracks.every((track) => track.user_picks.length === currentWeek)) {
-        window.location.href = "../league-page";
+      console.log(tracks);
+      if (tracks.every((track) => track.used_picks.length >= currentWeek)) {
+        window.location.href = "../league-page.html";
       } else {
         console.log("Not all tracks meet the current week criteria.");
       }

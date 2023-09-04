@@ -858,7 +858,7 @@ async function getRecords() {
         let recordHTML = document.getElementsByClassName("record");
 
         for (i = 0; i < recordHTML.length; i++) {
-          console.log(data);
+          //console.log(data);
           for (x = 0; x < data.events.length; x++) {
             for (r = 0; r < 2; r++) {
               if (
