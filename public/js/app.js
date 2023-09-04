@@ -924,7 +924,10 @@ async function getAliveTracksByUserId(userId) {
   }
 }
 
-function pushToLeaguePage(userId, currentWeek) {
+function pushToLeaguePage() {
+  let userId = localStorage.getItem("loggedInUserId");
+  let currentWeek = localStorage.getItem("thisWeek");
+
   getAliveTracksByUserId(userId)
     .then((tracks) => {
       if (tracks.every((track) => track.user_picks.length === currentWeek)) {
