@@ -238,200 +238,54 @@ async function getUserId() {
   });
 }
 
-async function getBodyForPicks() {
-  fetch(`/api/tracks/alive`).then(function (response) {
-    if (response.ok) {
-      response.json().then(function (data) {
-        console.log(data);
-
-        // @ts-ignore
-        let weekCheck = parseInt(localStorage.getItem("thisWeek"));
-
-        //weekCheck = 3
-
-        let allPicksIn = 0;
-        let alreadyPicked = [];
-        let donePicking = false;
-        let thisUsersTracks = [];
-        // @ts-ignore
-        let thisUsersId = parseInt(localStorage.getItem("loggedInUserId"));
-        let trackTotalHelp = document.getElementsByClassName("trackContainer");
-        console.log(thisUsersId);
-        // @ts-ignore
-        for (w = 0; w < data.length; w++) {
-          // @ts-ignore
-          if (data[w].user_id === thisUsersId) {
-            // @ts-ignore
-            thisUsersTracks.push(data[w]);
-            // @ts-ignore
-            if (data[w].used_picks.length >= weekCheck) {
-              allPicksIn++;
-              // @ts-ignore
-              alreadyPicked.push(data[w].id);
-              console.log(allPicksIn);
-              console.log(alreadyPicked);
-            }
-            if (allPicksIn === trackTotalHelp.length) {
-              alert("It looks like you have already made picks for this week!");
-              donePicking = true;
-            }
-          }
+function handleSubmitPicks() {
+  let allInputsHaveValue = Array.from(
+    document.querySelectorAll(".tempSelection")
+  ).every((input) => input.value);
+  if (allInputsHaveValue) {
+    document.querySelectorAll(".trackContainer").forEach((container) => {
+      let tempInput = container.querySelector(".tempSelection");
+      if (tempInput) {
+        let value = tempInput.value;
+        if (value) {
+          let splitValue = value.split(",");
+          let id = parseInt(splitValue[0], 10);
+          let pick = splitValue[1];
+          updateTrackPick(id, pick);
         }
-        console.log(thisUsersTracks);
+      }
+    });
+    location.href = "../league-page.html";
+  } else {
+    alert("Please make a selection for each matchup before submitting!");
+  }
+}
 
-        console.log(alreadyPicked);
+function updateTrackPick(trackId, currentPick) {
+  // Create the request payload
+  const payload = {
+    current_pick: currentPick,
+  };
 
-        if (donePicking === false) {
-          let picks = document.getElementsByClassName("tempPick");
-          let totalPicks = picks.length;
-          let trackHelp = document.getElementsByClassName("trackContainer");
-          let trackTotal = trackHelp.length;
-          let trackIdPicksArr = [];
-          let trackSelectionsArr = [];
-          let finalPicksArrHelper = [];
-          let picksObj = [];
-
-          if (totalPicks != trackTotal) {
-            alert("Please Make A Pick For Each Track");
-          } else {
-            // @ts-ignore
-            for (i = 0; i < trackTotal; i++) {
-              // @ts-ignore
-              let parseId = parseInt(trackHelp[i].id);
-              trackIdPicksArr.push(parseId);
-              // @ts-ignore
-              trackSelectionsArr.push(picks[i].id);
-              // @ts-ignore
-              finalPicksArrHelper.push(trackSelectionsArr[i].split(",", 2));
-              // @ts-ignore
-              let finalPick = finalPicksArrHelper[i][1];
-
-              picksObj.push({
-                trackId: parseId,
-                trackSelection: finalPick,
-              });
-            }
-
-            let finishedCheck = 0;
-
-            if (alreadyPicked.length <= picksObj.length) {
-              console.log(picksObj);
-
-              // @ts-ignore
-              for (i = 0; i < picksObj.length; i++) {
-                console.log("PICKSOBJ");
-                console.log(picksObj);
-                console.log(thisUsersTracks);
-
-                // @ts-ignore
-                let idHelper;
-                let available_picks;
-                let used_picks;
-                let current_pick;
-                let user_id;
-                let putTrackId;
-
-                // @ts-ignore
-                for (t = 0; t < picksObj.length; t++) {
-                  // @ts-ignore
-                  if (picksObj[i].trackId === thisUsersTracks[t].id) {
-                    // @ts-ignore
-                    available_picks = thisUsersTracks[i].available_picks;
-                    // @ts-ignore
-                    used_picks = thisUsersTracks[i].used_picks;
-                    // @ts-ignore
-                    current_pick = picksObj[i].trackSelection;
-                    // @ts-ignore
-                    user_id = thisUsersTracks[i].user_id;
-                    // @ts-ignore
-                    putTrackId = picksObj[i].trackId;
-                  }
-                  console.log("this is the i number times");
-                  console.log(available_picks);
-                  console.log(used_picks);
-                  console.log(current_pick);
-                  console.log(user_id);
-                  console.log(putTrackId);
-                }
-
-                // @ts-ignore
-                let colorTrack = document.getElementById(picksObj[i].trackId);
-                let noDuplicates =
-                  document.getElementsByClassName("successfulPick");
-                let noDuplicatesId = [];
-
-                if (noDuplicates.length > 0) {
-                  // @ts-ignore
-                  for (k = 0; k < noDuplicates.length; k++) {
-                    // @ts-ignore
-                    noDuplicatesId.push(parseInt(noDuplicates[k].id));
-                  }
-                }
-
-                console.log("NO DUPLICATES");
-                console.log(noDuplicates);
-                console.log(noDuplicatesId);
-                console.log(putTrackId);
-
-                // @ts-ignore
-                if (!noDuplicatesId.includes(putTrackId)) {
-                  let tryAgain =
-                    document.getElementsByClassName("unsuccessfulPick");
-
-                  if (tryAgain.length > 0) {
-                    // @ts-ignore
-                    for (j = 0; j < tryAgain.length; j++) {
-                      // @ts-ignore
-                      let tryAgainId = parseInt(tryAgain[j].id);
-                      if (putTrackId === tryAgainId) {
-                        // @ts-ignore
-                        let resetClass = tryAgain[j];
-                        resetClass.classList.toggle("unsuccessfulPick");
-                      }
-                    }
-                  }
-
-                  if (used_picks.includes(current_pick)) {
-                    // @ts-ignore
-                    let alertTrackNumber = i + 1;
-                    // @ts-ignore
-                    colorTrack.classList.toggle("unsuccessfulPick");
-                    alert(
-                      `Sorry, ${current_pick} has already been picked for track number ${alertTrackNumber}, try again!`
-                    );
-                  }
-                } else {
-                  used_picks.push(current_pick);
-                  available_picks = available_picks.filter(
-                    (item) => item !== current_pick
-                  );
-                  console.log("submitted!!!!");
-                  finishedCheck++;
-                  //colorTrack.classList.toggle('successfulPick')
-                  makePick(
-                    available_picks,
-                    used_picks,
-                    current_pick,
-                    user_id,
-                    putTrackId
-                  );
-                }
-              }
-            }
-
-            if (finishedCheck >= picksObj.length) {
-              //location.href = "../league-page.html"
-            }
-          }
-        } else {
-          //location.href = "../league-page.html"
-        }
-      });
-    } else {
-      alert("Sorry, could not connect to database, please try again");
-      console.log(response);
-    }
-  });
+  // Make a PUT request to the server with the track ID and the current pick
+  fetch(`api/tracks/${trackId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      if (data) {
+        console.log("Track updated successfully!", data);
+      } else {
+        console.error("Error updating track");
+      }
+    })
+    .catch((error) => {
+      console.error("There was an error updating the track:", error);
+    });
 }
 
 async function makePick(
