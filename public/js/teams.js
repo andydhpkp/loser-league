@@ -787,10 +787,16 @@ const matchup = async (totalTracks, trackIds, usedPicksMap) => {
               );
               firstTeamButton.addEventListener("click", function () {
                 hiddenInput.value = this.getAttribute("data-value");
-                document
+                this.closest(".trackContainer")
                   .querySelectorAll(".teamSelection")
                   .forEach((btn) => btn.classList.remove("selected"));
+
                 this.classList.add("selected");
+
+                let trackContainer = this.closest(".trackContainer");
+                if (trackContainer) {
+                  trackContainer.classList.add("successfulPick");
+                }
               });
               teamLogoFirst.setAttribute("class", "teamLogos");
               teamLogoSecond.setAttribute("class", "teamLogos");
@@ -823,10 +829,16 @@ const matchup = async (totalTracks, trackIds, usedPicksMap) => {
               );
               secondTeamButton.addEventListener("click", function () {
                 hiddenInput.value = this.getAttribute("data-value");
-                document
+                this.closest(".trackContainer")
                   .querySelectorAll(".teamSelection")
                   .forEach((btn) => btn.classList.remove("selected"));
+
                 this.classList.add("selected");
+
+                let trackContainer = this.closest(".trackContainer");
+                if (trackContainer) {
+                  trackContainer.classList.add("successfulPick");
+                }
               });
               //secondAnchor.setAttribute('id', matchups[logoCounter])
               secondAnchor.appendChild(teamLogoSecond);

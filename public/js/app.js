@@ -238,11 +238,14 @@ async function getUserId() {
   });
 }
 
-function handleSubmitPicks() {
+async function handleSubmitPicks() {
   let allInputsHaveValue = Array.from(
     document.querySelectorAll(".tempSelection")
   ).every((input) => input.value);
+
   if (allInputsHaveValue) {
+    let updatePromises = []; // Array to hold all the promises
+
     document.querySelectorAll(".trackContainer").forEach((container) => {
       let tempInput = container.querySelector(".tempSelection");
       if (tempInput) {
@@ -251,11 +254,21 @@ function handleSubmitPicks() {
           let splitValue = value.split(",");
           let id = parseInt(splitValue[0], 10);
           let pick = splitValue[1];
-          updateTrackPick(id, pick);
+
+          // Assuming updateTrackPick returns a promise
+          updatePromises.push(updateTrackPick(id, pick));
         }
       }
     });
-    location.href = "../league-page.html";
+
+    // Wait for all updateTrackPick promises to resolve
+    try {
+      await Promise.all(updatePromises);
+      location.href = "../league-page.html";
+    } catch (error) {
+      console.error("Error updating some tracks:", error);
+      alert("There was an error updating your picks. Please try again.");
+    }
   } else {
     alert("Please make a selection for each matchup before submitting!");
   }
@@ -268,7 +281,8 @@ function updateTrackPick(trackId, currentPick) {
   };
 
   // Make a PUT request to the server with the track ID and the current pick
-  fetch(`api/tracks/${trackId}`, {
+  return fetch(`api/tracks/${trackId}`, {
+    // Return this fetch promise
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -281,10 +295,12 @@ function updateTrackPick(trackId, currentPick) {
         console.log("Track updated successfully!", data);
       } else {
         console.error("Error updating track");
+        throw new Error("Error updating track"); // Throw an error to be caught in catch() block
       }
     })
     .catch((error) => {
       console.error("There was an error updating the track:", error);
+      throw error; // Propagate the error up so that it can be caught in handleSubmitPicks
     });
 }
 

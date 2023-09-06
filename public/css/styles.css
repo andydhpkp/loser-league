@@ -143,11 +143,21 @@ hidden {
   text-align: center;
 }
 
-.tempPick {
+.teamSelection {
+  border-style: solid;
+  border-radius: 2px;
+  border-width: 2px;
+  border-color: transparent;
+  background-color: transparent;
+  padding: 7px;
+}
+
+.selected {
   border-style: solid;
   border-radius: 2px;
   border-width: 2px;
   border-color: var(--darkest);
+  background-color: transparent;
   padding: 7px;
 }
 
