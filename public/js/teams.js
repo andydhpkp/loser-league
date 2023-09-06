@@ -383,6 +383,51 @@ let nflArray2 = [
   },
 ];
 
+function displayVenmoButton() {
+  let sectionHelp = document.getElementById("games");
+
+  let nothingDiv = document.createElement("div");
+
+  nothingDiv.style.display = "flex";
+  nothingDiv.style.flexDirection = "column"; // Stack the items vertically
+  nothingDiv.style.alignItems = "center"; // Horizontal centering
+  nothingDiv.style.justifyContent = "center";
+  nothingDiv.style.marginBottom = "20px";
+
+  let nothingMessageH1 = document.createElement("h1");
+  nothingMessageH1.innerHTML =
+    "It looks like you do not have any tracks... try texting Tate";
+  nothingDiv.appendChild(nothingMessageH1);
+
+  // Create the Venmo button
+  let venmoLink = document.createElement("a");
+  venmoLink.href = "https://account.venmo.com/u/TateBenson28";
+  venmoLink.target = "_blank"; // Opens the link in a new browser tab
+  venmoLink.rel = "noopener noreferrer"; // Security measure for opening new tabs
+
+  let venmoLogo = document.createElement("img");
+  venmoLogo.src = "../css/assets/venmo.svg"; // Update this path to where your Venmo logo is stored
+  venmoLogo.alt = "Venmo Logo";
+  venmoLogo.style.width = "50px"; // You can adjust this to fit your needs
+  venmoLogo.style.marginRight = "10px"; // A little space between the logo and text
+
+  venmoLink.appendChild(venmoLogo);
+  venmoLink.appendChild(document.createTextNode("Give Tate some money"));
+
+  venmoLink.style.display = "inline-flex"; // Flex to align logo and text
+  venmoLink.style.alignItems = "center"; // Vertical centering
+  venmoLink.style.padding = "0px 10px 0px 10px";
+  venmoLink.style.backgroundColor = "#3d95ce"; // Venmo blue color
+  venmoLink.style.color = "white";
+  venmoLink.style.textDecoration = "none";
+  venmoLink.style.borderRadius = "5px";
+  venmoLink.style.marginTop = "20px"; // Adds some space between the message and the button
+
+  nothingDiv.appendChild(venmoLink);
+
+  sectionHelp.appendChild(nothingDiv);
+}
+
 function getTrackNumber() {
   let userId = localStorage.getItem("loggedInUserId");
   let currentWeek = localStorage.getItem("thisWeek");
@@ -421,18 +466,11 @@ function getTrackNumber() {
 
         matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap);
         if (trackIdArray.length === 0) {
-          let sectionHelp = document.getElementById("games");
-          console.log(sectionHelp);
-          let nothingDiv = document.createElement("div");
-          let nothingMessageH1 = document.createElement("h1");
-          nothingMessageH1.innerHTML =
-            "It looks like you do not have any tracks... try texting Tate";
-          nothingDiv.appendChild(nothingMessageH1);
-          sectionHelp.appendChild(nothingDiv);
+          displayVenmoButton();
         }
       });
     } else {
-      alert(response.statusText);
+      displayVenmoButton();
     }
   });
 }
