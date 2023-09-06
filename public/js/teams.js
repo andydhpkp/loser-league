@@ -885,6 +885,7 @@ const matchup = async (totalTracks, trackIds, usedPicksMap) => {
               secondTeamButton.appendChild(secondAnchor);
               logoCounter++;
               vs.innerText = "VS";
+              vs.setAttribute("style", "padding: 25px");
               individualMatchup.appendChild(firstTeamButton);
               individualMatchup.appendChild(vs);
               individualMatchup.appendChild(secondTeamButton);
