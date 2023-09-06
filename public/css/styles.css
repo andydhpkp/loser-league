@@ -48,6 +48,10 @@ hidden {
   display: none;
 }
 
+h2 {
+  color: black;
+}
+
 .pickBtn {
   background-color: var(--lightBlue);
 }
