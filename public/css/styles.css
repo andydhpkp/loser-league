@@ -51,6 +51,11 @@ hidden {
 h2,
 h3 {
   color: black;
+  font-size: larger;
+}
+
+.vs {
+  padding: 3%;
 }
 
 .pickBtn {
@@ -129,13 +134,10 @@ h3 {
 }
 
 .trackContainer {
-  display: flex;
   border-radius: 2px;
   border-width: 2px;
   border-style: solid;
-  flex-wrap: wrap;
-  align-items: center;
-  flex-direction: column;
+  width: 100%;
 }
 
 .individualMatchup {
@@ -155,7 +157,7 @@ h3 {
   border-color: transparent;
   background-color: transparent;
   padding: 7px;
-  width: 250px;
+  width: 100%;
 }
 
 .selected {
