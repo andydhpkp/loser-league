@@ -55,7 +55,6 @@ async function finalScores() {
 
         for (i = 0; i < textPicks.length; i++) {
           let didTheyLoseTeamName = textPicks[i].children[0].innerText;
-          console.log(didTheyLoseTeamName);
           for (x = 0; x < thisWeeksGames.length; x++) {
             let notNull = true;
             let specificMatchup = [];
@@ -103,7 +102,8 @@ async function finalScores() {
         if (totalWinners.length + totalLosers.length === textPicks.length) {
           for (l = 0; l < totalLosers.length; l++) {
             let deleteTrackId = parseInt(totalLosers[l].children[1].innerText);
-            addLoser(deleteTrackId, "bad placeholder");
+            let loserTeam = totalLosers[l].children[0].innerText;
+            addLoser(deleteTrackId, loserTeam);
           }
           //THIS IS A BANDAID UNTIL YOU SEE HOW ESPN UPDATES RECORDS BY TUESDAY
           for (p = 0; p < thisWeeksGames.length; p++) {
@@ -191,20 +191,38 @@ async function getTeam(teamId) {
 }
 
 async function addLoser(trackId, loserTeam) {
-  let response = await fetch(`api/tracks/${trackId}/loser`, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      wrong_pick: loserTeam,
-    }),
-  });
+  try {
+    // Fetch the current state of the track data
+    let trackResponse = await fetch(`api/tracks/${trackId}`);
 
-  if (response.ok) {
-    console.log("it worked");
-  } else {
-    alert(response.statusText);
+    if (!trackResponse.ok) {
+      throw new Error(trackResponse.statusText);
+    }
+
+    let trackData = await trackResponse.json();
+
+    // Only proceed if wrong_pick is null
+    if (trackData.wrong_pick === null) {
+      let response = await fetch(`api/tracks/${trackId}/loser`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          wrong_pick: loserTeam,
+        }),
+      });
+
+      if (response.ok) {
+        console.log("it worked");
+      } else {
+        alert(response.statusText);
+      }
+    } else {
+      console.log("wrong_pick is not null, so not proceeding with the update");
+    }
+  } catch (error) {
+    alert("Failed to fetch or update data: " + error.message);
   }
 }
 
