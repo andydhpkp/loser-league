@@ -26,7 +26,7 @@ async function displayUsers() {
           let userModal = document.createElement("div");
           userModal.setAttribute("class", "modal fade");
           // @ts-ignore
-          userModal.setAttribute("id", `${data[i].first_name}`);
+          userModal.setAttribute("id", `modal-${data[i].id}`);
           userModal.setAttribute("tabindex", "-1");
           userModal.setAttribute("aria-labelledby", "exampleModalLabel");
           userModal.setAttribute("aria-hidden", "true");
@@ -145,10 +145,7 @@ async function displayUsers() {
 
           userNameAnchor.setAttribute("data-bs-toggle", "modal");
           // @ts-ignore
-          userNameAnchor.setAttribute(
-            "data-bs-target",
-            `#${data[i].first_name}`
-          );
+          userNameAnchor.setAttribute("data-bs-target", `#modal-${data[i].id}`);
           userNameAnchor.setAttribute("href", "#");
           trackAmountInput.setAttribute("type", "text");
           trackAmountInput.setAttribute("class", "trackAmounts");
