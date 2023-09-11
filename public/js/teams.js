@@ -625,7 +625,8 @@ function getWeek(data) {
     }
   });
 
-  localStorage.setItem("thisWeek", currentWeek);
+  //was current week, fix probably after onsite
+  localStorage.setItem("thisWeek", 1);
 
   return currentWeek;
 }
@@ -1073,3 +1074,49 @@ function getMyDate() {
   //today.setDate(today.getDate() + 15);
   return today;
 }
+
+async function fetchMatchesAndGetCurrentWeek() {
+  try {
+    let response = await fetch("/api/proxy/nfl-2023");
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok " + response.statusText);
+    }
+
+    let matches = await response.json();
+    console.log("Current Week: " + getCurrentWeekForMatchFetch(matches));
+  } catch (error) {
+    console.error("There was a problem with the fetch operation:", error);
+  }
+}
+
+function getCurrentWeekForMatchFetch(matches) {
+  // Group matches by RoundNumber
+  let rounds = {};
+  matches.forEach((match) => {
+    if (!rounds[match.RoundNumber]) {
+      rounds[match.RoundNumber] = [];
+    }
+    rounds[match.RoundNumber].push(match);
+  });
+
+  // Find the current week
+  for (let [roundNumber, roundMatches] of Object.entries(rounds)) {
+    if (
+      roundMatches.every(
+        (match) => match.HomeTeamScore !== null && match.AwayTeamScore !== null
+      )
+    ) {
+      // This round is complete, so continue to the next round
+      continue;
+    } else {
+      // This round is not complete, so it is the current week
+      return roundNumber;
+    }
+  }
+
+  // If all rounds are complete, return the last round number
+  return Object.keys(rounds).pop();
+}
+
+// Call the async function to fetch matches and get the current week
