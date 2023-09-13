@@ -1,5 +1,7 @@
 // You can already set Homescore > Awayscore to do what you want with the outcome of the game. If null than nothing, if tie than loss for both
 
+const { parse } = require("dotenv");
+
 //add logic so logged in users who have made their picks go straight to league view
 
 //add button to originally create teams
@@ -22,7 +24,7 @@ async function finalScores() {
     if (response.ok) {
       response.json().then(function (data) {
         console.log(data);
-        let currentWeek = getWeek(data);
+        let currentWeek = parseInt(localStorage.getItem("thisWeek"));
         let thisWeeksGames = [];
         let thisWeeksGamesCheckerMonday = [];
         let makeSureMondayGameIsDone = currentWeek - 1;
@@ -55,6 +57,7 @@ async function finalScores() {
 
         for (i = 0; i < textPicks.length; i++) {
           let didTheyLoseTeamName = textPicks[i].children[0].innerText;
+          console.log(didTheyLoseTeamName);
           for (x = 0; x < thisWeeksGames.length; x++) {
             let notNull = true;
             let specificMatchup = [];
@@ -73,19 +76,19 @@ async function finalScores() {
               if (notNull) {
                 if (didTheyLoseTeamName === specificMatchup[0]) {
                   if (specificMatchup[1] < specificMatchup[3]) {
-                    //console.log(didTheyLoseTeamName + ' lost')
+                    console.log(didTheyLoseTeamName + " lost");
                     textPicks[i].classList = "winner teamNames";
                   } else {
-                    //console.log(didTheyLoseTeamName + ' won')
+                    console.log(didTheyLoseTeamName + " won");
                     textPicks[i].classList = "loser teamNames";
                   }
                 }
                 if (didTheyLoseTeamName === specificMatchup[2]) {
                   if (specificMatchup[1] > specificMatchup[3]) {
-                    //console.log(didTheyLoseTeamName + ' lost')
+                    console.log(didTheyLoseTeamName + " lost");
                     textPicks[i].classList = "winner teamNames";
                   } else {
-                    //console.log(didTheyLoseTeamName + ' won')
+                    console.log(didTheyLoseTeamName + " won");
                     textPicks[i].classList = "loser teamNames";
                   }
                 }
@@ -103,7 +106,7 @@ async function finalScores() {
           for (l = 0; l < totalLosers.length; l++) {
             let deleteTrackId = parseInt(totalLosers[l].children[1].innerText);
             let loserTeam = totalLosers[l].children[0].innerText;
-            addLoser(deleteTrackId, loserTeam);
+            //addLoser(deleteTrackId, loserTeam);
           }
           //THIS IS A BANDAID UNTIL YOU SEE HOW ESPN UPDATES RECORDS BY TUESDAY
           for (p = 0; p < thisWeeksGames.length; p++) {
