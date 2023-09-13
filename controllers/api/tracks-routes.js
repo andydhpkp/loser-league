@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const { Track, User } = require("../../models/my-index");
+const { Op } = require("sequelize");
 
 //get all tracks
 router.get("/", (req, res) => {
@@ -32,6 +33,36 @@ router.get("/alive", (req, res) => {
   Track.findAll({
     where: {
       wrong_pick: null,
+    },
+    include: [
+      {
+        model: User,
+        attributes: [
+          "id",
+          "first_name",
+          "last_name",
+          "username",
+          "email",
+          "password",
+        ],
+      },
+    ],
+  })
+    .then((dbTrack) => {
+      res.json(dbTrack);
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json(err);
+    });
+});
+
+router.get("/wrong-pick-not-null", (req, res) => {
+  Track.findAll({
+    where: {
+      wrong_pick: {
+        [Op.ne]: null, // This line ensures we fetch records where wrong_pick is NOT null
+      },
     },
     include: [
       {

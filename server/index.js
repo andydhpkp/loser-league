@@ -32,7 +32,7 @@ const fetch = require("node-fetch");
 app.get("/api/proxy/nfl-2023", async (req, res) => {
   try {
     const response = await fetch(
-      "https://pacific-anchorage-21728.herokuapp.com/https://fixturedownload.com/feed/json/nfl-2023",
+      "https://fixturedownload.com/feed/json/nfl-2023",
       {
         headers: {
           "Content-Type": "application/json",
