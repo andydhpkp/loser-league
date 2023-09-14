@@ -147,9 +147,8 @@ async function fetchScheduleData(weekNumber) {
     let winners = [];
     let losers = [];
 
-    console.log(data);
-    for (let date in data.schedule) {
-      data.schedule[date].games.forEach((game) => {
+    for (let date in data.content.schedule) {
+      data.content.schedule[date].games.forEach((game) => {
         game.competitions[0].competitors.forEach((competitor) => {
           if (competitor.winner) {
             winners.push(competitor.team.displayName);
