@@ -689,6 +689,9 @@ async function espnFetchTeam() {
 }
 
 const matchup = async (totalTracks, trackIds, usedPicksMap) => {
+  console.log(totalTracks);
+  console.log(trackIds);
+  console.log(usedPicksMap);
   //const nflObj = await nflArrayFunction()
   let nflObj;
   try {
@@ -1071,7 +1074,7 @@ async function getCurrentWeek() {
 
     if (currentDate < firstStartDate) {
       localStorage.setItem("thisWeek", "2");
-      return "1"; // Return the value directly
+      return "2"; // Return the value directly
     }
 
     return null;
