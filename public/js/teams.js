@@ -133,13 +133,15 @@ async function fetchScheduleData(weekNumber) {
 
     for (let date in data.content.schedule) {
       data.content.schedule[date].games.forEach((game) => {
-        game.competitions[0].competitors.forEach((competitor) => {
-          if (competitor.winner) {
-            winners.push(competitor.team.displayName);
-          } else {
-            losers.push(competitor.team.displayName);
-          }
-        });
+        if (game.status.type.completed) {
+          game.competitions[0].competitors.forEach((competitor) => {
+            if (competitor.winner) {
+              winners.push(competitor.team.displayName);
+            } else {
+              losers.push(competitor.team.displayName);
+            }
+          });
+        }
       });
     }
 
