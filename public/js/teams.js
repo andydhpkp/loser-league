@@ -454,7 +454,7 @@ function displayVenmoButton() {
 
 function getTrackNumber() {
   let userId = localStorage.getItem("loggedInUserId");
-  let currentWeek = localStorage.getItem("thisWeek");
+  let currentWeek = parseInt(localStorage.getItem("thisWeek"));
 
   fetch(`/api/tracks/user/${userId}/alive`).then(function (response) {
     if (response.ok) {
@@ -462,7 +462,7 @@ function getTrackNumber() {
         console.log(data);
         let totalTracks = data.length;
         let trackIdArray = [];
-        for (i = 0; i < totalTracks; i++) {
+        for (let i = 0; i < totalTracks; i++) {
           trackIdArray.push(data[i].id);
         }
         let trackIdToUsedPicksMap = {};
@@ -475,7 +475,7 @@ function getTrackNumber() {
         console.log(trackIdArray);
         if (trackIdArray.length > 0) {
           let picksCompleteHelper = 0;
-          for (r = 0; r < totalTracks; r++) {
+          for (let r = 0; r < totalTracks; r++) {
             console.log(data);
             if (data[r].used_picks.length >= currentWeek) {
               picksCompleteHelper++;
