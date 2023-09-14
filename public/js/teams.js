@@ -148,11 +148,8 @@ async function fetchScheduleData(weekNumber) {
     let losers = [];
 
     console.log(data);
-    const scheduleKeys = Object.keys(data.schedule);
-
-    scheduleKeys.forEach((key) => {
-      const games = data.schedule[key].games;
-      games.forEach((game) => {
+    for (let date in data.schedule) {
+      data.schedule[date].games.forEach((game) => {
         game.competitions[0].competitors.forEach((competitor) => {
           if (competitor.winner) {
             winners.push(competitor.team.displayName);
@@ -161,7 +158,7 @@ async function fetchScheduleData(weekNumber) {
           }
         });
       });
-    });
+    }
 
     console.log("Winners:", winners);
     console.log("Losers:", losers);
