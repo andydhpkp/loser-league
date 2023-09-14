@@ -815,3 +815,46 @@ function pushToLeaguePage() {
       console.error("Error in fetching tracks:", error);
     });
 }
+
+async function resetWrongPick(trackId) {
+  try {
+    if (!trackId) {
+      throw new Error("Track ID is required");
+    }
+
+    const response = await fetch(`/reset-wrong-pick/${trackId}`, {
+      method: "PUT",
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error);
+    }
+
+    console.log("Wrong pick reset successfully");
+  } catch (error) {
+    console.error("Error resetting wrong pick:", error.message);
+  }
+}
+
+async function getTracksWithNonNullWrongPick(userId) {
+  try {
+    if (!userId) {
+      throw new Error("User ID is required");
+    }
+
+    const response = await fetch(`/wrong-pick-not-null/${userId}`, {
+      method: "GET",
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error);
+    }
+
+    const data = await response.json();
+    console.log("Fetched tracks successfully:", data);
+  } catch (error) {
+    console.error("Error fetching tracks:", error.message);
+  }
+}

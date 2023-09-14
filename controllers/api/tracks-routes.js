@@ -87,6 +87,26 @@ router.get("/wrong-pick-not-null", (req, res) => {
     });
 });
 
+router.put("/reset-wrong-pick/:trackId", (req, res) => {
+  const trackId = req.params.trackId;
+
+  if (!trackId) {
+    return res.status(400).json({ error: "Track ID is required" });
+  }
+
+  Track.update({ wrong_pick: null }, { where: { id: trackId } })
+    .then(([rowsUpdate]) => {
+      if (rowsUpdate === 0) {
+        return res.status(404).json({ error: "No track found with this ID" });
+      }
+      res.json({ message: "Wrong pick reset successfully" });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json(err);
+    });
+});
+
 router.get("/:id", (req, res) => {
   Track.findOne({
     where: {
