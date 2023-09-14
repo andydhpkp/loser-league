@@ -691,7 +691,7 @@ async function espnFetchTeam() {
   });
 }
 
-const matchup = async (totalTracks, trackIds, usedPicksMap) => {
+async function matchup(totalTracks, trackIds, usedPicksMap) {
   console.log(totalTracks);
   console.log(trackIds);
   console.log(usedPicksMap);
@@ -953,7 +953,7 @@ const matchup = async (totalTracks, trackIds, usedPicksMap) => {
     .catch(function (error) {
       console.log("unable to connect");
     });
-};
+}
 
 async function getRecords() {
   fetch(
