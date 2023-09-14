@@ -265,7 +265,7 @@ router.put("/:id/loser", (req, res) => {
     });
 });
 
-router.put("/reset-current-pick", (req, res) => {
+router.put("/all-tracks/reset-current-pick", (req, res) => {
   Track.update({ current_pick: null }, { where: {} })
     .then(([rowsUpdate]) => {
       if (rowsUpdate === 0) {
