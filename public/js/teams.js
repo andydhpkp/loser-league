@@ -493,7 +493,7 @@ function getTrackNumber() {
         console.log(totalTracks);
         console.log(trackIdArray);
         console.log(trackIdToUsedPicksMap);
-        matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap);
+        //matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap);
         if (trackIdArray.length === 0) {
           displayVenmoButton();
         }
