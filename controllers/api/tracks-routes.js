@@ -87,6 +87,43 @@ router.get("/wrong-pick-not-null", (req, res) => {
     });
 });
 
+router.get("/wrong-pick-not-null/:userId", (req, res) => {
+  const userId = req.params.userId;
+
+  if (!userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  Track.findAll({
+    where: {
+      userId: userId, // Assuming you have a userId field to filter on a specific user
+      wrong_pick: {
+        [Op.ne]: null, // Fetch records where wrong_pick is NOT null
+      },
+    },
+    include: [
+      {
+        model: User,
+        attributes: [
+          "id",
+          "first_name",
+          "last_name",
+          "username",
+          "email",
+          "password",
+        ],
+      },
+    ],
+  })
+    .then((dbTrack) => {
+      res.json(dbTrack);
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json(err);
+    });
+});
+
 router.put("/reset-wrong-pick/:trackId", (req, res) => {
   const trackId = req.params.trackId;
 
