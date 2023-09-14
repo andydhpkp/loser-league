@@ -452,56 +452,59 @@ function displayVenmoButton() {
   sectionHelp.appendChild(nothingDiv);
 }
 
-function getTrackNumber() {
+async function getTrackNumber() {
   let userId = localStorage.getItem("loggedInUserId");
   let currentWeek = localStorage.getItem("thisWeek");
   let totalTracks = 0;
   let trackIdArray = [];
   let trackIdToUsedPicksMap = {};
 
-  fetch(`/api/tracks/user/${userId}/alive`).then(function (response) {
-    if (response.ok) {
-      response.json().then(function (data) {
-        console.log(data);
-        totalTracks = data.length;
-        for (let i = 0; i < totalTracks; i++) {
-          trackIdArray.push(data[i].id);
-        }
-        for (let i = 0; i < totalTracks; i++) {
-          //let tempUsed_picks = []
-          trackIdToUsedPicksMap[data[i].id] = data[i].used_picks;
-        }
-        currentWeek++;
-        let picksCompleteChecker = false;
-        console.log(trackIdArray);
-        if (trackIdArray.length > 0) {
-          let picksCompleteHelper = 0;
-          for (let r = 0; r < totalTracks; r++) {
-            console.log(data);
-            if (data[r].used_picks.length >= currentWeek) {
-              picksCompleteHelper++;
-            }
-          }
-          if (picksCompleteHelper === totalTracks) {
-            picksCompleteChecker = true;
-          }
-        }
-        if (picksCompleteChecker) {
-          //location.href = "../league-page.html"
-        }
+  try {
+    const response = await fetch(`/api/tracks/user/${userId}/alive`);
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    const data = await response.json();
+    console.log(data);
 
-        console.log(totalTracks);
-        console.log(trackIdArray);
-        console.log(trackIdToUsedPicksMap);
-        matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap);
-        if (trackIdArray.length === 0) {
-          displayVenmoButton();
+    totalTracks = data.length;
+    for (let i = 0; i < totalTracks; i++) {
+      trackIdArray.push(data[i].id);
+    }
+    for (let i = 0; i < totalTracks; i++) {
+      //let tempUsed_picks = []
+      trackIdToUsedPicksMap[data[i].id] = data[i].used_picks;
+    }
+    currentWeek++;
+    let picksCompleteChecker = false;
+    console.log(trackIdArray);
+    if (trackIdArray.length > 0) {
+      let picksCompleteHelper = 0;
+      for (let r = 0; r < totalTracks; r++) {
+        console.log(data);
+        if (data[r].used_picks.length >= currentWeek) {
+          picksCompleteHelper++;
         }
-      });
-    } else {
+      }
+      if (picksCompleteHelper === totalTracks) {
+        picksCompleteChecker = true;
+      }
+    }
+    if (picksCompleteChecker) {
+      //location.href = "../league-page.html"
+    }
+
+    console.log(totalTracks);
+    console.log(trackIdArray);
+    console.log(trackIdToUsedPicksMap);
+    await matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap); // Assuming matchup is an async function
+    if (trackIdArray.length === 0) {
       displayVenmoButton();
     }
-  });
+  } catch (error) {
+    console.log("Error: ", error);
+    displayVenmoButton();
+  }
 }
 
 function goToLeaguePage() {
@@ -694,16 +697,16 @@ const matchup = async (totalTracks, trackIds, usedPicksMap) => {
   console.log(usedPicksMap);
   //const nflObj = await nflArrayFunction()
   let nflObj;
-  // try {
-  //   const response = await fetch(
-  //     "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
-  //   );
-  //   if (response.ok) {
-  //     nflObj = await response.json();
-  //   }
-  // } catch (error) {
-  //   console.error("Error fetching the ESPN API", error);
-  // }
+  try {
+    const response = await fetch(
+      "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
+    );
+    if (response.ok) {
+      nflObj = await response.json();
+    }
+  } catch (error) {
+    console.error("Error fetching the ESPN API", error);
+  }
 
   //function matchup(totalTracks, trackIds, used_picks) {
 
