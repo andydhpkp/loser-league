@@ -690,15 +690,16 @@ async function espnFetchTeam() {
 const matchup = async (totalTracks, trackIds, usedPicksMap) => {
   //const nflObj = await nflArrayFunction()
   let nflObj;
-  fetch(
-    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
-  ).then(function (response) {
+  try {
+    const response = await fetch(
+      "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
+    );
     if (response.ok) {
-      response.json().then(function (data) {
-        nflObj = data;
-      });
+      nflObj = await response.json();
     }
-  });
+  } catch (error) {
+    console.error("Error fetching the ESPN API", error);
+  }
 
   //function matchup(totalTracks, trackIds, used_picks) {
 
