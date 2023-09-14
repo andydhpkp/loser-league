@@ -453,8 +453,8 @@ function displayVenmoButton() {
 }
 
 function getTrackNumber() {
-  let userId = parseInt(localStorage.getItem("loggedInUserId"));
-  let currentWeek = parseInt(localStorage.getItem("thisWeek"));
+  let userId = localStorage.getItem("loggedInUserId");
+  let currentWeek = localStorage.getItem("thisWeek");
   let totalTracks = 0;
   let trackIdArray = [];
   let trackIdToUsedPicksMap = {};
