@@ -453,7 +453,7 @@ function displayVenmoButton() {
 }
 
 function getTrackNumber() {
-  let userId = localStorage.getItem("loggedInUserId");
+  let userId = parseInt(localStorage.getItem("loggedInUserId"));
   let currentWeek = parseInt(localStorage.getItem("thisWeek"));
 
   fetch(`/api/tracks/user/${userId}/alive`).then(function (response) {
