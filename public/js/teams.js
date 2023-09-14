@@ -459,6 +459,7 @@ function getTrackNumber() {
   fetch(`/api/tracks/user/${userId}/alive`).then(function (response) {
     if (response.ok) {
       response.json().then(function (data) {
+        console.log(data);
         let totalTracks = data.length;
         let trackIdArray = [];
         for (i = 0; i < totalTracks; i++) {
