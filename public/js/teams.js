@@ -489,6 +489,9 @@ function getTrackNumber() {
           //location.href = "../league-page.html"
         }
 
+        console.log(totalTracks);
+        console.log(trackIdArray);
+        console.log(trackIdToUsedPicksMap);
         matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap);
         if (trackIdArray.length === 0) {
           displayVenmoButton();
