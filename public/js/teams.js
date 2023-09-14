@@ -78,7 +78,7 @@ async function finalScores() {
           for (l = 0; l < totalLosers.length; l++) {
             let deleteTrackId = parseInt(totalLosers[l].children[1].innerText);
             let loserTeam = totalLosers[l].children[0].innerText;
-            //addLoser(deleteTrackId, loserTeam);
+            addLoser(deleteTrackId, loserTeam);
           }
           //THIS IS A BANDAID UNTIL YOU SEE HOW ESPN UPDATES RECORDS BY TUESDAY
           for (p = 0; p < thisWeeksGames.length; p++) {
