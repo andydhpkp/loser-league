@@ -493,7 +493,7 @@ function getTrackNumber() {
         console.log(totalTracks);
         console.log(trackIdArray);
         console.log(trackIdToUsedPicksMap);
-        //matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap);
+        matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap);
         if (trackIdArray.length === 0) {
           displayVenmoButton();
         }
@@ -694,16 +694,16 @@ const matchup = async (totalTracks, trackIds, usedPicksMap) => {
   console.log(usedPicksMap);
   //const nflObj = await nflArrayFunction()
   let nflObj;
-  try {
-    const response = await fetch(
-      "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
-    );
-    if (response.ok) {
-      nflObj = await response.json();
-    }
-  } catch (error) {
-    console.error("Error fetching the ESPN API", error);
-  }
+  // try {
+  //   const response = await fetch(
+  //     "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
+  //   );
+  //   if (response.ok) {
+  //     nflObj = await response.json();
+  //   }
+  // } catch (error) {
+  //   console.error("Error fetching the ESPN API", error);
+  // }
 
   //function matchup(totalTracks, trackIds, used_picks) {
 
