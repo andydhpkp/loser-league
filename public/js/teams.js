@@ -689,6 +689,7 @@ async function espnFetchTeam() {
 }
 
 const matchup = async (totalTracks, trackIds, usedPicksMap) => {
+  super();
   console.log(totalTracks);
   console.log(trackIds);
   console.log(usedPicksMap);
