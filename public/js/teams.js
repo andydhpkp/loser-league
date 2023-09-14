@@ -22,7 +22,7 @@ const { parse } = require("dotenv");
 async function finalScores() {
   fetch("/api/proxy/nfl-2023").then(function (response) {
     if (response.ok) {
-      response.json().then(function (data) {
+      response.json().then(async function (data) {
         console.log(data);
         let currentWeek = parseInt(localStorage.getItem("thisWeek"));
         let thisWeeksGames = [];
@@ -55,45 +55,17 @@ async function finalScores() {
         let textPicks = document.getElementsByClassName("teamNames");
         console.log(textPicks);
 
+        let { winners, losers } = await fetchScheduleData(currentWeek);
+
         for (i = 0; i < textPicks.length; i++) {
           let didTheyLoseTeamName = textPicks[i].children[0].innerText;
-          console.log(didTheyLoseTeamName);
-          for (x = 0; x < thisWeeksGames.length; x++) {
-            let notNull = true;
-            let specificMatchup = [];
-            if (
-              Object.values(thisWeeksGames[x]).indexOf(didTheyLoseTeamName) > -1
-            ) {
-              specificMatchup.push(
-                thisWeeksGames[x].AwayTeam,
-                thisWeeksGames[x].AwayTeamScore,
-                thisWeeksGames[x].HomeTeam,
-                thisWeeksGames[x].HomeTeamScore
-              );
-              if (Object.values(specificMatchup).indexOf(null) > -1) {
-                notNull = false;
-              }
-              if (notNull) {
-                if (didTheyLoseTeamName === specificMatchup[0]) {
-                  if (specificMatchup[1] < specificMatchup[3]) {
-                    console.log(didTheyLoseTeamName + " lost");
-                    textPicks[i].classList = "winner teamNames";
-                  } else {
-                    console.log(didTheyLoseTeamName + " won");
-                    textPicks[i].classList = "loser teamNames";
-                  }
-                }
-                if (didTheyLoseTeamName === specificMatchup[2]) {
-                  if (specificMatchup[1] > specificMatchup[3]) {
-                    console.log(didTheyLoseTeamName + " lost");
-                    textPicks[i].classList = "winner teamNames";
-                  } else {
-                    console.log(didTheyLoseTeamName + " won");
-                    textPicks[i].classList = "loser teamNames";
-                  }
-                }
-              }
-            }
+
+          if (winners.includes(didTheyLoseTeamName)) {
+            textPicks[i].classList.add("winner");
+            textPicks[i].classList.remove("loser");
+          } else if (losers.includes(didTheyLoseTeamName)) {
+            textPicks[i].classList.add("loser");
+            textPicks[i].classList.remove("winner");
           }
         }
 
@@ -101,7 +73,6 @@ async function finalScores() {
         let totalLosers = document.getElementsByClassName("loser");
         console.log(totalWinners);
         console.log(totalLosers);
-        fetchScheduleData(currentWeek);
 
         if (totalWinners.length + totalLosers.length === textPicks.length) {
           for (l = 0; l < totalLosers.length; l++) {
@@ -161,6 +132,8 @@ async function fetchScheduleData(weekNumber) {
 
     console.log("Winners:", winners);
     console.log("Losers:", losers);
+
+    return { winners, losers };
   } catch (error) {
     console.error("Error fetching the schedule data:", error);
   }
