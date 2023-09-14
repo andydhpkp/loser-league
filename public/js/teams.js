@@ -503,7 +503,7 @@ async function getTrackNumber() {
     }
   } catch (error) {
     console.log("Error: ", error);
-    displayVenmoButton();
+    //displayVenmoButton();
   }
 }
 
