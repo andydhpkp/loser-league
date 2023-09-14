@@ -147,6 +147,7 @@ async function fetchScheduleData(weekNumber) {
     let winners = [];
     let losers = [];
 
+    console.log(data);
     const scheduleKeys = Object.keys(data.schedule);
 
     scheduleKeys.forEach((key) => {
