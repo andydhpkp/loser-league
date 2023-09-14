@@ -61,11 +61,11 @@ async function finalScores() {
           let didTheyLoseTeamName = textPicks[i].children[0].innerText;
 
           if (winners.includes(didTheyLoseTeamName)) {
-            textPicks[i].classList.add("winner");
-            textPicks[i].classList.remove("loser");
-          } else if (losers.includes(didTheyLoseTeamName)) {
             textPicks[i].classList.add("loser");
             textPicks[i].classList.remove("winner");
+          } else if (losers.includes(didTheyLoseTeamName)) {
+            textPicks[i].classList.add("winner");
+            textPicks[i].classList.remove("loser");
           }
         }
 
