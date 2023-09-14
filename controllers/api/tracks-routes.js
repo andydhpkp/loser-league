@@ -265,6 +265,32 @@ router.put("/:id/loser", (req, res) => {
     });
 });
 
+router.put("/reset-current-pick", (req, res) => {
+  Track.findAll({})
+    .then((dbTracks) => {
+      if (!dbTracks || dbTracks.length === 0) {
+        res.status(404).json({ message: "No tracks found" });
+        return;
+      }
+
+      // Getting all track IDs
+      const trackIds = dbTracks.map((track) => track.id);
+
+      // Updating current_pick to null for all tracks
+      return Track.update({ current_pick: null }, { where: { id: trackIds } });
+    })
+    .then(([rowsUpdate]) => {
+      if (rowsUpdate === 0) {
+        return res.status(404).json({ error: "No tracks found to update" });
+      }
+      res.json({ message: "Current pick reset successfully for all tracks" });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json(err);
+    });
+});
+
 //delete
 router.delete("/:id", (req, res) => {
   Track.destroy({

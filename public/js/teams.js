@@ -108,6 +108,19 @@ async function finalScores() {
   });
 }
 
+async function resetCurrentPicks() {
+  fetch("/tracks/reset-current-pick", {
+    method: "PUT",
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      console.log("SUccess:", data);
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+    });
+}
+
 async function fetchScheduleData(weekNumber) {
   try {
     const response = await fetch(
