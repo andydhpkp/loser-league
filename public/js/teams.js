@@ -454,7 +454,7 @@ function displayVenmoButton() {
 
 async function getTrackNumber() {
   let userId = localStorage.getItem("loggedInUserId");
-  let currentWeek = localStorage.getItem("thisWeek");
+  let currentWeek = parseInt(localStorage.getItem("thisWeek"));
   let totalTracks = 0;
   let trackIdArray = [];
   let trackIdToUsedPicksMap = {};
@@ -696,13 +696,15 @@ const matchup = async (totalTracks, trackIds, usedPicksMap) => {
   console.log(trackIds);
   console.log(usedPicksMap);
   //const nflObj = await nflArrayFunction()
-  let nflObj;
+  let nflObj = {}; // providing a default value
   try {
     const response = await fetch(
       "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
     );
     if (response.ok) {
       nflObj = await response.json();
+    } else {
+      throw new Error("Failed to retrieve nflObj");
     }
   } catch (error) {
     console.error("Error fetching the ESPN API", error);
