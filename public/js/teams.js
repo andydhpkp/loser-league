@@ -101,12 +101,13 @@ async function finalScores() {
         let totalLosers = document.getElementsByClassName("loser");
         console.log(totalWinners);
         console.log(totalLosers);
+        fetchScheduleData(currentWeek);
 
         if (totalWinners.length + totalLosers.length === textPicks.length) {
           for (l = 0; l < totalLosers.length; l++) {
             let deleteTrackId = parseInt(totalLosers[l].children[1].innerText);
             let loserTeam = totalLosers[l].children[0].innerText;
-            //addLoser(deleteTrackId, loserTeam);
+            addLoser(deleteTrackId, loserTeam);
           }
           //THIS IS A BANDAID UNTIL YOU SEE HOW ESPN UPDATES RECORDS BY TUESDAY
           for (p = 0; p < thisWeeksGames.length; p++) {
@@ -134,6 +135,38 @@ async function finalScores() {
       });
     }
   });
+}
+
+async function fetchScheduleData(weekNumber) {
+  try {
+    const response = await fetch(
+      `https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2023&week=${weekNumber}`
+    );
+    const data = await response.json();
+
+    let winners = [];
+    let losers = [];
+
+    const scheduleKeys = Object.keys(data.schedule);
+
+    scheduleKeys.forEach((key) => {
+      const games = data.schedule[key].games;
+      games.forEach((game) => {
+        game.competitions[0].competitors.forEach((competitor) => {
+          if (competitor.winner) {
+            winners.push(competitor.team.displayName);
+          } else {
+            losers.push(competitor.team.displayName);
+          }
+        });
+      });
+    });
+
+    console.log("Winners:", winners);
+    console.log("Losers:", losers);
+  } catch (error) {
+    console.error("Error fetching the schedule data:", error);
+  }
 }
 
 async function postWinnerRecord(winnerId, team_record) {
