@@ -266,7 +266,7 @@ router.put("/:id/loser", (req, res) => {
 });
 
 router.put("/reset-current-pick", (req, res) => {
-  Track.update({ current_pick: null }, {})
+  Track.update({ current_pick: null }, { where: {} })
     .then(([rowsUpdate]) => {
       if (rowsUpdate === 0) {
         return res.status(404).json({ error: "No tracks found to update" });
