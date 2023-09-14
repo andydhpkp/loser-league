@@ -632,7 +632,7 @@ function getWeek(data) {
   });
 
   //was current week, fix probably after onsite
-  localStorage.setItem("thisWeek", "1");
+  localStorage.setItem("thisWeek", "2");
 
   return currentWeek;
 }
@@ -1057,14 +1057,14 @@ async function getCurrentWeek() {
       endDate.setHours(endDate.getHours() - 16); // Subtract 16 hours
 
       if (currentDate >= startDate && currentDate <= endDate) {
-        localStorage.setItem("thisWeek", "1");
+        localStorage.setItem("thisWeek", "2");
         //localStorage.setItem("thisWeek", entry.value.toString());
         return entry.value; // Return the value directly
       }
     }
 
     if (currentDate < firstStartDate) {
-      localStorage.setItem("thisWeek", "1");
+      localStorage.setItem("thisWeek", "2");
       return "1"; // Return the value directly
     }
 
