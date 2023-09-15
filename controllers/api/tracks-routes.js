@@ -335,4 +335,59 @@ router.get("/user/:userId/alive", (req, res) => {
     });
 });
 
+router.put("/quick-replace/:trackId", (req, res) => {
+  const trackId = req.params.trackId;
+  const { teamName } = req.body;
+
+  if (!trackId || !teamName) {
+    return res
+      .status(400)
+      .json({ error: "Track ID and team name are required" });
+  }
+
+  // First, fetch the current track
+  Track.findOne({
+    where: {
+      id: trackId,
+    },
+  })
+    .then((dbTrack) => {
+      if (!dbTrack) {
+        res.status(404).json({ message: "No track found with this id" });
+        return;
+      }
+
+      // Retrieve and modify available_picks and used_picks using the getters
+      let availablePicks = dbTrack.available_picks;
+      let usedPicks = dbTrack.used_picks;
+
+      // Add current pick back to available picks and remove from used picks
+      if (dbTrack.current_pick) {
+        availablePicks.push(dbTrack.current_pick);
+        usedPicks = usedPicks.filter((pick) => pick !== dbTrack.current_pick);
+      }
+
+      // Set the new current pick
+      dbTrack.current_pick = teamName;
+
+      // Remove the new current pick from available picks and add to used picks
+      availablePicks = availablePicks.filter((pick) => pick !== teamName);
+      usedPicks.push(teamName);
+
+      // Use the setters to store the modified arrays
+      dbTrack.available_picks = availablePicks;
+      dbTrack.used_picks = usedPicks;
+
+      // Now, save the track with the modified properties
+      return dbTrack.save();
+    })
+    .then((updatedTrack) => {
+      res.json(updatedTrack);
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json(err);
+    });
+});
+
 module.exports = router;
