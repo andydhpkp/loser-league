@@ -1,4 +1,4 @@
-const match = require("nodemon/lib/monitor/match");
+//const match = require("nodemon/lib/monitor/match");
 
 function getTeamNames(names) {
   return names.teamName;
@@ -623,6 +623,7 @@ async function deleteTracksAdmin() {
 }
 
 async function createTrack(user_id) {
+  console.log(nflArray2);
   // @ts-ignore
   let available_picks = nflArray2.map(getTeamNames);
   console.log(available_picks);

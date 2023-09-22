@@ -1,6 +1,6 @@
 // You can already set Homescore > Awayscore to do what you want with the outcome of the game. If null than nothing, if tie than loss for both
 
-const { parse } = require("dotenv");
+//const { parse } = require("dotenv");
 
 //add logic so logged in users who have made their picks go straight to league view
 
@@ -102,6 +102,7 @@ async function finalScores() {
               postLoserRecord(thisWeeksGames[p].HomeTeam, [0, 1]);
             }
           }
+          await resetCurrentPicks();
         }
       });
     }
@@ -109,16 +110,20 @@ async function finalScores() {
 }
 
 async function resetCurrentPicks() {
-  fetch("/tracks/reset-current-pick", {
-    method: "PUT",
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      console.log("SUccess:", data);
-    })
-    .catch((error) => {
-      console.error("Error:", error);
+  try {
+    const response = await fetch("api/tracks/all-tracks/reset-current-pick", {
+      method: "PUT",
     });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log("Success:", data);
+  } catch (error) {
+    console.error("Error:", error);
+  }
 }
 
 async function fetchScheduleData(weekNumber) {
@@ -151,6 +156,36 @@ async function fetchScheduleData(weekNumber) {
     return { winners, losers };
   } catch (error) {
     console.error("Error fetching the schedule data:", error);
+  }
+}
+
+async function fetchScheduleOdds(weekNumber) {
+  try {
+    const response = await fetch(
+      `https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2023&week=${weekNumber}`
+    );
+    const data = await response.json();
+
+    let oddsDetails = [];
+
+    for (let date in data.content.schedule) {
+      data.content.schedule[date].games.forEach((game) => {
+        // Extracting odds details
+        if (
+          game.competitions[0].odds &&
+          game.competitions[0].odds.length > 0 &&
+          game.competitions[0].odds[0].details
+        ) {
+          oddsDetails.push(game.competitions[0].odds[0].details);
+        }
+      });
+      console.log(data);
+    }
+    console.log(oddsDetails);
+    return oddsDetails;
+  } catch (error) {
+    console.error("Error fetching schedule odds:", error);
+    throw error; // Propagating the error
   }
 }
 
@@ -526,140 +561,6 @@ function goToLeaguePage() {
   location.href = "../league-page.html";
 }
 
-function getWeek(data) {
-  let currentWeek;
-
-  let weekSecondsArr = [];
-  //to figure out actual week number
-  for (k = 1; k <= 18; k++) {
-    let weekTempArr = [];
-    for (j = 0; j < data.length; j++) {
-      if (data[j].RoundNumber === k) {
-        weekTempArr.push(data[j]);
-      }
-    }
-    let last = weekTempArr[weekTempArr.length - 1];
-    let testDate = last.DateUtc;
-    let newTestDate = testDate.replace(/-/g, "/");
-    let splitDate = newTestDate.split(" ");
-    let splitWeekDayArr = splitDate[0].split("/");
-    let splitDateArr = splitDate[1].split(":");
-    let noZ = splitDateArr[2].split("");
-    let hourUTC = parseInt(splitDateArr[0]);
-    let year = parseInt(splitWeekDayArr[0]);
-    let month = parseInt(splitWeekDayArr[1]);
-    let weekDay = parseInt(splitWeekDayArr[2]);
-    if (month >= 3 || (month < 11 && weekDay < 6) || month <= 10) {
-      if (hourUTC < 6) {
-        hourUTC = hourUTC + 18;
-
-        if (weekDay === 1) {
-          if (
-            month === 2 ||
-            month === 4 ||
-            month === 6 ||
-            month === 8 ||
-            month === 9 ||
-            month === 11 ||
-            month === 1
-          ) {
-            if (month === 1) {
-              month = 12;
-
-              year = year - 1;
-            } else {
-              month = month - 1;
-            }
-            weekDay = 31;
-          }
-          if (month === 5 || month === 7 || month === 10 || month === 12) {
-            month = month - 1;
-            weekDay = 30;
-          }
-        } else {
-          weekDay = weekDay - 1;
-        }
-      } else {
-        hourUTC = hourUTC - 6;
-      }
-    } else {
-      if (hourUTC < 7) {
-        hourUTC = hourUTC + 17;
-
-        if (weekDay === 1) {
-          if (
-            month === 2 ||
-            month === 4 ||
-            month === 6 ||
-            month === 8 ||
-            month === 9 ||
-            month === 11 ||
-            month === 1
-          ) {
-            if (month === 1) {
-              month = 12;
-
-              year = year - 1;
-            } else {
-              month = month - 1;
-            }
-            weekDay = 31;
-          }
-          if (month === 5 || month === 7 || month === 10 || month === 12) {
-            month = month - 1;
-            weekDay = 30;
-          }
-        } else {
-          weekDay = weekDay - 1;
-        }
-      } else {
-        hourUTC = hourUTC - 7;
-      }
-    }
-
-    let dateString = `${year}/${month}/${weekDay} ${hourUTC.toString()}:${
-      splitDateArr[1]
-    }:${noZ[0]}${noZ[1]}`;
-
-    let finalDate = new Date(dateString);
-
-    let finalDaySeconds = new Date(finalDate);
-
-    weekSecondsArr.push(finalDaySeconds.getTime());
-  }
-
-  console.log("THIS IS WEEK DATES");
-  console.log(weekSecondsArr);
-
-  const currentDate = new Date();
-
-  for (d = 0; d <= weekSecondsArr.length; d++) {
-    if (currentDate.getTime() <= weekSecondsArr[0]) {
-      currentWeek = 1;
-    }
-
-    if (
-      currentDate.getTime() > weekSecondsArr[d] + 18000000 &&
-      currentDate.getTime() < weekSecondsArr[d + 1]
-    ) {
-      currentWeek = d + 2;
-    }
-  }
-
-  getCurrentWeek().then((value) => {
-    if (value) {
-      currentWeek = value;
-    } else {
-      console.log("Could not determine the current week.");
-    }
-  });
-
-  //was current week, fix probably after onsite
-  localStorage.setItem("thisWeek", "3");
-
-  return currentWeek;
-}
-
 function getEndOfGameTime() {
   let currentMoment = new Date();
 
@@ -761,7 +662,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
         response.json().then(function (data) {
           console.log(data);
 
-          let currentWeek = getWeek(data);
+          let currentWeek = parseInt(localStorage.getItem("thisWeek"));
           console.log(currentWeek);
 
           let headerHelp = document.getElementsByTagName("header")[0];
@@ -793,6 +694,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
 
           let matchupsLogos = [];
           let matchupRecords = [];
+          console.log(nflObj);
 
           for (l = 0; l < thisWeeksMatchups.length; l++) {
             //console.log(nflObj)
@@ -1064,6 +966,7 @@ async function getCurrentWeek() {
     }
 
     const data = await response.json();
+    console.log(data);
     const currentDate = getMyDate(); // Current date and time in UTC
 
     const league = data.leagues[0];
@@ -1086,15 +989,15 @@ async function getCurrentWeek() {
       endDate.setHours(endDate.getHours() - 16); // Subtract 16 hours
 
       if (currentDate >= startDate && currentDate <= endDate) {
-        localStorage.setItem("thisWeek", "3");
-        //localStorage.setItem("thisWeek", entry.value.toString());
+        // localStorage.setItem("thisWeek", "1");
+        localStorage.setItem("thisWeek", entry.value.toString());
         return entry.value; // Return the value directly
       }
     }
 
     if (currentDate < firstStartDate) {
-      localStorage.setItem("thisWeek", "3");
-      return "2"; // Return the value directly
+      localStorage.setItem("thisWeek", "1");
+      // return "2"; // Return the value directly
     }
 
     return null;
