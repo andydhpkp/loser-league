@@ -910,7 +910,7 @@ async function getRecords() {
                   data.events[x].competitions[0].competitors[r].team.displayName
                 );
                 console.log(finalRecord);
-                console.log(recordHTML[i]);
+                console.log(recordHTML[i].previousSibling.innerText);
                 recordHTML[i].innerText = finalRecord;
               }
             }
