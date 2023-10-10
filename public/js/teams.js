@@ -807,12 +807,13 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
               secondTeamInfo.innerText = info[logoCounter];
 
               let currentTracksUsedPicks = usedPicksMap[trackIds[i]];
+              console.log(currentTracksUsedPicks);
               for (j = 0; j < currentTracksUsedPicks.length; j++) {
                 if (currentTracksUsedPicks[j] === firstTeamName.innerText) {
-                  firstTeamButton.classList.toggle("used_pick");
+                  firstTeamButton.classList.add("used_pick");
                 }
                 if (currentTracksUsedPicks[j] === secondTeamName.innerText) {
-                  secondTeamButton.classList.toggle("used_pick");
+                  secondTeamButton.classList.add("used_pick");
                 }
               }
 
