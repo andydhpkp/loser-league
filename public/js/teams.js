@@ -910,11 +910,11 @@ async function getRecords() {
             }
           }
         }
-        let checkForBye = document.getElementsByClassName("record");
-        for (i = 0; i < checkForBye.length; i++) {
-          if (checkForBye[i].innerText === "(0 - 0)") {
-          }
-        }
+        // let checkForBye = document.getElementsByClassName("record");
+        // for (i = 0; i < checkForBye.length; i++) {
+        //   if (checkForBye[i].innerText === "(0 - 0)") {
+        //   }
+        // }
       });
     }
   });
