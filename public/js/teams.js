@@ -904,7 +904,13 @@ async function getRecords() {
                   finalRecord = `(${splitRecord[0]} - ${splitRecord[2]} - ${splitRecord[4]})`;
                 } else {
                   finalRecord = `(${splitRecord[0]} - ${splitRecord[2]})`;
+                  console.log();
                 }
+                console.log(
+                  data.events[x].competitions[0].competitors[r].team.displayName
+                );
+                console.log(finalRecord);
+                console.log(recordHTML[i]);
                 recordHTML[i].innerText = finalRecord;
               }
             }
