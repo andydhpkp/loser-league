@@ -821,6 +821,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
                   currentTracksUsedPicks[j].trim() ===
                   secondTeamName.innerText.trim()
                 ) {
+                  console.log("IT ACTUALLY DOES RUN");
                   secondTeamButton.classList.add("used_pick");
                 }
               }
