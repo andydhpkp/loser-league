@@ -808,6 +808,8 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
 
               let currentTracksUsedPicks = usedPicksMap[trackIds[i]];
               console.log(currentTracksUsedPicks);
+              console.log(firstTeamName.innerText);
+              console.log(secondTeamName.innerText);
               for (j = 0; j < currentTracksUsedPicks.length; j++) {
                 if (currentTracksUsedPicks[j] === firstTeamName.innerText) {
                   firstTeamButton.classList.add("used_pick");
