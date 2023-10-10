@@ -806,26 +806,6 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
               secondTeamName.innerText = matchups[logoCounter];
               secondTeamInfo.innerText = info[logoCounter];
 
-              let currentTracksUsedPicks = usedPicksMap[trackIds[i]];
-              console.log(currentTracksUsedPicks);
-              console.log(firstTeamName.innerText);
-              console.log(secondTeamName.innerText);
-              for (j = 0; j < currentTracksUsedPicks.length; j++) {
-                if (
-                  currentTracksUsedPicks[j].trim() ===
-                  secondTeamName.innerText.trim()
-                ) {
-                  console.log("IT ACTUALLY DOES RUN");
-                  secondTeamButton.classList.add("used_pick");
-                }
-                if (
-                  currentTracksUsedPicks[j].trim() ===
-                  firstTeamName.innerText.trim()
-                ) {
-                  firstTeamButton.classList.add("used_pick");
-                }
-              }
-
               secondTeamButton.setAttribute("class", "teamSelection");
               secondTeamButton.setAttribute(
                 "data-value",
@@ -844,6 +824,23 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
                   trackContainer.classList.add("successfulPick");
                 }
               });
+
+              let currentTracksUsedPicks = usedPicksMap[trackIds[i]];
+              for (j = 0; j < currentTracksUsedPicks.length; j++) {
+                if (
+                  currentTracksUsedPicks[j].trim() ===
+                  firstTeamName.innerText.trim()
+                ) {
+                  firstTeamButton.classList.add("used_pick");
+                }
+                if (
+                  currentTracksUsedPicks[j].trim() ===
+                  secondTeamName.innerText.trim()
+                ) {
+                  secondTeamButton.classList.add("used_pick");
+                }
+              }
+
               //secondAnchor.setAttribute('id', matchups[logoCounter])
               secondAnchor.appendChild(teamLogoSecond);
               secondAnchor.appendChild(secondTeamName);
