@@ -887,11 +887,11 @@ async function getRecords() {
       response.json().then(function (data) {
         let recordHTML = document.getElementsByClassName("record");
 
+        console.log(data);
         for (i = 0; i < recordHTML.length; i++) {
           //console.log(data);
           for (x = 0; x < data.events.length; x++) {
             for (r = 0; r < 2; r++) {
-              console.log(data);
               console.log(
                 data.events[x].competitions[0].competitors[r].team.displayName
               );
