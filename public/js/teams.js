@@ -866,7 +866,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
 
             getLoading.remove();
 
-            getRecords();
+            getRecords(currentWeek);
           }
         });
       } else {
@@ -879,52 +879,46 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
     });
 }
 
-async function getRecords() {
-  fetch(
-    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
-  ).then(function (response) {
-    if (response.ok) {
-      response.json().then(function (data) {
-        let recordHTML = document.getElementsByClassName("record");
+async function getRecords(currentWeek) {
+  try {
+    const response = await fetch(
+      `https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2023&week=${currentWeek}`
+    );
+    if (!response.ok) {
+      throw new Error("Failed to fetch data.");
+    }
 
-        console.log(data);
-        for (i = 0; i < recordHTML.length; i++) {
-          //console.log(data);
-          for (x = 0; x < data.events.length; x++) {
-            for (r = 0; r < 2; r++) {
-              if (
-                data.events[x].competitions[0].competitors[r].team
-                  .displayName === recordHTML[i].previousSibling.innerText
-              ) {
-                let record =
-                  data.events[x].competitions[0].competitors[r].records[0]
-                    .summary;
-                let splitRecord = record.split("");
-                let finalRecord;
-                if (splitRecord.length > 3) {
-                  finalRecord = `(${splitRecord[0]} - ${splitRecord[2]} - ${splitRecord[4]})`;
-                } else {
-                  finalRecord = `(${splitRecord[0]} - ${splitRecord[2]})`;
-                  console.log();
-                }
-                console.log(
-                  data.events[x].competitions[0].competitors[r].team.displayName
-                );
-                console.log(finalRecord);
-                console.log(recordHTML[i].previousSibling.innerText);
-                recordHTML[i].innerText = finalRecord;
-              }
-            }
-          }
-        }
-        // let checkForBye = document.getElementsByClassName("record");
-        // for (i = 0; i < checkForBye.length; i++) {
-        //   if (checkForBye[i].innerText === "(0 - 0)") {
-        //   }
-        // }
+    const data = await response.json();
+    let records = {};
+
+    for (let date in data.content.schedule) {
+      data.content.schedule[date].games.forEach((game) => {
+        game.competitions[0].competitors.forEach((competitor) => {
+          records[competitor.team.displayName] = competitor.records[0].summary;
+        });
       });
     }
-  });
+
+    let recordHTML = document.getElementsByClassName("record");
+
+    for (let i = 0; i < recordHTML.length; i++) {
+      let teamName = recordHTML[i].previousSibling.innerText;
+      if (records[teamName]) {
+        let splitRecord = records[teamName].split("-");
+        let finalRecord;
+
+        if (splitRecord.length > 2) {
+          finalRecord = `(${splitRecord[0].trim()} - ${splitRecord[1].trim()} - ${splitRecord[2].trim()})`;
+        } else {
+          finalRecord = `(${splitRecord[0].trim()} - ${splitRecord[1].trim()})`;
+        }
+
+        recordHTML[i].innerText = finalRecord;
+      }
+    }
+  } catch (error) {
+    console.error("Error in getRecords:", error);
+  }
 }
 
 async function createTeams() {
