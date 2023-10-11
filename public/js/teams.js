@@ -892,9 +892,6 @@ async function getRecords() {
           //console.log(data);
           for (x = 0; x < data.events.length; x++) {
             for (r = 0; r < 2; r++) {
-              console.log(
-                data.events[x].competitions[0].competitors[r].team.displayName
-              );
               if (
                 data.events[x].competitions[0].competitors[r].team
                   .displayName === recordHTML[i].previousSibling.innerText
