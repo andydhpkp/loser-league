@@ -518,6 +518,11 @@ async function getTrackNumber() {
     console.log(data);
 
     totalTracks = data.length;
+
+    if (totalTracks === 0) {
+      goToLeaguePage()
+    }
+
     for (let i = 0; i < totalTracks; i++) {
       trackIdArray.push(data[i].id);
     }
