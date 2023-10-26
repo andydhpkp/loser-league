@@ -786,7 +786,7 @@ async function getAliveTracksByUserId(userId) {
     return tracks;
   } else if (response.status === 404) {
     console.warn("No tracks available for user.");
-    return [];
+    return "No tracks alive";
   } else {
     console.error(
       "Failed to fetch alive tracks for user",
@@ -805,6 +805,9 @@ function pushToLeaguePage() {
       if (tracks.length === 0) {
         console.log("No tracks available.");
         return; // Exit the function early without redirecting
+      }
+      if (tracks === "No tracks alive") {
+        window.location.href = "../league-page.html";
       }
       if (tracks.every((track) => track.used_picks.length >= currentWeek)) {
         window.location.href = "../league-page.html";
