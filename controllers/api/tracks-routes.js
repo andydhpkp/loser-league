@@ -430,17 +430,30 @@ router.put("/add-placeholder/:trackId", (req, res) => {
     });
 });
 
-// Route to delete tracks with non-null wrong_pick
+// Route to delete tracks with non-null wrong_pick in batches
 router.delete("/clear-memory/delete-wrong-pick", async (req, res) => {
   try {
-    // Find and delete tracks with non-null wrong_pick
-    const deletedTracks = await Track.destroy({
-      where: {
-        wrong_pick: {
-          [Sequelize.Op.not]: null,
+    const batchSize = 100; // Adjust the batch size as needed
+    let deletedTracks = 0;
+
+    while (true) {
+      // Find and delete tracks with non-null wrong_pick in batches
+      const result = await Track.destroy({
+        where: {
+          wrong_pick: {
+            [Sequelize.Op.not]: null,
+          },
         },
-      },
-    });
+        limit: batchSize, // Set the batch size
+      });
+
+      if (result === 0) {
+        // No more tracks to delete
+        break;
+      }
+
+      deletedTracks += result;
+    }
 
     if (deletedTracks > 0) {
       res
