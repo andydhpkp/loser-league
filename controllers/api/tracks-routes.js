@@ -431,7 +431,7 @@ router.put("/add-placeholder/:trackId", (req, res) => {
 });
 
 // Route to delete tracks with non-null wrong_pick
-router.delete("/delete-wrong-pick", async (req, res) => {
+router.delete("/clear-memory/delete-wrong-pick", async (req, res) => {
   try {
     // Find and delete tracks with non-null wrong_pick
     const deletedTracks = await Track.destroy({
