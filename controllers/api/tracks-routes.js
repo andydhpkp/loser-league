@@ -465,8 +465,15 @@ router.delete("/clear-memory/delete-wrong-pick", async (req, res) => {
         .json({ message: "No tracks with non-null wrong_pick found." });
     }
   } catch (error) {
-    console.error("Error deleting tracks:", error);
-    res.status(500).json({ error: "An error occurred while deleting tracks." });
+    console.error("Error deleting tracks:", error); // Log the error
+
+    // Send the error message as a response
+    res
+      .status(500)
+      .json({
+        error: "An error occurred while deleting tracks.",
+        errorMessage: error.message,
+      });
   }
 });
 
