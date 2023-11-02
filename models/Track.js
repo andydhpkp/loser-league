@@ -65,31 +65,4 @@ Track.init(
   }
 );
 
-// Route to delete tracks with non-null wrong_pick
-router.delete("/delete-wrong-pick", async (req, res) => {
-  try {
-    // Find and delete tracks with non-null wrong_pick
-    const deletedTracks = await Track.destroy({
-      where: {
-        wrong_pick: {
-          [Sequelize.Op.not]: null,
-        },
-      },
-    });
-
-    if (deletedTracks > 0) {
-      res
-        .status(200)
-        .json({ message: `${deletedTracks} tracks deleted successfully.` });
-    } else {
-      res
-        .status(404)
-        .json({ message: "No tracks with non-null wrong_pick found." });
-    }
-  } catch (error) {
-    console.error("Error deleting tracks:", error);
-    res.status(500).json({ error: "An error occurred while deleting tracks." });
-  }
-});
-
 module.exports = Track;
