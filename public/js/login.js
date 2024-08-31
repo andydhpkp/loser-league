@@ -4,7 +4,6 @@ async function loginFormHandler(event) {
   event.preventDefault();
   const username = document.querySelector("#inputUsername").value.trim();
   const password = document.querySelector("#inputPassword").value.trim();
-  // here if you want to make it optional
   const staySignedIn = true;
 
   if (username && password) {
@@ -21,7 +20,13 @@ async function loginFormHandler(event) {
     });
 
     if (response.ok) {
+      const data = await response.json();
+      const userId = data.user.id; // Assuming the response includes the user's ID
+
+      // Store the username and user ID in localStorage
       window.localStorage.setItem("loggedInUser", username.toLowerCase());
+      window.localStorage.setItem("loggedInUserId", userId);
+
       location.href = "../profile.html";
       console.log(response);
     } else {
