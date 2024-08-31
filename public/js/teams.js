@@ -20,7 +20,7 @@
 } */
 
 async function finalScores() {
-  fetch("/api/proxy/nfl-2023").then(function (response) {
+  fetch("/api/proxy/nfl-2024").then(function (response) {
     if (response.ok) {
       response.json().then(async function (data) {
         console.log(data);
@@ -129,7 +129,7 @@ async function resetCurrentPicks() {
 async function fetchScheduleData(weekNumber) {
   try {
     const response = await fetch(
-      `https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2023&week=${weekNumber}`
+      `https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2024&week=${weekNumber}`
     );
     const data = await response.json();
 
@@ -162,7 +162,7 @@ async function fetchScheduleData(weekNumber) {
 async function fetchScheduleOdds(weekNumber) {
   try {
     const response = await fetch(
-      `https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2023&week=${weekNumber}`
+      `https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2024&week=${weekNumber}`
     );
     const data = await response.json();
 
@@ -660,7 +660,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
     main.prepend(firstLeaguePageBtn);
   }
 
-  var nflScoreApi = "/api/proxy/nfl-2023";
+  var nflScoreApi = "/api/proxy/nfl-2024";
   fetch(nflScoreApi)
     .then(function (response) {
       if (response.ok) {
@@ -1029,7 +1029,7 @@ function getMyDate() {
 
 async function fetchMatchesAndGetCurrentWeek() {
   try {
-    let response = await fetch("/api/proxy/nfl-2023");
+    let response = await fetch("/api/proxy/nfl-2024");
 
     if (!response.ok) {
       throw new Error("Network response was not ok " + response.statusText);
