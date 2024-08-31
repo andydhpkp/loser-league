@@ -520,7 +520,7 @@ async function getTrackNumber() {
     totalTracks = data.length;
 
     if (totalTracks === 0) {
-      goToLeaguePage()
+      goToLeaguePage();
     }
 
     for (let i = 0; i < totalTracks; i++) {
@@ -887,7 +887,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
 async function getRecords(currentWeek) {
   try {
     const response = await fetch(
-      `https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2023&week=${currentWeek}`
+      `https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2024&week=${currentWeek}`
     );
     if (!response.ok) {
       throw new Error("Failed to fetch data.");
