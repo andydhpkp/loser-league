@@ -210,27 +210,26 @@ function submitTrackNumberHandler() {
 }
 
 async function getUserId() {
-  fetch(`/api/users/`).then(function (response) {
+  return fetch(`/api/users/`).then(function (response) {
     if (response.ok) {
-      response.json().then(function (data) {
+      return response.json().then(function (data) {
         let loggedInUsername = localStorage.getItem("loggedInUser");
         let loggedInUserId;
         console.log(loggedInUsername);
-        // @ts-ignore
-        for (i = 0; i < data.length; i++) {
+        for (let i = 0; i < data.length; i++) {
           console.log(data);
-          // @ts-ignore
           if (data[i].username.toLowerCase() === loggedInUsername) {
-            // @ts-ignore
             loggedInUserId = data[i].id;
             console.log(loggedInUserId);
+            break;
           }
         }
         localStorage.setItem("loggedInUserId", loggedInUserId);
+        return loggedInUserId;
       });
     } else {
-      // @ts-ignore
-      alert(response.error);
+      alert("Failed to fetch users");
+      return null;
     }
   });
 }

@@ -504,6 +504,16 @@ function displayVenmoButton() {
 
 async function getTrackNumber() {
   let userId = localStorage.getItem("loggedInUserId");
+
+  if (!userId) {
+    userId = await getUserId();
+  }
+
+  if (!userId) {
+    console.error("Failed to get user ID.");
+    return;
+  }
+
   let currentWeek = parseInt(localStorage.getItem("thisWeek"));
   let totalTracks = 0;
   let trackIdArray = [];
@@ -527,7 +537,6 @@ async function getTrackNumber() {
       trackIdArray.push(data[i].id);
     }
     for (let i = 0; i < totalTracks; i++) {
-      //let tempUsed_picks = []
       trackIdToUsedPicksMap[data[i].id] = data[i].used_picks;
     }
     currentWeek++;
