@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const { Track, User } = require("../../models/my-index");
-const { Op } = require("sequelize");
+const { Op, Sequelize } = require("sequelize");
 
 //get all tracks
 router.get("/", (req, res) => {
@@ -468,12 +468,10 @@ router.delete("/clear-memory/delete-wrong-pick", async (req, res) => {
     console.error("Error deleting tracks:", error); // Log the error
 
     // Send the error message as a response
-    res
-      .status(500)
-      .json({
-        error: "An error occurred while deleting tracks.",
-        errorMessage: error.message,
-      });
+    res.status(500).json({
+      error: "An error occurred while deleting tracks.",
+      errorMessage: error.message,
+    });
   }
 });
 
