@@ -8,11 +8,13 @@ async function logout() {
     if (response.status === 204) {
       // Session destroyed successfully
       window.localStorage.removeItem("loggedInUser");
+      window.localStorage.removeItem("loggedInUserId"); // Clear loggedInUserId
       location.href = "/index.html";
     } else if (response.status === 404) {
       // User was not logged in or session not found
       console.error("User was not logged in.");
       window.localStorage.removeItem("loggedInUser"); // Clear local storage
+      window.localStorage.removeItem("loggedInUserId"); // Clear loggedInUserId
       location.href = "/index.html"; // Redirect to /index.html
     } else {
       // Some other unexpected response from server
