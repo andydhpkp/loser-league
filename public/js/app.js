@@ -210,28 +210,37 @@ function submitTrackNumberHandler() {
 }
 
 async function getUserId() {
-  return fetch(`/api/users/`).then(function (response) {
+  try {
+    const response = await fetch(`/api/users/`);
     if (response.ok) {
-      return response.json().then(function (data) {
-        let loggedInUsername = localStorage.getItem("loggedInUser");
-        let loggedInUserId;
-        console.log(loggedInUsername);
-        for (let i = 0; i < data.length; i++) {
-          console.log(data);
-          if (data[i].username.toLowerCase() === loggedInUsername) {
-            loggedInUserId = data[i].id;
-            console.log(loggedInUserId);
-            break;
-          }
-        }
+      const data = await response.json();
+      const loggedInUsername = localStorage.getItem("loggedInUser");
+      if (!loggedInUsername) {
+        console.error("No logged in username found in local storage.");
+        return null;
+      }
+
+      const matchedUser = data.find(
+        (user) => user.username.toLowerCase() === loggedInUsername.toLowerCase()
+      );
+
+      if (matchedUser) {
+        const loggedInUserId = matchedUser.id;
+        console.log(`User ID found: ${loggedInUserId}`);
         localStorage.setItem("loggedInUserId", loggedInUserId);
         return loggedInUserId;
-      });
+      } else {
+        console.error("No matching user found.");
+        return null;
+      }
     } else {
-      alert("Failed to fetch users");
+      console.error("Failed to fetch users.");
       return null;
     }
-  });
+  } catch (error) {
+    console.error("An error occurred while fetching the user ID:", error);
+    return null;
+  }
 }
 
 async function handleSubmitPicks() {
