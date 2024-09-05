@@ -692,8 +692,8 @@ async function forcePickCheckTime() {
       data.content.schedule[firstDateKey].games[0].date
     ).getTime();
 
-    // let currentMoment = Date.now();
-    let currentMoment = Date.now() + 1000 * 60 * 60 * 24; // Add 1 day for testing
+    let currentMoment = Date.now();
+    // let currentMoment = Date.now() + 1000 * 60 * 60 * 24; // Add 1 day for testing
 
     // Compare the current time (in milliseconds) with the game start time
     if (currentMoment > timeToCheckAgainst) {
