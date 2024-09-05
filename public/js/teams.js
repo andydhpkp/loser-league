@@ -55,6 +55,7 @@ async function finalScores() {
         let textPicks = document.getElementsByClassName("teamNames");
         console.log(textPicks);
 
+        //TODO this should be called once at the beginnig onLoad()
         let { winners, losers } = await fetchScheduleData(currentWeek);
 
         for (i = 0; i < textPicks.length; i++) {

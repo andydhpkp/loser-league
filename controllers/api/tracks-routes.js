@@ -475,4 +475,40 @@ router.delete("/clear-memory/delete-wrong-pick", async (req, res) => {
   }
 });
 
+// Get alive tracks with null current_pick
+router.get("/all-tracks/alive-without-pick", (req, res) => {
+  Track.findAll({
+    where: {
+      wrong_pick: null, // Tracks that are still "alive"
+      current_pick: "", // Tracks where the current pick is not yet made
+    },
+    include: [
+      {
+        model: User,
+        attributes: [
+          "id",
+          "first_name",
+          "last_name",
+          "username",
+          "email",
+          "password",
+        ],
+      },
+    ],
+  })
+    .then((dbTrack) => {
+      if (!dbTrack || dbTrack.length === 0) {
+        res
+          .status(404)
+          .json({ message: "No alive tracks without a current pick found" });
+        return;
+      }
+      res.json(dbTrack);
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).json({ message: "Failed to fetch alive tracks" });
+    });
+});
+
 module.exports = router;

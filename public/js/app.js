@@ -658,96 +658,140 @@ async function createTrack(user_id) {
 
 async function checkIfPicked() {}
 
-async function forcePicks() {
-  fetch("/api/users").then(function (response) {
-    if (response.ok) {
-      response.json().then(function (data) {
-        let currentWeek = localStorage.getItem("thisWeek");
+function waitForLocalStorage(key, checkInterval = 500) {
+  return new Promise((resolve, reject) => {
+    const interval = setInterval(() => {
+      const value = localStorage.getItem(key);
+      if (value) {
+        clearInterval(interval);
+        resolve(value);
+      }
+    }, checkInterval);
 
-        console.log(data);
-
-        // @ts-ignore
-        for (i = 0; i < data.length; i++) {
-          let submitted = "Yes";
-          // @ts-ignore
-          let trackChecker = parseInt(currentWeek);
-          trackChecker++;
-
-          // @ts-ignore
-          for (t = 0; t < data[i].tracks.length; t++) {
-            // @ts-ignore
-            console.log(data[i].tracks[t].used_picks.length);
-            // @ts-ignore
-            console.log(data[i].username);
-            // @ts-ignore
-            if (data[i].tracks[t].used_picks.length < trackChecker) {
-              submitted = "No";
-            }
-            console.log(submitted);
-          }
-
-          if (submitted === "No") {
-            // @ts-ignore
-            if (data[i].tracks.length > 0) {
-              // @ts-ignore
-              for (x = 0; x < data[i].tracks.length; x++) {
-                // @ts-ignore
-                let putTrackId = data[i].tracks[x].id;
-                // @ts-ignore
-                let randomPicker = Math.floor(
-                  Math.random() * data[i].tracks[x].available_picks.length
-                );
-                console.log("create function");
-                // @ts-ignore
-                let randomPick =
-                  data[i].tracks[x].available_picks[randomPicker];
-                console.log(randomPick);
-                // @ts-ignore
-                let used_picks = data[i].tracks[x].used_picks;
-                used_picks.push(randomPick);
-                // @ts-ignore
-                let available_picks = data[i].tracks[x].available_picks;
-                available_picks = available_picks.filter(
-                  (item) => item !== randomPick
-                );
-                // @ts-ignore
-                let user_id = data[i].id;
-                makePick(
-                  available_picks,
-                  used_picks,
-                  randomPick,
-                  user_id,
-                  putTrackId
-                );
-              }
-            }
-          }
-        }
-      });
-    } else {
-      alert("Could not connect");
-    }
+    // Optional: add a timeout if you want to avoid waiting forever
+    setTimeout(() => {
+      clearInterval(interval);
+      reject(new Error(`Timeout waiting for ${key} in localStorage`));
+    }, 10000); // wait for up to 10 seconds
   });
 }
 
-function timeToForce() {
-  let currentMoment = new Date();
+async function forcePickCheckTime() {
+  let weekNumberString = localStorage.getItem("thisWeek");
+  let weekNumber = parseInt(weekNumberString, 10);
 
-  let checkMatchupDay = currentMoment.getUTCDay();
+  try {
+    const response = await fetch(
+      `https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2024&week=${weekNumber}`
+    );
+    const data = await response.json();
 
-  console.log("check day for force");
+    // Extract the game start time from the schedule
+    const firstDateKey = Object.keys(data.content.schedule)[0];
+    let timeToCheckAgainst = new Date(
+      data.content.schedule[firstDateKey].games[0].date
+    ).getTime();
 
-  console.log(checkMatchupDay);
+    // let currentMoment = Date.now();
+    let currentMoment = Date.now() + 1000 * 60 * 60 * 24; // Add 1 day for testing
 
-  //Utah is -7 or -6 UTC depending on daylight savings FYI
-
-  if (checkMatchupDay >= 5) {
-    console.log("You Snooze You Loose");
-    //forcePicks()
+    // Compare the current time (in milliseconds) with the game start time
+    if (currentMoment > timeToCheckAgainst) {
+      // Call forcePicks if the current time is after the game start time
+      forcePicks(weekNumber);
+      console.log("The game has started, calling forcePicks()...");
+    } else {
+      console.log("The game has not started yet.");
+    }
+  } catch (error) {
+    console.error("Error fetching the schedule data:", error);
   }
 }
-//3600000
-setInterval(timeToForce, 3600000);
+
+async function forcePicks(weekNumber) {
+  // Get the current week call count from localStorage
+  const forcePickCalls =
+    JSON.parse(localStorage.getItem("forcePickCalls")) || {};
+
+  // If forcePicks has already been called for this week, exit
+  if (forcePickCalls[weekNumber] && forcePickCalls[weekNumber] >= 1) {
+    console.log(`forcePicks already called for week ${weekNumber}.`);
+    return;
+  }
+
+  // Check if forcePicks is already running by looking for a lock
+  if (localStorage.getItem("forcePicksInProgress") === "true") {
+    console.log(`forcePicks is already in progress.`);
+    return;
+  }
+
+  // Set a lock to prevent multiple calls
+  localStorage.setItem("forcePicksInProgress", "true");
+
+  try {
+    // Increment the call count for this week and save it in localStorage
+    forcePickCalls[weekNumber] = (forcePickCalls[weekNumber] || 0) + 1;
+    localStorage.setItem("forcePickCalls", JSON.stringify(forcePickCalls));
+
+    // Fetch all alive tracks (wrong_pick is null)
+    const response = await fetch("/api/tracks/all-tracks/alive-without-pick");
+    const aliveTracks = await response.json();
+
+    // Loop through each alive track and make random picks if current_pick is null
+    for (const track of aliveTracks) {
+      if (!track.current_pick) {
+        const availablePicks = track.available_picks;
+
+        // If no available picks, skip this track
+        if (availablePicks.length === 0) {
+          console.log(`No available picks left for track ${track.id}.`);
+          continue;
+        }
+
+        // Randomly select a pick from available_picks
+        const randomPick =
+          availablePicks[Math.floor(Math.random() * availablePicks.length)];
+
+        // Update the track with the random pick
+        const updatedTrack = await updateTrackPick(track.id, randomPick);
+        console.log(`Track ${track.id} assigned pick: ${randomPick}`);
+      }
+    }
+
+    console.log("All tracks have been processed for force picks.");
+  } catch (error) {
+    console.error("Error during forcePicks:", error);
+  } finally {
+    // Remove the lock after the function completes
+    localStorage.removeItem("forcePicksInProgress");
+    location.href = "../league-page.html";
+  }
+}
+
+// Function to update the track with a random valid pick
+async function updateTrackPick(trackId, randomPick) {
+  try {
+    const response = await fetch(`/api/tracks/${trackId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        current_pick: randomPick,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update the track.");
+    }
+
+    const updatedTrack = await response.json();
+    return updatedTrack;
+  } catch (error) {
+    console.error(`Error updating track ${trackId}:`, error);
+    return null;
+  }
+}
 
 async function displayTeamLogo() {
   fetch(
