@@ -511,4 +511,44 @@ router.get("/all-tracks/alive-without-pick", (req, res) => {
     });
 });
 
+router.put("/remove-placeholder/:trackId", (req, res) => {
+  const trackId = req.params.trackId;
+
+  if (!trackId) {
+    return res.status(400).json({ error: "Track ID is required" });
+  }
+
+  // Fetch the current track
+  Track.findOne({
+    where: {
+      id: trackId,
+    },
+  })
+    .then((dbTrack) => {
+      if (!dbTrack) {
+        res.status(404).json({ message: "No track found with this id" });
+        return;
+      }
+
+      // Retrieve the current used_picks using the getter
+      let usedPicks = dbTrack.used_picks;
+
+      // Remove "placeholder" from the used_picks
+      usedPicks = usedPicks.filter((pick) => pick !== "placeholder");
+
+      // Use the setter to store the modified used_picks array
+      dbTrack.used_picks = usedPicks;
+
+      // Save the track with the modified used_picks
+      return dbTrack.save();
+    })
+    .then((updatedTrack) => {
+      res.json(updatedTrack);
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json(err);
+    });
+});
+
 module.exports = router;
