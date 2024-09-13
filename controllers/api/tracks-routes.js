@@ -480,7 +480,9 @@ router.get("/all-tracks/alive-without-pick", (req, res) => {
   Track.findAll({
     where: {
       wrong_pick: null, // Tracks that are still "alive"
-      current_pick: "", // Tracks where the current pick is not yet made
+      current_pick: {
+        [Op.or]: ["", null], // Match both empty string and null
+      },
     },
     include: [
       {
