@@ -1013,6 +1013,9 @@ async function getCurrentWeek() {
 
       if (currentDate >= startDate && currentDate <= endDate) {
         // localStorage.setItem("thisWeek", "1");
+        console.log("This is the current data: " + currentDate);
+        console.log("this is the start date: " + startDate);
+        console.log("this is the end date: " + endDate);
         console.log("This is the current week: " + entry.value);
         //THIS IS WHERE TO CHANGE
         // localStorage.setItem("thisWeek", entry.value.toString());

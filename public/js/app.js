@@ -540,30 +540,26 @@ async function getGameOdds(users) {
                 teamsSeen.add(outcome.name);
 
                 // Logic to determine the riskiest pick
-                if (outcome.point < 0) {
-                  // Negative spreads (favorites): the more negative, the riskier
-                  if (
-                    riskiestPoint === null || // No riskiest pick yet
-                    outcome.point < riskiestPoint // More negative (closer to -∞) is riskier
-                  ) {
+                if (riskiestPoint === null) {
+                  // Initialize with the first point
+                  riskiestPick = outcome.name;
+                  riskiestPoint = outcome.point;
+                  riskiestPickers = [user];
+                } else {
+                  // Compare spreads
+                  const isCurrentRiskier =
+                    (outcome.point < 0 && outcome.point < riskiestPoint) || // More negative spreads are riskier
+                    (outcome.point > 0 &&
+                      riskiestPoint > 0 &&
+                      outcome.point < riskiestPoint); // Smaller positive spreads are riskier
+
+                  if (isCurrentRiskier) {
                     riskiestPick = outcome.name;
                     riskiestPoint = outcome.point;
                     riskiestPickers = [user]; // Reset with the current user
                   } else if (outcome.point === riskiestPoint) {
-                    riskiestPickers.push(user); // Add this user to the riskiest pick list
-                  }
-                } else if (outcome.point > 0) {
-                  // Positive spreads (underdogs): smaller positive spread is riskier
-                  if (
-                    riskiestPoint === null || // No riskiest pick yet
-                    (riskiestPoint > 0 && outcome.point < riskiestPoint) || // Smaller positive spread is riskier
-                    riskiestPoint < 0 // All positive spreads are less risky than any negative spread
-                  ) {
-                    riskiestPick = outcome.name;
-                    riskiestPoint = outcome.point;
-                    riskiestPickers = [user]; // Reset with the current user
-                  } else if (outcome.point === riskiestPoint) {
-                    riskiestPickers.push(user); // Add this user to the riskiest pick list
+                    // If they have the same spread, add the user
+                    riskiestPickers.push(user);
                   }
                 }
               }
