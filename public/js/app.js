@@ -364,12 +364,18 @@ function createStatisticsModal(adminViewUserDiv, data) {
 
   // Calculate Tracks Left (tracks with null or empty wrong_pick)
   let tracksLeft = 0;
+  let userTrackCounts = [];
+
+  // Collect information for the most and least tracks
   data.forEach((user) => {
-    user.tracks.forEach((track) => {
-      if (!track.wrong_pick) {
-        tracksLeft++;
-      }
+    const activeTracks = user.tracks.filter(
+      (track) => !track.wrong_pick
+    ).length;
+    userTrackCounts.push({
+      name: user.first_name + " " + user.last_name,
+      activeTracks,
     });
+    tracksLeft += activeTracks;
   });
 
   // Create a row for "Tracks Left"
@@ -390,6 +396,58 @@ function createStatisticsModal(adminViewUserDiv, data) {
 
   // Append the "Tracks Left" row to the table
   statisticsTable.appendChild(tracksLeftRow);
+
+  // Calculate player with most and least tracks
+  const maxTracks = Math.max(...userTrackCounts.map((u) => u.activeTracks));
+  const minTracks = Math.min(...userTrackCounts.map((u) => u.activeTracks));
+
+  const playersWithMostTracks = userTrackCounts
+    .filter((u) => u.activeTracks === maxTracks)
+    .map((u) => u.name)
+    .join(", ");
+
+  const playersWithLeastTracks = userTrackCounts
+    .filter((u) => u.activeTracks === minTracks)
+    .map((u) => u.name)
+    .join(", ");
+
+  // Create a row for "Player with Most Tracks"
+  let mostTracksRow = document.createElement("tr");
+
+  let mostTracksTitleCell = document.createElement("td");
+  mostTracksTitleCell.innerText = "Player with Most Tracks:";
+  mostTracksTitleCell.style.whiteSpace = "nowrap"; // Prevent wrapping
+  mostTracksTitleCell.style.fontWeight = "bold"; // Make title bold
+  mostTracksTitleCell.style.textAlign = "left"; // Left-align the title
+
+  let mostTracksResultCell = document.createElement("td");
+  mostTracksResultCell.innerText = `${playersWithMostTracks} (${maxTracks} tracks)`;
+  mostTracksResultCell.style.textAlign = "center"; // Center-align the statistic value
+
+  mostTracksRow.appendChild(mostTracksTitleCell);
+  mostTracksRow.appendChild(mostTracksResultCell);
+
+  // Append the "Player with Most Tracks" row to the table
+  statisticsTable.appendChild(mostTracksRow);
+
+  // Create a row for "Player with Least Tracks"
+  let leastTracksRow = document.createElement("tr");
+
+  let leastTracksTitleCell = document.createElement("td");
+  leastTracksTitleCell.innerText = "Player with Least Tracks:";
+  leastTracksTitleCell.style.whiteSpace = "nowrap"; // Prevent wrapping
+  leastTracksTitleCell.style.fontWeight = "bold"; // Make title bold
+  leastTracksTitleCell.style.textAlign = "left"; // Left-align the title
+
+  let leastTracksResultCell = document.createElement("td");
+  leastTracksResultCell.innerText = `${playersWithLeastTracks} (${minTracks} tracks)`;
+  leastTracksResultCell.style.textAlign = "center"; // Center-align the statistic value
+
+  leastTracksRow.appendChild(leastTracksTitleCell);
+  leastTracksRow.appendChild(leastTracksResultCell);
+
+  // Append the "Player with Least Tracks" row to the table
+  statisticsTable.appendChild(leastTracksRow);
 
   // Modal body where the table will be placed
   let statisticsModalBody = document.createElement("div");
@@ -417,8 +475,8 @@ function createStatisticsModal(adminViewUserDiv, data) {
 
   // Event listener for the Reload Odds button
   reloadOddsButton.addEventListener("click", function () {
-    const allTracks = data.flatMap((user) => user.tracks);
-    getGameOdds(allTracks); // Calls your odds-fetching function with track data
+    // Pass full user data with tracks into the getGameOdds function
+    getGameOdds(data); // Calls your odds-fetching function with user and track data
   });
 
   // Append buttons to the footer
@@ -438,7 +496,7 @@ function createStatisticsModal(adminViewUserDiv, data) {
   adminViewUserDiv.appendChild(statisticsModal);
 }
 
-async function getGameOdds(tracks) {
+async function getGameOdds(users) {
   try {
     const response = await fetch(
       "https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds/?apiKey=9935d03409a593557042e410f0de3da0&regions=us&markets=spreads&Format=american&bookmakers=draftkings"
@@ -448,17 +506,26 @@ async function getGameOdds(tracks) {
 
     const oddsData = await response.json();
 
-    // Flatten tracks to get all current picks
-    let currentPicks = tracks
-      .map((track) => track.current_pick)
-      .filter(Boolean); // Only keep valid picks
+    // Flatten all current picks to get picks with associated users
+    let currentPicks = [];
+    users.forEach((user) => {
+      user.tracks.forEach((track) => {
+        if (track.current_pick) {
+          currentPicks.push({
+            pick: track.current_pick,
+            user: `${user.first_name} ${user.last_name}`, // Associate the pick with the user's name
+          });
+        }
+      });
+    });
 
     // To store the first appearance of each team
     let teamsSeen = new Set();
 
-    // Track the riskiest pick
+    // Track the riskiest pick and who made it
     let riskiestPick = null;
     let riskiestPoint = null;
+    let riskiestPickers = [];
 
     // Loop through each game's odds
     oddsData.forEach((game) => {
@@ -467,41 +534,47 @@ async function getGameOdds(tracks) {
         if (bookmaker.markets && bookmaker.markets.length > 0) {
           const market = bookmaker.markets[0];
           market.outcomes.forEach((outcome) => {
-            if (
-              !teamsSeen.has(outcome.name) &&
-              currentPicks.includes(outcome.name)
-            ) {
-              // Mark the team as seen
-              teamsSeen.add(outcome.name);
+            currentPicks.forEach(({ pick, user }) => {
+              if (!teamsSeen.has(outcome.name) && pick === outcome.name) {
+                // Mark the team as seen
+                teamsSeen.add(outcome.name);
 
-              // For positive and negative spreads, follow the correct logic
-              if (outcome.point < 0) {
-                // Negative spreads (favorites): The more negative the spread, the riskier
-                if (
-                  riskiestPoint === null || // If we don't have a riskiest pick yet
-                  riskiestPoint > 0 || // If the current riskiest point is positive, any negative spread is riskier
-                  outcome.point < riskiestPoint // More negative spread is riskier
-                ) {
-                  riskiestPick = outcome.name;
-                  riskiestPoint = outcome.point;
-                }
-              } else if (outcome.point > 0) {
-                // Positive spreads (underdogs): The smaller the positive spread, the riskier
-                if (
-                  riskiestPoint === null || // If we don't have a riskiest pick yet
-                  (riskiestPoint > 0 && outcome.point < riskiestPoint) // Smaller positive spread is riskier
-                ) {
-                  riskiestPick = outcome.name;
-                  riskiestPoint = outcome.point;
+                // Logic to determine the riskiest pick
+                if (outcome.point < 0) {
+                  // Negative spreads (favorites): the more negative, the riskier
+                  if (
+                    riskiestPoint === null || // No riskiest pick yet
+                    riskiestPoint > 0 || // If current riskiest is positive, any negative spread is riskier
+                    outcome.point < riskiestPoint // More negative spread is riskier
+                  ) {
+                    riskiestPick = outcome.name;
+                    riskiestPoint = outcome.point;
+                    riskiestPickers = [user]; // Reset with the current user
+                  } else if (outcome.point === riskiestPoint) {
+                    riskiestPickers.push(user); // Add this user to the riskiest pick list
+                  }
+                } else if (outcome.point > 0) {
+                  // Positive spreads (underdogs): smaller positive spread is riskier
+                  if (
+                    riskiestPoint === null || // No riskiest pick yet
+                    (riskiestPoint > 0 && outcome.point < riskiestPoint) || // Smaller positive spread is riskier
+                    riskiestPoint < 0 // All positive spreads are less risky than any negative spread
+                  ) {
+                    riskiestPick = outcome.name;
+                    riskiestPoint = outcome.point;
+                    riskiestPickers = [user]; // Reset with the current user
+                  } else if (outcome.point === riskiestPoint) {
+                    riskiestPickers.push(user); // Add this user to the riskiest pick list
+                  }
                 }
               }
-            }
+            });
           });
         }
       }
     });
 
-    // Update the modal to show the riskiest pick
+    // Update the modal to show the riskiest pick and users who made it
     if (riskiestPick !== null) {
       let riskiestPickRow = document.getElementById("riskiest-pick-row");
 
@@ -527,7 +600,9 @@ async function getGameOdds(tracks) {
       }
 
       const resultCell = document.getElementById("riskiest-pick-result");
-      resultCell.innerText = `${riskiestPick} (Spread: ${riskiestPoint})`;
+      resultCell.innerText = `${riskiestPickers.join(
+        ", "
+      )}: ${riskiestPick} (Spread: ${riskiestPoint})`;
     } else {
       console.log("No valid pick found for comparison.");
     }
