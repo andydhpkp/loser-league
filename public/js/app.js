@@ -474,21 +474,22 @@ async function getGameOdds(tracks) {
               // Mark the team as seen
               teamsSeen.add(outcome.name);
 
+              // For positive and negative spreads, follow the correct logic
               if (outcome.point < 0) {
-                // For favorites (negative spreads), the more negative the spread, the riskier the pick
+                // Negative spreads (favorites): The more negative the spread, the riskier
                 if (
                   riskiestPoint === null || // If we don't have a riskiest pick yet
-                  outcome.point < riskiestPoint // The more negative the point, the riskier
+                  riskiestPoint > 0 || // If the current riskiest point is positive, any negative spread is riskier
+                  outcome.point < riskiestPoint // More negative spread is riskier
                 ) {
                   riskiestPick = outcome.name;
                   riskiestPoint = outcome.point;
                 }
               } else if (outcome.point > 0) {
-                // For underdogs (positive spreads), the smaller the spread, the riskier
+                // Positive spreads (underdogs): The smaller the positive spread, the riskier
                 if (
                   riskiestPoint === null || // If we don't have a riskiest pick yet
-                  (riskiestPoint > 0 && outcome.point < riskiestPoint) || // Smaller positive spread is riskier
-                  riskiestPoint < 0 // All positive spreads are less risky than any negative spread
+                  (riskiestPoint > 0 && outcome.point < riskiestPoint) // Smaller positive spread is riskier
                 ) {
                   riskiestPick = outcome.name;
                   riskiestPoint = outcome.point;
