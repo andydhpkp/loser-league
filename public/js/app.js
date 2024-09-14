@@ -5,12 +5,15 @@ function getTeamNames(names) {
 }
 
 async function displayUsers() {
-  //data-bs-toggle="modal" data-bs-target="#adminPassword" href="#
   fetch("/api/users").then(function (response) {
     if (response.ok) {
       response.json().then(function (data) {
         let adminViewUserDiv = document.getElementById("adminUsers");
 
+        // Call the function to create the statistics modal, passing the user data
+        createStatisticsModal(adminViewUserDiv, data);
+
+        // Continue with the display of users
         let viewHelper = document.getElementById("andrew");
         console.log(viewHelper);
         console.log(data);
@@ -170,6 +173,7 @@ async function displayUsers() {
         let trackSubmitBtn = document.createElement("button");
         trackSubmitBtn.setAttribute("class", "btn btn-primary");
         trackSubmitBtn.setAttribute("onclick", "submitTrackNumberHandler()");
+        trackSubmitBtn.style.margin = "24px";
         trackSubmitBtn.innerText = "Submit Tracks";
         // @ts-ignore
         adminViewUserDiv.appendChild(trackSubmitBtn);
@@ -178,6 +182,218 @@ async function displayUsers() {
       alert("Sorry, could not connect to database");
     }
   });
+}
+
+// Function to create statistics button and modal
+function createStatisticsModal(adminViewUserDiv, data) {
+  // Create "View Weekly Statistics" button and modal
+  let viewStatisticsButton = document.createElement("button");
+  viewStatisticsButton.setAttribute("class", "btn btn-info mb-3");
+  viewStatisticsButton.setAttribute("data-bs-toggle", "modal");
+  viewStatisticsButton.setAttribute("data-bs-target", "#weeklyStatisticsModal");
+  viewStatisticsButton.innerText = "View Weekly Statistics";
+
+  // Append the button above the user data
+  adminViewUserDiv.appendChild(viewStatisticsButton);
+
+  // Create the modal structure for "Weekly Statistics"
+  let statisticsModal = document.createElement("div");
+  statisticsModal.setAttribute("class", "modal fade");
+  statisticsModal.setAttribute("id", "weeklyStatisticsModal");
+  statisticsModal.setAttribute("tabindex", "-1");
+  statisticsModal.setAttribute("aria-labelledby", "weeklyStatisticsModalLabel");
+  statisticsModal.setAttribute("aria-hidden", "true");
+
+  let statisticsModalDialog = document.createElement("div");
+  // Make the modal large with 'modal-lg' class to stretch it
+  statisticsModalDialog.setAttribute("class", "modal-dialog modal-lg");
+
+  let statisticsModalContent = document.createElement("div");
+  statisticsModalContent.setAttribute("class", "modal-content");
+
+  // Modal header
+  let statisticsModalHeader = document.createElement("div");
+  statisticsModalHeader.setAttribute("class", "modal-header");
+
+  let statisticsModalTitle = document.createElement("h5");
+  statisticsModalTitle.setAttribute("class", "modal-title");
+  statisticsModalTitle.setAttribute("id", "weeklyStatisticsModalLabel");
+  statisticsModalTitle.innerText = "Weekly Statistics";
+
+  let statisticsModalClose = document.createElement("button");
+  statisticsModalClose.setAttribute("type", "button");
+  statisticsModalClose.setAttribute("class", "btn-close");
+  statisticsModalClose.setAttribute("data-bs-dismiss", "modal");
+  statisticsModalClose.setAttribute("aria-label", "Close");
+
+  statisticsModalHeader.appendChild(statisticsModalTitle);
+  statisticsModalHeader.appendChild(statisticsModalClose);
+
+  // Create a table to display statistics
+  let statisticsTable = document.createElement("table");
+  statisticsTable.setAttribute("class", "table");
+  statisticsTable.style.width = "100%"; // Full width table for better alignment
+
+  // Find the most and least popular pick and calculate the percentage
+  let currentPicks = [];
+  data.forEach((user) => {
+    user.tracks.forEach((track) => {
+      if (track.current_pick) {
+        currentPicks.push(track.current_pick);
+      }
+    });
+  });
+
+  // Count occurrences of each pick
+  let pickCount = {};
+  currentPicks.forEach((pick) => {
+    pickCount[pick] = (pickCount[pick] || 0) + 1;
+  });
+
+  // Find the highest and lowest counts
+  let maxCount = Math.max(...Object.values(pickCount));
+  let minCount = Math.min(...Object.values(pickCount));
+
+  // Find all picks that are tied for the most and least popular
+  let mostPopularPicks = Object.keys(pickCount).filter(
+    (pick) => pickCount[pick] === maxCount
+  );
+  let leastPopularPicks = Object.keys(pickCount).filter(
+    (pick) => pickCount[pick] === minCount
+  );
+
+  // Calculate the percentage of tracks using the most popular and least popular picks
+  let totalTracks = currentPicks.length;
+  let mostPopularPercentage = ((maxCount / totalTracks) * 100).toFixed(2); // Percentage for most popular
+  let leastPopularPercentage = ((minCount / totalTracks) * 100).toFixed(2); // Percentage for least popular
+
+  // Create a row for the "Most Popular Pick"
+  let popularPickRow = document.createElement("tr");
+
+  let titleCell = document.createElement("td");
+  titleCell.innerText = "Most Popular Pick:";
+  titleCell.style.whiteSpace = "nowrap"; // Prevent wrapping
+  titleCell.style.fontWeight = "bold"; // Make title bold
+  titleCell.style.textAlign = "left"; // Left-align the title
+
+  let resultCell = document.createElement("td");
+  resultCell.innerText = `${mostPopularPicks.join(
+    ", "
+  )} (${mostPopularPercentage}% of total tracks)`;
+  resultCell.style.textAlign = "center"; // Center-align the statistic value
+
+  popularPickRow.appendChild(titleCell);
+  popularPickRow.appendChild(resultCell);
+
+  // Append the "Most Popular Pick" row to the table
+  statisticsTable.appendChild(popularPickRow);
+
+  // Create a row for the "Least Popular Pick"
+  let leastPopularPickRow = document.createElement("tr");
+
+  let leastTitleCell = document.createElement("td");
+  leastTitleCell.innerText = "Least Popular Pick:";
+  leastTitleCell.style.whiteSpace = "nowrap"; // Prevent wrapping
+  leastTitleCell.style.fontWeight = "bold"; // Make title bold
+  leastTitleCell.style.textAlign = "left"; // Left-align the title
+
+  let leastResultCell = document.createElement("td");
+  leastResultCell.innerText = `${leastPopularPicks.join(
+    ", "
+  )} (${leastPopularPercentage}% of total tracks)`;
+  leastResultCell.style.textAlign = "center"; // Center-align the statistic value
+
+  leastPopularPickRow.appendChild(leastTitleCell);
+  leastPopularPickRow.appendChild(leastResultCell);
+
+  // Append the "Least Popular Pick" row to the table
+  statisticsTable.appendChild(leastPopularPickRow);
+
+  // Calculate Players Eliminated and Players Left
+  let playersEliminated = 0;
+  let playersLeft = 0;
+
+  data.forEach((user) => {
+    const allTracksEliminated = user.tracks.every(
+      (track) => track.wrong_pick !== null
+    );
+    if (allTracksEliminated) {
+      playersEliminated++;
+    } else {
+      playersLeft++;
+    }
+  });
+
+  // Create a row for "Players Eliminated"
+  let eliminatedRow = document.createElement("tr");
+
+  let eliminatedTitleCell = document.createElement("td");
+  eliminatedTitleCell.innerText = "Players Eliminated:";
+  eliminatedTitleCell.style.whiteSpace = "nowrap"; // Prevent wrapping
+  eliminatedTitleCell.style.fontWeight = "bold"; // Make title bold
+  eliminatedTitleCell.style.textAlign = "left"; // Left-align the title
+
+  let eliminatedResultCell = document.createElement("td");
+  eliminatedResultCell.innerText = playersEliminated;
+  eliminatedResultCell.style.textAlign = "center"; // Center-align the statistic value
+
+  eliminatedRow.appendChild(eliminatedTitleCell);
+  eliminatedRow.appendChild(eliminatedResultCell);
+
+  // Append the "Players Eliminated" row to the table
+  statisticsTable.appendChild(eliminatedRow);
+
+  // Create a row for "Players Left"
+  let playersLeftRow = document.createElement("tr");
+
+  let playersLeftTitleCell = document.createElement("td");
+  playersLeftTitleCell.innerText = "Players Left:";
+  playersLeftTitleCell.style.whiteSpace = "nowrap"; // Prevent wrapping
+  playersLeftTitleCell.style.fontWeight = "bold"; // Make title bold
+  playersLeftTitleCell.style.textAlign = "left"; // Left-align the title
+
+  let playersLeftResultCell = document.createElement("td");
+  playersLeftResultCell.innerText = playersLeft;
+  playersLeftResultCell.style.textAlign = "center"; // Center-align the statistic value
+
+  playersLeftRow.appendChild(playersLeftTitleCell);
+  playersLeftRow.appendChild(playersLeftResultCell);
+
+  // Append the "Players Left" row to the table
+  statisticsTable.appendChild(playersLeftRow);
+
+  // Modal body where the table will be placed
+  let statisticsModalBody = document.createElement("div");
+  statisticsModalBody.setAttribute("class", "modal-body");
+  statisticsModalBody.appendChild(statisticsTable); // Add the table to the modal body
+
+  // Append header and body to modal content
+  statisticsModalContent.appendChild(statisticsModalHeader);
+  statisticsModalContent.appendChild(statisticsModalBody);
+
+  // Modal footer
+  let statisticsModalFooter = document.createElement("div");
+  statisticsModalFooter.setAttribute("class", "modal-footer");
+
+  let statisticsCloseButton = document.createElement("button");
+  statisticsCloseButton.setAttribute("type", "button");
+  statisticsCloseButton.setAttribute("class", "btn btn-secondary");
+  statisticsCloseButton.setAttribute("data-bs-dismiss", "modal");
+  statisticsCloseButton.innerText = "Close";
+
+  statisticsModalFooter.appendChild(statisticsCloseButton);
+
+  // Append footer to modal content
+  statisticsModalContent.appendChild(statisticsModalFooter);
+
+  // Append modal content to modal dialog
+  statisticsModalDialog.appendChild(statisticsModalContent);
+
+  // Append modal dialog to modal
+  statisticsModal.appendChild(statisticsModalDialog);
+
+  // Append the modal to the main div
+  adminViewUserDiv.appendChild(statisticsModal);
 }
 
 function submitTrackNumberHandler() {
