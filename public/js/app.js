@@ -544,8 +544,7 @@ async function getGameOdds(users) {
                   // Negative spreads (favorites): the more negative, the riskier
                   if (
                     riskiestPoint === null || // No riskiest pick yet
-                    riskiestPoint > 0 || // If current riskiest is positive, any negative spread is riskier
-                    outcome.point < riskiestPoint // More negative spread is riskier
+                    outcome.point < riskiestPoint // More negative (closer to -∞) is riskier
                   ) {
                     riskiestPick = outcome.name;
                     riskiestPoint = outcome.point;
