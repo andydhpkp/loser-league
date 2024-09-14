@@ -362,6 +362,35 @@ function createStatisticsModal(adminViewUserDiv, data) {
   // Append the "Players Left" row to the table
   statisticsTable.appendChild(playersLeftRow);
 
+  // Calculate Tracks Left (tracks with null or empty wrong_pick)
+  let tracksLeft = 0;
+  data.forEach((user) => {
+    user.tracks.forEach((track) => {
+      if (!track.wrong_pick) {
+        tracksLeft++;
+      }
+    });
+  });
+
+  // Create a row for "Tracks Left"
+  let tracksLeftRow = document.createElement("tr");
+
+  let tracksLeftTitleCell = document.createElement("td");
+  tracksLeftTitleCell.innerText = "Tracks Left:";
+  tracksLeftTitleCell.style.whiteSpace = "nowrap"; // Prevent wrapping
+  tracksLeftTitleCell.style.fontWeight = "bold"; // Make title bold
+  tracksLeftTitleCell.style.textAlign = "left"; // Left-align the title
+
+  let tracksLeftResultCell = document.createElement("td");
+  tracksLeftResultCell.innerText = tracksLeft;
+  tracksLeftResultCell.style.textAlign = "center"; // Center-align the statistic value
+
+  tracksLeftRow.appendChild(tracksLeftTitleCell);
+  tracksLeftRow.appendChild(tracksLeftResultCell);
+
+  // Append the "Tracks Left" row to the table
+  statisticsTable.appendChild(tracksLeftRow);
+
   // Modal body where the table will be placed
   let statisticsModalBody = document.createElement("div");
   statisticsModalBody.setAttribute("class", "modal-body");
@@ -381,7 +410,20 @@ function createStatisticsModal(adminViewUserDiv, data) {
   statisticsCloseButton.setAttribute("data-bs-dismiss", "modal");
   statisticsCloseButton.innerText = "Close";
 
+  let reloadOddsButton = document.createElement("button");
+  reloadOddsButton.setAttribute("type", "button");
+  reloadOddsButton.setAttribute("class", "btn btn-primary");
+  reloadOddsButton.innerText = "Reload Game Odds";
+
+  // Event listener for the Reload Odds button
+  reloadOddsButton.addEventListener("click", function () {
+    const allTracks = data.flatMap((user) => user.tracks);
+    getGameOdds(allTracks); // Calls your odds-fetching function with track data
+  });
+
+  // Append buttons to the footer
   statisticsModalFooter.appendChild(statisticsCloseButton);
+  statisticsModalFooter.appendChild(reloadOddsButton);
 
   // Append footer to modal content
   statisticsModalContent.appendChild(statisticsModalFooter);
@@ -394,6 +436,103 @@ function createStatisticsModal(adminViewUserDiv, data) {
 
   // Append the modal to the main div
   adminViewUserDiv.appendChild(statisticsModal);
+}
+
+async function getGameOdds(tracks) {
+  try {
+    const response = await fetch(
+      "https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds/?apiKey=9935d03409a593557042e410f0de3da0&regions=us&markets=spreads&Format=american&bookmakers=draftkings"
+    );
+
+    if (!response.ok) throw new Error("Failed to fetch odds");
+
+    const oddsData = await response.json();
+
+    // Flatten tracks to get all current picks
+    let currentPicks = tracks
+      .map((track) => track.current_pick)
+      .filter(Boolean); // Only keep valid picks
+
+    // To store the first appearance of each team
+    let teamsSeen = new Set();
+
+    // Track the riskiest pick
+    let riskiestPick = null;
+    let riskiestPoint = null;
+
+    // Loop through each game's odds
+    oddsData.forEach((game) => {
+      if (game.bookmakers && game.bookmakers.length > 0) {
+        const bookmaker = game.bookmakers[0];
+        if (bookmaker.markets && bookmaker.markets.length > 0) {
+          const market = bookmaker.markets[0];
+          market.outcomes.forEach((outcome) => {
+            if (
+              !teamsSeen.has(outcome.name) &&
+              currentPicks.includes(outcome.name)
+            ) {
+              // Mark the team as seen
+              teamsSeen.add(outcome.name);
+
+              if (outcome.point < 0) {
+                // For favorites (negative spreads), the more negative the spread, the riskier the pick
+                if (
+                  riskiestPoint === null || // If we don't have a riskiest pick yet
+                  outcome.point < riskiestPoint // The more negative the point, the riskier
+                ) {
+                  riskiestPick = outcome.name;
+                  riskiestPoint = outcome.point;
+                }
+              } else if (outcome.point > 0) {
+                // For underdogs (positive spreads), the smaller the spread, the riskier
+                if (
+                  riskiestPoint === null || // If we don't have a riskiest pick yet
+                  (riskiestPoint > 0 && outcome.point < riskiestPoint) || // Smaller positive spread is riskier
+                  riskiestPoint < 0 // All positive spreads are less risky than any negative spread
+                ) {
+                  riskiestPick = outcome.name;
+                  riskiestPoint = outcome.point;
+                }
+              }
+            }
+          });
+        }
+      }
+    });
+
+    // Update the modal to show the riskiest pick
+    if (riskiestPick !== null) {
+      let riskiestPickRow = document.getElementById("riskiest-pick-row");
+
+      if (!riskiestPickRow) {
+        riskiestPickRow = document.createElement("tr");
+        riskiestPickRow.setAttribute("id", "riskiest-pick-row");
+
+        let titleCell = document.createElement("td");
+        titleCell.innerText = "Riskiest Pick:";
+        titleCell.style.whiteSpace = "nowrap";
+        titleCell.style.fontWeight = "bold";
+        titleCell.style.textAlign = "left";
+
+        let resultCell = document.createElement("td");
+        resultCell.setAttribute("id", "riskiest-pick-result");
+        resultCell.style.textAlign = "center";
+
+        riskiestPickRow.appendChild(titleCell);
+        riskiestPickRow.appendChild(resultCell);
+
+        const statisticsTable = document.querySelector(".table");
+        statisticsTable.appendChild(riskiestPickRow);
+      }
+
+      const resultCell = document.getElementById("riskiest-pick-result");
+      resultCell.innerText = `${riskiestPick} (Spread: ${riskiestPoint})`;
+    } else {
+      console.log("No valid pick found for comparison.");
+    }
+  } catch (error) {
+    console.error("Error fetching or processing odds data: ", error);
+  }
 }
 
 function submitTrackNumberHandler() {
