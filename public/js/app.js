@@ -1107,6 +1107,7 @@ async function forcePickCheckTime() {
   let weekNumber = parseInt(weekNumberString, 10);
 
   try {
+    // Fetch schedule from ESPN API
     const response = await fetch(
       `https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2024&week=${weekNumber}`
     );
@@ -1118,8 +1119,26 @@ async function forcePickCheckTime() {
       data.content.schedule[firstDateKey].games[0].date
     ).getTime();
 
+    // Get the current moment
     let currentMoment = Date.now();
     // let currentMoment = Date.now() + 1000 * 60 * 60 * 24; // Add 1 day for testing
+
+    // Get the current day in Mountain Time (Utah time)
+    const currentDate = new Date();
+    const utahTimeFormatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Denver",
+      weekday: "long",
+    });
+
+    const currentDayInUtah = utahTimeFormatter.format(currentDate);
+
+    // Check if it's Thursday
+    if (currentDayInUtah !== "Thursday") {
+      console.log(
+        "Today is not Thursday in Utah. forcePicks() will not be called."
+      );
+      return;
+    }
 
     // Compare the current time (in milliseconds) with the game start time
     if (currentMoment > timeToCheckAgainst) {
