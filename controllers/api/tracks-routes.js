@@ -603,7 +603,7 @@ router.put("/remove-excess-used-picks/:limit", (req, res) => {
     });
 });
 
-// Route to remove the last item from used_picks and clear current_pick if it exists
+// Route to remove the last item from used_picks, move it to available_picks, and clear current_pick if it exists
 router.put("/remove-last-used-pick/:trackId", (req, res) => {
   const trackId = req.params.trackId;
 
@@ -622,13 +622,20 @@ router.put("/remove-last-used-pick/:trackId", (req, res) => {
         return res.status(404).json({ message: "No track found with this id" });
       }
 
-      // Retrieve the current used_picks and current_pick
+      // Retrieve the current used_picks, available_picks, and current_pick
       let usedPicks = dbTrack.used_picks;
+      let availablePicks = dbTrack.available_picks;
       let currentPick = dbTrack.current_pick;
 
-      // Remove the last item from used_picks if there are any items
+      // Check if there are used picks to remove
       if (usedPicks.length > 0) {
-        usedPicks.pop();
+        // Remove the last item from used_picks
+        const lastUsedPick = usedPicks.pop();
+
+        // Add the removed pick back to available_picks if it's not already present
+        if (!availablePicks.includes(lastUsedPick)) {
+          availablePicks.push(lastUsedPick);
+        }
       }
 
       // Remove current_pick if it is not empty
@@ -639,11 +646,63 @@ router.put("/remove-last-used-pick/:trackId", (req, res) => {
       // Update the track with the modified values
       return dbTrack.update({
         used_picks: usedPicks,
+        available_picks: availablePicks,
         current_pick: currentPick,
       });
     })
     .then((updatedTrack) => {
       res.json({ message: "Track updated successfully", updatedTrack });
+    })
+    .catch((err) => {
+      console.log(err);
+      res
+        .status(500)
+        .json({ error: "An error occurred while updating the track" });
+    });
+});
+
+// Route to add a team to available_picks
+router.put("/add-to-available-picks/:trackId", (req, res) => {
+  const trackId = req.params.trackId;
+  const { teamName } = req.body;
+
+  if (!trackId || !teamName) {
+    return res
+      .status(400)
+      .json({ error: "Track ID and team name are required" });
+  }
+
+  // Fetch the track by its ID
+  Track.findOne({
+    where: {
+      id: trackId,
+    },
+  })
+    .then((dbTrack) => {
+      if (!dbTrack) {
+        return res.status(404).json({ message: "No track found with this id" });
+      }
+
+      // Retrieve the current available_picks
+      let availablePicks = dbTrack.available_picks;
+
+      // Add the team to available_picks if it's not already there
+      if (!availablePicks.includes(teamName)) {
+        availablePicks.push(teamName);
+      } else {
+        return res
+          .status(400)
+          .json({ message: "Team already exists in available_picks" });
+      }
+
+      // Update the track with the modified available_picks
+      return dbTrack.update({ available_picks: availablePicks });
+    })
+    .then((updatedTrack) => {
+      res.json({
+        message: `Team ${teamName} added to available picks`,
+        updatedTrack,
+      });
     })
     .catch((err) => {
       console.log(err);
