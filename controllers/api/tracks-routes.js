@@ -712,4 +712,62 @@ router.put("/add-to-available-picks/:trackId", (req, res) => {
     });
 });
 
+// Route to add a team to used_picks
+router.put("/add-to-used-picks/:trackId", (req, res) => {
+  const trackId = req.params.trackId;
+  const { teamName } = req.body;
+
+  if (!trackId || !teamName) {
+    return res
+      .status(400)
+      .json({ error: "Track ID and team name are required" });
+  }
+
+  // Fetch the track by its ID
+  Track.findOne({
+    where: {
+      id: trackId,
+    },
+  })
+    .then((dbTrack) => {
+      if (!dbTrack) {
+        return res.status(404).json({ message: "No track found with this id" });
+      }
+
+      // Retrieve the current used_picks and available_picks
+      let usedPicks = dbTrack.used_picks;
+      let availablePicks = dbTrack.available_picks;
+
+      // Add the team to used_picks if it's not already there
+      if (!usedPicks.includes(teamName)) {
+        usedPicks.push(teamName);
+
+        // Optionally, remove the team from available_picks if it exists there
+        availablePicks = availablePicks.filter((pick) => pick !== teamName);
+      } else {
+        return res
+          .status(400)
+          .json({ message: "Team already exists in used_picks" });
+      }
+
+      // Update the track with the modified used_picks and available_picks
+      return dbTrack.update({
+        used_picks: usedPicks,
+        available_picks: availablePicks,
+      });
+    })
+    .then((updatedTrack) => {
+      res.json({
+        message: `Team ${teamName} added to used picks`,
+        updatedTrack,
+      });
+    })
+    .catch((err) => {
+      console.log(err);
+      res
+        .status(500)
+        .json({ error: "An error occurred while updating the track" });
+    });
+});
+
 module.exports = router;
