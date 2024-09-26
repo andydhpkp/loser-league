@@ -1107,30 +1107,31 @@ async function forcePickCheckTime() {
   let weekNumber = parseInt(weekNumberString, 10);
 
   try {
-    // Fetch schedule from ESPN API
+    // Fetch schedule from ESPN API (you might still want to do this to get additional details)
     const response = await fetch(
       `https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2024&week=${weekNumber}`
     );
     const data = await response.json();
 
-    // Extract the game start time from the schedule
-    const firstDateKey = Object.keys(data.content.schedule)[0];
-    let timeToCheckAgainst = new Date(
-      data.content.schedule[firstDateKey].games[0].date
-    ).getTime();
-
-    // Get the current moment
+    // Get the current moment in time
     let currentMoment = Date.now();
-    // let currentMoment = Date.now() + 1000 * 60 * 60 * 24; // Add 1 day for testing
 
-    // Get the current day in Mountain Time (Utah time)
-    const currentDate = new Date();
-    const utahTimeFormatter = new Intl.DateTimeFormat("en-US", {
+    // Get the current date and time in Utah (Mountain Time)
+    const utahTime = new Date().toLocaleString("en-US", {
+      timeZone: "America/Denver",
+    });
+    const currentDateInUtah = new Date(utahTime);
+
+    // Create a Date object for the current Thursday at 6:20 PM Utah time
+    const thursdayGameTime = new Date(currentDateInUtah);
+    thursdayGameTime.setHours(18, 20, 0, 0); // Set time to 6:20 PM Utah time
+
+    // Get the current day in Utah
+    const utahDayFormatter = new Intl.DateTimeFormat("en-US", {
       timeZone: "America/Denver",
       weekday: "long",
     });
-
-    const currentDayInUtah = utahTimeFormatter.format(currentDate);
+    const currentDayInUtah = utahDayFormatter.format(currentDateInUtah);
 
     // Check if it's Thursday
     if (currentDayInUtah !== "Thursday") {
@@ -1140,13 +1141,13 @@ async function forcePickCheckTime() {
       return;
     }
 
-    // Compare the current time (in milliseconds) with the game start time
-    if (currentMoment > timeToCheckAgainst) {
-      // Call forcePicks if the current time is after the game start time
+    // Compare the current time with the 6:20 PM Thursday time
+    if (currentMoment > thursdayGameTime.getTime()) {
+      // Call forcePicks if the current time is after 6:20 PM
       forcePicks(weekNumber);
-      console.log("The game has started, calling forcePicks()...");
+      console.log("It is past 6:20 PM on Thursday, calling forcePicks()...");
     } else {
-      console.log("The game has not started yet.");
+      console.log("It is not yet 6:20 PM on Thursday.");
     }
   } catch (error) {
     console.error("Error fetching the schedule data:", error);
