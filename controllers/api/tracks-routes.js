@@ -553,6 +553,61 @@ router.put("/remove-placeholder/:trackId", (req, res) => {
     });
 });
 
+router.put("/update-recent-pick-remove-and-add/:trackId", (req, res) => {
+  const trackId = req.params.trackId;
+
+  if (!trackId) {
+    return res.status(400).json({ error: "Track ID is required" });
+  }
+
+  // Fetch the track by its ID
+  Track.findOne({
+    where: {
+      id: trackId,
+    },
+  })
+    .then((dbTrack) => {
+      if (!dbTrack) {
+        return res.status(404).json({ message: "No track found with this id" });
+      }
+
+      // Retrieve the current used_picks and current_pick
+      let usedPicks = dbTrack.used_picks;
+      let currentPick = dbTrack.current_pick;
+
+      // Check if there are used picks to work with
+      if (usedPicks.length > 0) {
+        // Remove the current most recent used pick
+        const lastUsedPick = usedPicks.pop();
+
+        // Clear the current pick
+        currentPick = null;
+
+        // Set the new most recent used pick (after removal) as the current pick
+        if (usedPicks.length > 0) {
+          currentPick = usedPicks[usedPicks.length - 1]; // New most recent pick
+        }
+
+        // Add the new most recent pick to current_pick (it stays in used_picks)
+      }
+
+      // Update the track with the modified values
+      return dbTrack.update({
+        used_picks: usedPicks,
+        current_pick: currentPick,
+      });
+    })
+    .then((updatedTrack) => {
+      res.json({ message: "Track updated successfully", updatedTrack });
+    })
+    .catch((err) => {
+      console.log(err);
+      res
+        .status(500)
+        .json({ error: "An error occurred while updating the track" });
+    });
+});
+
 // Route to remove excess used picks and clear wrong_pick if necessary
 router.put("/remove-excess-used-picks/:limit", (req, res) => {
   const limit = parseInt(req.params.limit);
