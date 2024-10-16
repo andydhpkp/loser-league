@@ -1155,6 +1155,7 @@ async function forcePickCheckTime() {
 }
 
 async function forcePicks(weekNumber) {
+  //YOU DIDN"T TAKE INTO ACCOUNT TH BYE WEEK
   // Get the current week call count from localStorage
   const forcePickCalls =
     JSON.parse(localStorage.getItem("forcePickCalls")) || {};
