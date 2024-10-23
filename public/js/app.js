@@ -1144,7 +1144,7 @@ async function forcePickCheckTime() {
     // Compare the current time with the 6:20 PM Thursday time
     if (currentMoment > thursdayGameTime.getTime()) {
       // Call forcePicks if the current time is after 6:20 PM
-      forcePicks(weekNumber);
+      // forcePicks(weekNumber);
       console.log("It is past 6:20 PM on Thursday, calling forcePicks()...");
     } else {
       console.log("It is not yet 6:20 PM on Thursday.");
