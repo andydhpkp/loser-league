@@ -1019,7 +1019,7 @@ async function getCurrentWeek() {
         console.log("This is the current week: " + entry.value);
         //THIS IS WHERE TO CHANGE
         // localStorage.setItem("thisWeek", entry.value.toString());
-        localStorage.setItem("thisWeek", "17");
+        localStorage.setItem("thisWeek", "18");
         return entry.value; // Return the value directly
       }
       console.log("IT GETS TOOOOOO HERERERERERERE");
