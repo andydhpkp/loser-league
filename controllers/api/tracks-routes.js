@@ -848,14 +848,15 @@ router.put("/reset-picks/:trackId", (req, res) => {
       let usedPicks = dbTrack.used_picks;
       let availablePicks = dbTrack.available_picks;
 
-      // Combine used picks back into available picks
-      availablePicks = [...availablePicks, ...usedPicks];
+      // Move all items from used_picks to available_picks
+      usedPicks.forEach((pick) => {
+        if (!availablePicks.includes(pick)) {
+          availablePicks.push(pick);
+        }
+      });
 
-      // Ensure no duplicates in available picks
-      availablePicks = [...new Set(availablePicks)];
-
-      // Clear the used picks array
-      usedPicks = [];
+      // Replace each moved item in used_picks with "placeholder"
+      usedPicks = usedPicks.map(() => "placeholder");
 
       // Update the track with the modified values
       return dbTrack.update({
@@ -865,7 +866,8 @@ router.put("/reset-picks/:trackId", (req, res) => {
     })
     .then((updatedTrack) => {
       res.json({
-        message: "Used picks reset and moved to available picks",
+        message:
+          "Used picks reset with placeholders and moved to available picks",
         updatedTrack,
       });
     })
