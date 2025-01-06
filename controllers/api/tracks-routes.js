@@ -825,4 +825,56 @@ router.put("/add-to-used-picks/:trackId", (req, res) => {
     });
 });
 
+//RESET ALL PICKS, USING FOR PLAYOFFS
+router.put("/reset-picks/:trackId", (req, res) => {
+  const trackId = req.params.trackId;
+
+  if (!trackId) {
+    return res.status(400).json({ error: "Track ID is required" });
+  }
+
+  // Fetch the track by its ID
+  Track.findOne({
+    where: {
+      id: trackId,
+    },
+  })
+    .then((dbTrack) => {
+      if (!dbTrack) {
+        return res.status(404).json({ message: "No track found with this ID" });
+      }
+
+      // Retrieve the current used_picks and available_picks
+      let usedPicks = dbTrack.used_picks;
+      let availablePicks = dbTrack.available_picks;
+
+      // Combine used picks back into available picks
+      availablePicks = [...availablePicks, ...usedPicks];
+
+      // Ensure no duplicates in available picks
+      availablePicks = [...new Set(availablePicks)];
+
+      // Clear the used picks array
+      usedPicks = [];
+
+      // Update the track with the modified values
+      return dbTrack.update({
+        available_picks: availablePicks,
+        used_picks: usedPicks,
+      });
+    })
+    .then((updatedTrack) => {
+      res.json({
+        message: "Used picks reset and moved to available picks",
+        updatedTrack,
+      });
+    })
+    .catch((err) => {
+      console.log(err);
+      res
+        .status(500)
+        .json({ error: "An error occurred while updating the track" });
+    });
+});
+
 module.exports = router;
