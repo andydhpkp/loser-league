@@ -1030,6 +1030,10 @@ async function getCurrentWeek() {
       // return "2"; // Return the value directly
     }
 
+    //TEMPORARY FOR PLAYOFFS
+
+    localStorage.setItem("thisWeek", "19");
+
     return null;
   } catch (error) {
     console.error("Error fetching data:", error);
