@@ -1032,7 +1032,7 @@ async function getCurrentWeek() {
 
     //TEMPORARY FOR PLAYOFFS
 
-    localStorage.setItem("thisWeek", "19");
+    localStorage.setItem("thisWeek", "20");
 
     return null;
   } catch (error) {
