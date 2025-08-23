@@ -20,7 +20,7 @@
 } */
 
 async function finalScores() {
-  fetch("/api/proxy/nfl-2024").then(function (response) {
+  fetch("/api/proxy/nfl-2025").then(function (response) {
     if (response.ok) {
       response.json().then(async function (data) {
         console.log(data);
@@ -130,7 +130,7 @@ async function resetCurrentPicks() {
 async function fetchScheduleData(weekNumber) {
   try {
     const response = await fetch(
-      `https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2024&week=${weekNumber}`
+      `https://pacific-anchorage-21728.herokuapp.com/https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2025&week=${weekNumber}`
     );
     const data = await response.json();
 
@@ -163,7 +163,7 @@ async function fetchScheduleData(weekNumber) {
 async function fetchScheduleOdds(weekNumber) {
   try {
     const response = await fetch(
-      `https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2024&week=${weekNumber}`
+      `https://pacific-anchorage-21728.herokuapp.com/https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2025&week=${weekNumber}`
     );
     const data = await response.json();
 
@@ -600,7 +600,7 @@ setInterval(getEndOfGameTime, 3600000);
 
 async function espnFetchScoreboard() {
   fetch(
-    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
+    "https://pacific-anchorage-21728.herokuapp.com/https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
   ).then(function (response) {
     if (response.ok) {
       response.json().then(function (data) {
@@ -612,7 +612,7 @@ async function espnFetchScoreboard() {
 
 async function espnFetchTeam() {
   fetch(
-    "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
+    "https://pacific-anchorage-21728.herokuapp.com/https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
   ).then(function (response) {
     if (response.ok) {
       response.json().then(function (data) {
@@ -630,7 +630,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
   let nflObj = {}; // providing a default value
   try {
     const response = await fetch(
-      "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
+      "https://pacific-anchorage-21728.herokuapp.com/https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
     );
     if (response.ok) {
       nflObj = await response.json();
@@ -670,7 +670,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
     main.prepend(firstLeaguePageBtn);
   }
 
-  var nflScoreApi = "/api/proxy/nfl-2024";
+  var nflScoreApi = "/api/proxy/nfl-2025";
   fetch(nflScoreApi)
     .then(function (response) {
       if (response.ok) {
@@ -897,7 +897,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
 async function getRecords(currentWeek) {
   try {
     const response = await fetch(
-      `https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2024&week=${currentWeek}`
+      `https://pacific-anchorage-21728.herokuapp.com/https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2025&week=${currentWeek}`
     );
     if (!response.ok) {
       throw new Error("Failed to fetch data.");
@@ -981,7 +981,7 @@ async function doTeamsExist() {
 async function getCurrentWeek() {
   try {
     const response = await fetch(
-      "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
+      "https://pacific-anchorage-21728.herokuapp.com/https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
     );
 
     if (!response.ok) {
@@ -1050,7 +1050,7 @@ function getMyDate() {
 
 async function fetchMatchesAndGetCurrentWeek() {
   try {
-    let response = await fetch("/api/proxy/nfl-2024");
+    let response = await fetch("/api/proxy/nfl-2025");
 
     if (!response.ok) {
       throw new Error("Network response was not ok " + response.statusText);

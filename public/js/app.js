@@ -1109,7 +1109,7 @@ async function forcePickCheckTime() {
   try {
     // Fetch schedule from ESPN API (you might still want to do this to get additional details)
     const response = await fetch(
-      `https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2024&week=${weekNumber}`
+      `https://pacific-anchorage-21728.herokuapp.com/https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2025&week=${weekNumber}`
     );
     const data = await response.json();
 
@@ -1242,7 +1242,7 @@ async function updateTrackPick(trackId, randomPick) {
 
 async function displayTeamLogo() {
   fetch(
-    `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams`
+    `https://pacific-anchorage-21728.herokuapp.com/https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams`
   ).then(function (response) {
     if (response.ok) {
       response.json().then(function (data) {

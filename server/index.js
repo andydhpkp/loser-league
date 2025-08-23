@@ -29,10 +29,10 @@ app.use(session(sess));
 // Your API endpoint
 const fetch = require("node-fetch");
 
-app.get("/api/proxy/nfl-2024", async (req, res) => {
+app.get("/api/proxy/nfl-2025", async (req, res) => {
   try {
     const response = await fetch(
-      "https://pacific-anchorage-21728.herokuapp.com/https://fixturedownload.com/feed/json/nfl-2024",
+      "https://pacific-anchorage-21728.herokuapp.com/https://fixturedownload.com/feed/json/nfl-2025",
       {
         headers: {
           "Content-Type": "application/json",
