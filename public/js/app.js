@@ -924,7 +924,6 @@ async function leagueUserTableHandler() {
           let rankContainer = document.createElement("div");
           rankContainer.style.display = "flex";
           rankContainer.style.alignItems = "center";
-          rankContainer.style.justifyContent = "center";
           rankContainer.style.gap = "8px";
 
           // Add the rank number

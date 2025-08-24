@@ -75,7 +75,10 @@ async function finalScores() {
         console.log(totalWinners);
         console.log(totalLosers);
 
-        if (totalWinners.length + totalLosers.length === textPicks.length) {
+        if (
+          totalWinners.length + totalLosers.length === textPicks.length &&
+          textPicks.length > 0
+        ) {
           for (l = 0; l < totalLosers.length; l++) {
             let deleteTrackId = parseInt(totalLosers[l].children[1].innerText);
             let loserTeam = totalLosers[l].children[0].innerText;

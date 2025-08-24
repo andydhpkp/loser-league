@@ -266,6 +266,7 @@ router.post("/reset-password", (req, res) => {
 });
 
 // Add win to user's record
+// Add win to user's record
 router.put("/:id/add-win", (req, res) => {
   const { year, won_with_tie = false } = req.body;
 
@@ -280,23 +281,36 @@ router.put("/:id/add-win", (req, res) => {
       }
 
       const currentRecord = user.user_record || [];
-      const existingEntry = currentRecord.find((entry) => entry.year === year);
+      const existingEntryIndex = currentRecord.findIndex(
+        (entry) => entry.year === year
+      );
 
-      if (existingEntry) {
+      let newRecord;
+
+      if (existingEntryIndex !== -1) {
         // Update existing entry if needed
-        if (won_with_tie && !existingEntry.won_with_tie) {
-          existingEntry.won_with_tie = true;
+        newRecord = [...currentRecord]; // Create a new array
+        if (won_with_tie && !newRecord[existingEntryIndex].won_with_tie) {
+          newRecord[existingEntryIndex] = {
+            ...newRecord[existingEntryIndex],
+            won_with_tie: true,
+          };
         }
       } else {
         // Add new entry
-        currentRecord.push({
-          year: year,
-          won: true,
-          won_with_tie: won_with_tie,
-        });
+        newRecord = [
+          ...currentRecord,
+          {
+            year: year,
+            won: true,
+            won_with_tie: won_with_tie,
+          },
+        ];
       }
 
-      user.user_record = currentRecord;
+      // Set the new array and mark the field as changed
+      user.user_record = newRecord;
+      user.changed("user_record", true);
 
       return user.save();
     })
