@@ -695,7 +695,7 @@ async function handleSubmitPicks() {
     // Wait for all updateTrackPick promises to resolve
     try {
       await Promise.all(updatePromises);
-      location.href = "../league-page.html";
+      window.location.replace("../league-page.html");
     } catch (error) {
       console.error("Error updating some tracks:", error);
       alert("There was an error updating your picks. Please try again.");
