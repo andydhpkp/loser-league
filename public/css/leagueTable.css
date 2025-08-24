@@ -1,16 +1,14 @@
 /* Crown and rank alignment styles - UPDATED */
 th[scope="row"] {
   position: relative;
-  min-width: 60px;
   vertical-align: middle; /* Center content vertically */
-  padding-right: 4px !important; /* Minimal right padding */
 }
 
 th[scope="row"] div {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 4px; /* Smaller gap between rank number and crown */
+  gap: 8px;
   min-height: 40px; /* Increased height for better vertical centering */
 }
 
@@ -22,11 +20,11 @@ th[scope="row"] span {
   font-weight: bold;
 }
 
-/* Reduced pseudo-element spacing when no crown exists */
+/* Add pseudo-element to create consistent spacing */
 th[scope="row"] div::after {
   content: "";
-  width: 15px; /* Further reduced spacing */
-  height: 70px;
+  width: 30px;
+  height: 23px;
   flex-shrink: 0;
 }
 
@@ -36,30 +34,21 @@ th[scope="row"]:has(.crown-icon) div::after {
 }
 
 .crown-icon {
-  width: 70px;
-  height: 70px;
+  width: 30px;
+  height: 23px;
   transition: transform 0.2s ease;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
   flex-shrink: 0;
-  margin-right: -15px; /* Pull crown much closer to next column */
-  margin-left: -20px; /* Also pull from the left to compensate for transparent space */
+}
+
+.crown-column {
+  width: 30px;
 }
 
 /* Fix vertical alignment for all table cells */
 .table td,
 .table th {
   vertical-align: middle !important;
-}
-
-/* Reduce spacing between rank column and first name column */
-.table th:first-child + th,
-.table td:first-child + td {
-  padding-left: 4px !important; /* Further reduce left padding on first name column */
-}
-
-/* Add specific targeting for when crown exists */
-th[scope="row"]:has(.crown-icon) + td {
-  padding-left: 2px !important; /* Even tighter spacing when crown is present */
 }
 
 /* Mobile responsiveness for crown */

@@ -875,8 +875,16 @@ async function leagueUserTableHandler() {
         mainTable.className = "table table-striped";
         let tHead = document.createElement("thead");
         let trHead = document.createElement("tr");
-        let firstScope = document.createElement("th");
-        firstScope.setAttribute("scope", "col");
+
+        // First column for rank number
+        let rankScope = document.createElement("th");
+        rankScope.setAttribute("scope", "col");
+
+        // Second column for crown
+        let crownScope = document.createElement("th");
+        crownScope.setAttribute("scope", "col");
+        crownScope.className = "crown-column";
+        // No title for crown column
 
         let secondScope = document.createElement("th");
         secondScope.setAttribute("scope", "col");
@@ -900,7 +908,8 @@ async function leagueUserTableHandler() {
         sixthScope.setAttribute("colspan", largestPickLength);
         sixthScope.innerText = "Current Picks";
 
-        trHead.appendChild(firstScope);
+        trHead.appendChild(rankScope);
+        trHead.appendChild(crownScope);
         trHead.appendChild(secondScope);
         trHead.appendChild(thirdScope);
         trHead.appendChild(fourthScope);
@@ -917,37 +926,27 @@ async function leagueUserTableHandler() {
         for (i = 0; i < sortedData.length; i++) {
           let eliminated = false;
           let tr = document.createElement("tr");
-          let th = document.createElement("th");
-          th.setAttribute("scope", "row");
 
-          // Create a container for the rank number and crown
-          let rankContainer = document.createElement("div");
-          rankContainer.style.display = "flex";
-          rankContainer.style.alignItems = "center";
-          rankContainer.style.gap = "8px";
+          // Rank number column
+          let thRank = document.createElement("th");
+          thRank.setAttribute("scope", "row");
+          thRank.innerText = i + 1;
+          tr.appendChild(thRank);
 
-          // Add the rank number
-          let rankNumber = document.createElement("span");
-          rankNumber.innerText = i + 1;
-          rankContainer.appendChild(rankNumber);
-
-          // Check for crown using helper function - using sortedData
+          // Crown column
+          let tdCrown = document.createElement("td");
+          tdCrown.className = "crown-column";
           const crownInfo = getCrownInfo(sortedData[i].user_record);
 
-          // Always create a crown placeholder for consistent alignment
-          let crownImg = document.createElement("img");
-          crownImg.classList.add("crown-icon");
-
           if (crownInfo) {
-            // User has a crown - show it
+            let crownImg = document.createElement("img");
+            crownImg.classList.add("crown-icon");
             crownImg.src = crownInfo.src;
             crownImg.alt = crownInfo.alt;
-            crownImg.title = crownInfo.title;
-            rankContainer.appendChild(crownImg);
+            // Remove the title attribute so no tooltip appears
+            tdCrown.appendChild(crownImg);
           }
-
-          th.appendChild(rankContainer);
-          tr.appendChild(th);
+          tr.appendChild(tdCrown);
 
           let tdFirst = document.createElement("td");
           // @ts-ignore - using sortedData
