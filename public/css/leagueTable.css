@@ -1,0 +1,69 @@
+/* Crown and rank alignment styles - UPDATED */
+th[scope="row"] {
+  position: relative;
+  min-width: 60px;
+  vertical-align: middle; /* Center content vertically */
+}
+
+th[scope="row"] div {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  min-height: 40px; /* Increased height for better vertical centering */
+}
+
+/* Always reserve space for crown */
+th[scope="row"] span {
+  display: inline-block;
+  min-width: 20px;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* Add pseudo-element to create consistent spacing */
+th[scope="row"] div::after {
+  content: "";
+  width: 70px;
+  height: 70px;
+  flex-shrink: 0;
+}
+
+/* Hide the pseudo-element when crown exists */
+th[scope="row"]:has(.crown-icon) div::after {
+  display: none;
+}
+
+.crown-icon {
+  width: 70px;
+  height: 70px;
+  transition: transform 0.2s ease;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  flex-shrink: 0;
+}
+
+/* Fix vertical alignment for all table cells */
+.table td,
+.table th {
+  vertical-align: middle !important;
+}
+
+/* Mobile responsiveness for crown */
+/* @media (max-width: 768px) {
+  th[scope="row"] {
+    min-width: 50px;
+  }
+
+  .crown-icon {
+    width: 16px;
+    height: 16px;
+  }
+
+  th[scope="row"] div {
+    gap: 4px;
+  }
+
+  th[scope="row"] span {
+    min-width: 18px;
+  }
+} */

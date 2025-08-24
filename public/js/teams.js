@@ -622,278 +622,6 @@ async function espnFetchTeam() {
   });
 }
 
-async function matchup(totalTracks, trackIds, usedPicksMap) {
-  console.log(totalTracks);
-  console.log(trackIds);
-  console.log(usedPicksMap);
-  //const nflObj = await nflArrayFunction()
-  let nflObj = {}; // providing a default value
-  try {
-    const response = await fetch(
-      "https://pacific-anchorage-21728.herokuapp.com/https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
-    );
-    if (response.ok) {
-      nflObj = await response.json();
-    } else {
-      throw new Error("Failed to retrieve nflObj");
-    }
-  } catch (error) {
-    console.error("Error fetching the ESPN API", error);
-  }
-
-  //function matchup(totalTracks, trackIds, used_picks) {
-
-  let containerNumber = totalTracks;
-  let container = document.getElementById("gameMatchups");
-  let main = document.getElementById("games");
-  let secondSubmitPicksBtn = document.createElement("button");
-  let firstSubmitPicksBtn = document.createElement("button");
-  let getLoading = document.getElementById("loading");
-  firstSubmitPicksBtn.setAttribute("class", "btn btn-primary testerBtn");
-  firstSubmitPicksBtn.addEventListener("click", handleSubmitPicks);
-  firstSubmitPicksBtn.innerText = "Submit Picks";
-  secondSubmitPicksBtn.setAttribute("class", "btn btn-primary testerBtn");
-  secondSubmitPicksBtn.addEventListener("click", handleSubmitPicks);
-  secondSubmitPicksBtn.innerText = "Submit Picks";
-  let secondLeaguePageBtn = document.createElement("button");
-  let firstLeaguePageBtn = document.createElement("button");
-  firstLeaguePageBtn.setAttribute("class", "btn btn-primary testerBtn");
-  firstLeaguePageBtn.setAttribute("onclick", "goToLeaguePage()");
-  firstLeaguePageBtn.innerText = "View The League";
-  secondLeaguePageBtn.setAttribute("class", "btn btn-primary testerBtn");
-  secondLeaguePageBtn.setAttribute("onclick", "goToLeaguePage()");
-  secondLeaguePageBtn.innerText = "View The League";
-  container.innerHTML = "";
-  //let nflObj = nflArrayFunction()
-
-  if (totalTracks === 0 && trackIds.length === 0) {
-    main.prepend(firstLeaguePageBtn);
-  }
-
-  var nflScoreApi = "/api/proxy/nfl-2025";
-  fetch(nflScoreApi)
-    .then(function (response) {
-      if (response.ok) {
-        response.json().then(function (data) {
-          console.log(data);
-
-          let currentWeek = parseInt(localStorage.getItem("thisWeek"));
-          console.log(currentWeek);
-
-          let headerHelp = document.getElementsByTagName("header")[0];
-          console.log(headerHelp);
-          let currentWeekDiv = document.createElement("div");
-          let currentWeekH1 = document.createElement("h1");
-          currentWeekH1.innerHTML = `Week ${currentWeek}`;
-          currentWeekDiv.appendChild(currentWeekH1);
-          headerHelp.appendChild(currentWeekDiv);
-
-          let thisWeeksGames = [];
-
-          for (w = 0; w < data.length; w++) {
-            if (data[w].RoundNumber === currentWeek) {
-              thisWeeksGames.push(data[w]);
-            }
-          }
-
-          console.log(thisWeeksGames);
-
-          let thisWeeksMatchups = [];
-
-          for (m = 0; m < thisWeeksGames.length; m++) {
-            thisWeeksMatchups.push(
-              thisWeeksGames[m].HomeTeam,
-              thisWeeksGames[m].AwayTeam
-            );
-          }
-
-          let matchupsLogos = [];
-          let matchupRecords = [];
-          console.log(nflObj);
-
-          for (l = 0; l < thisWeeksMatchups.length; l++) {
-            //console.log(nflObj)
-
-            for (x = 0; x < nflObj.sports[0].leagues[0].teams.length; x++) {
-              if (
-                thisWeeksMatchups[l] ===
-                nflObj.sports[0].leagues[0].teams[x].team.displayName
-              ) {
-                matchupsLogos.push(
-                  nflObj.sports[0].leagues[0].teams[x].team.logos[0].href
-                );
-                matchupRecords.push([0, 0]);
-              }
-            }
-          }
-
-          let matchupRecordsFormat = [];
-
-          let matchups = [];
-          let logos = [];
-          let info = [];
-          let chooser = 0;
-
-          for (r = 0; r < thisWeeksMatchups.length; r++) {
-            let wins = matchupRecords[r][0].toString();
-            let losses = matchupRecords[r][1].toString();
-            let record = `(${wins} - ${losses})`;
-            matchupRecordsFormat.push(record);
-          }
-
-          while (matchups.length < thisWeeksMatchups.length) {
-            let firstTeam = thisWeeksMatchups[chooser];
-            let firstTeamLogo = matchupsLogos[chooser];
-            let firstTeamRecord = matchupRecordsFormat[chooser];
-
-            chooser++;
-
-            let secondTeam = thisWeeksMatchups[chooser];
-            let secondTeamLogo = matchupsLogos[chooser];
-            let secondTeamRecord = matchupRecordsFormat[chooser];
-
-            matchups.push(firstTeam);
-            matchups.push(secondTeam);
-            info.push(firstTeamRecord);
-            info.push(secondTeamRecord);
-            logos.push(firstTeamLogo);
-            logos.push(secondTeamLogo);
-
-            chooser++;
-          }
-
-          let extraCountIdHelp = 0;
-
-          for (i = 0; i < containerNumber; i++) {
-            let logoCounter = 0;
-            let trackContainer = document.createElement("div");
-            let hiddenInput = document.createElement("input");
-            hiddenInput.setAttribute("type", "hidden");
-            hiddenInput.setAttribute("class", "tempSelection");
-
-            for (let l = 0; l < thisWeeksGames.length; l++) {
-              let individualMatchup = document.createElement("div");
-              let firstAnchor = document.createElement("a");
-              trackContainer.setAttribute("class", `trackContainer`);
-
-              let secondAnchor = document.createElement("a");
-              let vs = document.createElement("h1");
-              let firstTeamButton = document.createElement("button");
-              let firstTeamName = document.createElement("h2");
-              let firstTeamInfo = document.createElement("h3");
-              firstTeamInfo.className = "record";
-              let secondTeamButton = document.createElement("button");
-              let secondTeamName = document.createElement("h2");
-              let secondTeamInfo = document.createElement("h3");
-              secondTeamInfo.className = "record";
-              let teamLogoFirst = document.createElement("img");
-              let teamLogoSecond = document.createElement("img");
-
-              firstTeamButton.setAttribute("class", "teamSelection");
-              firstTeamButton.setAttribute(
-                "data-value",
-                `${trackIds[i]},${matchups[logoCounter]}`
-              );
-              firstTeamButton.addEventListener("click", function () {
-                hiddenInput.value = this.getAttribute("data-value");
-                this.closest(".trackContainer")
-                  .querySelectorAll(".teamSelection")
-                  .forEach((btn) => btn.classList.remove("selected"));
-
-                this.classList.add("selected");
-
-                let trackContainer = this.closest(".trackContainer");
-                if (trackContainer) {
-                  trackContainer.classList.add("successfulPick");
-                }
-              });
-              teamLogoFirst.setAttribute("class", "teamLogos");
-              teamLogoSecond.setAttribute("class", "teamLogos");
-              teamLogoFirst.src = logos[logoCounter];
-              firstTeamName.innerText = matchups[logoCounter];
-              firstTeamInfo.innerText = info[logoCounter];
-              firstAnchor.appendChild(teamLogoFirst);
-              firstAnchor.appendChild(firstTeamName);
-              firstAnchor.appendChild(firstTeamInfo);
-              firstTeamButton.appendChild(firstAnchor);
-              logoCounter++;
-              teamLogoSecond.src = logos[logoCounter];
-              secondTeamName.innerText = matchups[logoCounter];
-              secondTeamInfo.innerText = info[logoCounter];
-
-              secondTeamButton.setAttribute("class", "teamSelection");
-              secondTeamButton.setAttribute(
-                "data-value",
-                `${trackIds[i]},${matchups[logoCounter]}`
-              );
-              secondTeamButton.addEventListener("click", function () {
-                hiddenInput.value = this.getAttribute("data-value");
-                this.closest(".trackContainer")
-                  .querySelectorAll(".teamSelection")
-                  .forEach((btn) => btn.classList.remove("selected"));
-
-                this.classList.add("selected");
-
-                let trackContainer = this.closest(".trackContainer");
-                if (trackContainer) {
-                  trackContainer.classList.add("successfulPick");
-                }
-              });
-
-              let currentTracksUsedPicks = usedPicksMap[trackIds[i]];
-              for (j = 0; j < currentTracksUsedPicks.length; j++) {
-                if (
-                  currentTracksUsedPicks[j].trim() ===
-                  firstTeamName.innerText.trim()
-                ) {
-                  firstTeamButton.classList.add("used_pick");
-                }
-                if (
-                  currentTracksUsedPicks[j].trim() ===
-                  secondTeamName.innerText.trim()
-                ) {
-                  secondTeamButton.classList.add("used_pick");
-                }
-              }
-
-              //secondAnchor.setAttribute('id', matchups[logoCounter])
-              secondAnchor.appendChild(teamLogoSecond);
-              secondAnchor.appendChild(secondTeamName);
-              secondAnchor.appendChild(secondTeamInfo);
-              secondTeamButton.appendChild(secondAnchor);
-              logoCounter++;
-              vs.innerText = "VS";
-              vs.setAttribute("class", "vs");
-              individualMatchup.appendChild(firstTeamButton);
-              individualMatchup.appendChild(vs);
-              individualMatchup.appendChild(secondTeamButton);
-              individualMatchup.setAttribute("class", "individualMatchup");
-              trackContainer.appendChild(individualMatchup);
-            }
-            extraCountIdHelp++;
-            trackContainer.setAttribute("id", trackIds[i]);
-            trackContainer.appendChild(hiddenInput);
-            main.prepend(firstSubmitPicksBtn);
-            main.prepend(firstLeaguePageBtn);
-            container.appendChild(trackContainer);
-            main.appendChild(secondSubmitPicksBtn);
-            main.appendChild(secondLeaguePageBtn);
-
-            getLoading.remove();
-
-            getRecords(currentWeek);
-          }
-        });
-      } else {
-        alert("didnt work");
-        console.log(nflScoreApi);
-      }
-    })
-    .catch(function (error) {
-      console.log("unable to connect");
-    });
-}
-
 async function getRecords(currentWeek) {
   try {
     const response = await fetch(
@@ -1032,7 +760,7 @@ async function getCurrentWeek() {
 
     //TEMPORARY FOR PLAYOFFS
 
-    localStorage.setItem("thisWeek", "21");
+    localStorage.setItem("thisWeek", "1");
 
     return null;
   } catch (error) {
@@ -1093,3 +821,361 @@ function getCurrentWeekForMatchFetch(matches) {
 }
 
 // Call the async function to fetch matches and get the current week
+async function matchup(totalTracks, trackIds, usedPicksMap) {
+  console.log(totalTracks);
+  console.log(trackIds);
+  console.log(usedPicksMap);
+
+  let nflObj = {};
+  try {
+    const response = await fetch(
+      "https://pacific-anchorage-21728.herokuapp.com/https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
+    );
+    if (response.ok) {
+      nflObj = await response.json();
+    } else {
+      throw new Error("Failed to retrieve nflObj");
+    }
+  } catch (error) {
+    console.error("Error fetching the ESPN API", error);
+  }
+
+  let containerNumber = totalTracks;
+  const container = document.getElementById("gameMatchups");
+  const main = document.getElementById("games");
+  const actions = document.getElementById("trackActions");
+  const getLoading = document.getElementById("loading");
+
+  container.innerHTML = "";
+
+  var nflScoreApi = "/api/proxy/nfl-2025";
+  fetch(nflScoreApi)
+    .then(function (response) {
+      if (response.ok) {
+        response.json().then(function (data) {
+          console.log(data);
+
+          let currentWeek = parseInt(localStorage.getItem("thisWeek"));
+          console.log(currentWeek);
+
+          let headerHelp = document.getElementsByTagName("header")[0];
+          console.log(headerHelp);
+          let currentWeekDiv = document.createElement("div");
+          let currentWeekH1 = document.createElement("h1");
+          currentWeekH1.innerHTML = `Week ${currentWeek}`;
+          currentWeekDiv.appendChild(currentWeekH1);
+          headerHelp.appendChild(currentWeekDiv);
+
+          let thisWeeksGames = [];
+
+          for (w = 0; w < data.length; w++) {
+            if (data[w].RoundNumber === currentWeek) {
+              thisWeeksGames.push(data[w]);
+            }
+          }
+
+          console.log(thisWeeksGames);
+
+          let thisWeeksMatchups = [];
+
+          for (m = 0; m < thisWeeksGames.length; m++) {
+            thisWeeksMatchups.push(
+              thisWeeksGames[m].HomeTeam,
+              thisWeeksGames[m].AwayTeam
+            );
+          }
+
+          let matchupsLogos = [];
+          let matchupRecords = [];
+          let teamSlugs = []; // Store team slugs for reliable matching
+
+          for (l = 0; l < thisWeeksMatchups.length; l++) {
+            for (x = 0; x < nflObj.sports[0].leagues[0].teams.length; x++) {
+              if (
+                thisWeeksMatchups[l] ===
+                nflObj.sports[0].leagues[0].teams[x].team.displayName
+              ) {
+                matchupsLogos.push(
+                  nflObj.sports[0].leagues[0].teams[x].team.logos[0].href
+                );
+                matchupRecords.push([0, 0]);
+                teamSlugs.push(nflObj.sports[0].leagues[0].teams[x].team.slug);
+              }
+            }
+          }
+
+          let matchupRecordsFormat = [];
+          let matchups = [];
+          let logos = [];
+          let info = [];
+          let chooser = 0;
+
+          for (r = 0; r < thisWeeksMatchups.length; r++) {
+            let wins = matchupRecords[r][0].toString();
+            let losses = matchupRecords[r][1].toString();
+            let record = `(${wins} - ${losses})`;
+            matchupRecordsFormat.push(record);
+          }
+
+          while (matchups.length < thisWeeksMatchups.length) {
+            let firstTeam = thisWeeksMatchups[chooser];
+            let firstTeamLogo = matchupsLogos[chooser];
+            let firstTeamRecord = matchupRecordsFormat[chooser];
+
+            chooser++;
+
+            let secondTeam = thisWeeksMatchups[chooser];
+            let secondTeamLogo = matchupsLogos[chooser];
+            let secondTeamRecord = matchupRecordsFormat[chooser];
+
+            matchups.push(firstTeam);
+            matchups.push(secondTeam);
+            info.push(firstTeamRecord);
+            info.push(secondTeamRecord);
+            logos.push(firstTeamLogo);
+            logos.push(secondTeamLogo);
+
+            chooser++;
+          }
+
+          // Create tracks as expandable dropdowns
+          for (i = 0; i < containerNumber; i++) {
+            let logoCounter = 0;
+
+            // Create main track container
+            let trackDropdown = document.createElement("div");
+            // Add both classes so handleSubmitPicks() can find these containers
+            trackDropdown.setAttribute(
+              "class",
+              "track-dropdown trackContainer"
+            );
+            trackDropdown.setAttribute("id", trackIds[i]);
+
+            // Create collapsed header
+            let trackHeader = document.createElement("div");
+            trackHeader.setAttribute("class", "track-header");
+
+            let trackLabel = document.createElement("span");
+            trackLabel.setAttribute("class", "track-label");
+            trackLabel.innerText = `TRACK ${i + 1}`;
+
+            let selectedTeamLogo = document.createElement("img");
+            selectedTeamLogo.setAttribute("class", "selected-team-logo hidden");
+
+            trackHeader.appendChild(trackLabel);
+            trackHeader.appendChild(selectedTeamLogo);
+
+            // Create expandable content
+            let trackContent = document.createElement("div");
+            trackContent.setAttribute("class", "track-content collapsed");
+
+            // Hidden input for form submission
+            let hiddenInput = document.createElement("input");
+            hiddenInput.setAttribute("type", "hidden");
+            hiddenInput.setAttribute("class", "tempSelection");
+
+            // Add click handler to header for expand/collapse
+            trackHeader.addEventListener("click", function () {
+              // Close all other dropdowns first
+              document
+                .querySelectorAll(".track-dropdown")
+                .forEach((dropdown) => {
+                  if (dropdown !== trackDropdown) {
+                    dropdown
+                      .querySelector(".track-content")
+                      .classList.add("collapsed");
+                    dropdown.classList.remove("expanded");
+                  }
+                });
+
+              // Toggle current dropdown
+              trackContent.classList.toggle("collapsed");
+              trackDropdown.classList.toggle("expanded");
+            });
+
+            // Create matchup options
+            for (let l = 0; l < thisWeeksGames.length; l++) {
+              let individualMatchup = document.createElement("div");
+              individualMatchup.setAttribute("class", "individual-matchup");
+
+              // --- First team elements ---
+              let firstTeamButton = document.createElement("button");
+              let firstAnchor = document.createElement("a");
+              let firstTeamName = document.createElement("h2");
+              let firstTeamInfo = document.createElement("h3");
+              firstTeamInfo.className = "record";
+              let teamLogoFirst = document.createElement("img");
+
+              // Capture FIRST team's values BEFORE advancing the counter
+              const firstTeamLogoSrc = logos[logoCounter];
+              const firstTeamNameStr = matchups[logoCounter];
+              const firstTeamRecordStr = info[logoCounter];
+
+              firstTeamButton.setAttribute("class", "teamSelection");
+              firstTeamButton.setAttribute(
+                "data-value",
+                `${trackIds[i]},${firstTeamNameStr}`
+              );
+              // Also store the logo directly on the button so the handler is trivial
+              firstTeamButton.dataset.logo = firstTeamLogoSrc;
+
+              teamLogoFirst.setAttribute("class", "teamLogos");
+              teamLogoFirst.src = firstTeamLogoSrc;
+              teamLogoFirst.alt = `${firstTeamNameStr} logo`;
+
+              firstTeamName.innerText = firstTeamNameStr;
+              firstTeamInfo.innerText = firstTeamRecordStr;
+
+              firstAnchor.appendChild(teamLogoFirst);
+              firstAnchor.appendChild(firstTeamName);
+              firstAnchor.appendChild(firstTeamInfo);
+              firstTeamButton.appendChild(firstAnchor);
+
+              // FIRST team click handler uses the captured logo via dataset
+              firstTeamButton.addEventListener("click", function () {
+                selectTeam(
+                  this,
+                  hiddenInput,
+                  trackDropdown,
+                  trackContent,
+                  selectedTeamLogo,
+                  this.dataset.logo
+                );
+              });
+
+              // Advance to SECOND team
+              logoCounter++;
+
+              // --- Second team elements ---
+              let secondTeamButton = document.createElement("button");
+              let secondAnchor = document.createElement("a");
+              let secondTeamName = document.createElement("h2");
+              let secondTeamInfo = document.createElement("h3");
+              secondTeamInfo.className = "record";
+              let teamLogoSecond = document.createElement("img");
+
+              // Capture SECOND team's values
+              const secondTeamLogoSrc = logos[logoCounter];
+              const secondTeamNameStr = matchups[logoCounter];
+              const secondTeamRecordStr = info[logoCounter];
+
+              secondTeamButton.setAttribute("class", "teamSelection");
+              secondTeamButton.setAttribute(
+                "data-value",
+                `${trackIds[i]},${secondTeamNameStr}`
+              );
+              secondTeamButton.dataset.logo = secondTeamLogoSrc;
+
+              teamLogoSecond.setAttribute("class", "teamLogos");
+              teamLogoSecond.src = secondTeamLogoSrc;
+              teamLogoSecond.alt = `${secondTeamNameStr} logo`;
+
+              secondTeamName.innerText = secondTeamNameStr;
+              secondTeamInfo.innerText = secondTeamRecordStr;
+
+              secondAnchor.appendChild(teamLogoSecond);
+              secondAnchor.appendChild(secondTeamName);
+              secondAnchor.appendChild(secondTeamInfo);
+              secondTeamButton.appendChild(secondAnchor);
+
+              // SECOND team click handler uses its own captured logo
+              secondTeamButton.addEventListener("click", function () {
+                selectTeam(
+                  this,
+                  hiddenInput,
+                  trackDropdown,
+                  trackContent,
+                  selectedTeamLogo,
+                  this.dataset.logo
+                );
+              });
+
+              // Check for used picks for this track and mark buttons
+              let currentTracksUsedPicks = usedPicksMap[trackIds[i]];
+              for (let j = 0; j < currentTracksUsedPicks.length; j++) {
+                if (
+                  currentTracksUsedPicks[j].trim() === firstTeamNameStr.trim()
+                ) {
+                  firstTeamButton.classList.add("used_pick");
+                }
+                if (
+                  currentTracksUsedPicks[j].trim() === secondTeamNameStr.trim()
+                ) {
+                  secondTeamButton.classList.add("used_pick");
+                }
+              }
+
+              // Create and add the VS label between buttons
+              let vs = document.createElement("h1");
+              vs.innerText = "VS";
+              vs.setAttribute("class", "vs");
+
+              // Append to the matchup row
+              individualMatchup.appendChild(firstTeamButton);
+              individualMatchup.appendChild(vs);
+              individualMatchup.appendChild(secondTeamButton);
+              trackContent.appendChild(individualMatchup);
+
+              // Advance to next pair
+              logoCounter++;
+            }
+
+            trackContent.appendChild(hiddenInput);
+            trackDropdown.appendChild(trackHeader);
+            trackDropdown.appendChild(trackContent);
+            container.appendChild(trackDropdown);
+          }
+
+          const submitBtn = document.createElement("button");
+          submitBtn.id = "submitPicksBtn";
+          submitBtn.className = "btn btn-primary";
+          submitBtn.innerText = "Submit Picks";
+          submitBtn.addEventListener("click", handleSubmitPicks);
+
+          // Insert just above Logout
+          actions.insertBefore(submitBtn, document.getElementById("logoutBtn"));
+
+          getLoading.remove();
+          getRecords(currentWeek);
+        });
+      } else {
+        alert("didn't work");
+        console.log(nflScoreApi);
+      }
+    })
+    .catch(function (error) {
+      console.log("unable to connect");
+    });
+}
+
+// Helper function to handle team selection
+function selectTeam(
+  button,
+  hiddenInput,
+  trackDropdown,
+  trackContent,
+  selectedTeamLogo,
+  logoSrc
+) {
+  // Update hidden input
+  hiddenInput.value = button.getAttribute("data-value");
+
+  // Remove selected class from all buttons in this track
+  trackContent.querySelectorAll(".teamSelection").forEach((btn) => {
+    btn.classList.remove("selected");
+  });
+
+  // Add selected class to clicked button
+  button.classList.add("selected");
+
+  // Update track appearance
+  trackDropdown.classList.add("successfulPick", "selected-track");
+
+  // Update selected team logo
+  selectedTeamLogo.src = logoSrc;
+  selectedTeamLogo.classList.remove("hidden");
+
+  // Collapse the dropdown
+  trackContent.classList.add("collapsed");
+  trackDropdown.classList.remove("expanded");
+}

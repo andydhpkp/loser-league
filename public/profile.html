@@ -32,14 +32,18 @@
     <main id="games">
       <h1 id="loading">Please Wait for Teams to Load</h1>
       <section id="gameMatchups"></section>
+
+      <div id="trackActions" class="track-actions">
+        <!-- Submit Picks will be injected here -->
+        <button
+          id="logoutBtn"
+          onclick="logout()"
+          class="btn btn-outline-primary"
+        >
+          Logout
+        </button>
+      </div>
     </main>
-    <button
-      id="logoutBtn"
-      onclick="logout()"
-      class="btn btn-outline-primary testerBtn"
-    >
-      Logout
-    </button>
 
     <!-- Scripts -->
     <script
@@ -55,7 +59,7 @@
       getUserId();
       getCurrentWeek();
       pushToLeaguePage();
-      forcePickCheckTime();
+      // forcePickCheckTime();
     </script>
   </body>
 </html>

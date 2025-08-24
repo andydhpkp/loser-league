@@ -265,4 +265,77 @@ router.post("/reset-password", (req, res) => {
     });
 });
 
+// Add win to user's record
+router.put("/:id/add-win", (req, res) => {
+  const { year, won_with_tie = false } = req.body;
+
+  if (!year) {
+    return res.status(400).json({ message: "Year is required" });
+  }
+
+  User.findByPk(req.params.id)
+    .then((user) => {
+      if (!user) {
+        return res.status(404).json({ message: "No user found with this id" });
+      }
+
+      const currentRecord = user.user_record || [];
+      const existingEntry = currentRecord.find((entry) => entry.year === year);
+
+      if (existingEntry) {
+        // Update existing entry if needed
+        if (won_with_tie && !existingEntry.won_with_tie) {
+          existingEntry.won_with_tie = true;
+        }
+      } else {
+        // Add new entry
+        currentRecord.push({
+          year: year,
+          won: true,
+          won_with_tie: won_with_tie,
+        });
+      }
+
+      user.user_record = currentRecord;
+
+      return user.save();
+    })
+    .then((updatedUser) => {
+      res.json({
+        message: "Win added successfully",
+        user_record: updatedUser.user_record,
+        total_wins: updatedUser.getTotalWins(),
+        clean_wins: updatedUser.getCleanWins(),
+        tie_wins: updatedUser.getWinsWithTies(),
+      });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json(err);
+    });
+});
+
+// Get user's win statistics
+router.get("/:id/wins", (req, res) => {
+  User.findByPk(req.params.id)
+    .then((user) => {
+      if (!user) {
+        return res.status(404).json({ message: "No user found with this id" });
+      }
+
+      res.json({
+        user_id: user.id,
+        username: user.username,
+        user_record: user.user_record || [],
+        total_wins: user.getTotalWins(),
+        clean_wins: user.getCleanWins(),
+        tie_wins: user.getWinsWithTies(),
+      });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json(err);
+    });
+});
+
 module.exports = router;

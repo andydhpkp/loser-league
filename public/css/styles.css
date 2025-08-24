@@ -202,13 +202,19 @@ h3 {
 
 #gameMatchups {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column; /* Force vertical stacking */
+  align-items: center; /* Center the tracks horizontally */
   justify-content: center;
+  max-width: 800px; /* Set a reasonable max width */
+  margin: 0 auto; /* Center the entire container */
+  padding: 0 20px; /* Add some padding on the sides */
 }
 
+/* Remove the flex: 1 from the divs inside gameMatchups */
 #gameMatchups div {
-  margin: 25px;
-  flex: 1;
+  margin: 25px 0; /* Change horizontal margin to vertical only */
+  width: 100%; /* Take full width of the container */
+  max-width: 600px; /* But don't exceed this max width */
 }
 
 #adminUsers {
@@ -243,6 +249,7 @@ h3 {
 
 .table .teamLogos {
   width: 70px;
+  height: 70px;
 }
 
 td {
@@ -300,4 +307,328 @@ label {
     margin: 2px;
     margin-top: 10px;
   }
+}
+
+/* Modern Track Dropdown Styles */
+.track-dropdown {
+  margin: 20px 0;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  max-width: 600px;
+  overflow: hidden;
+}
+
+.track-dropdown:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+.track-dropdown.selected-track {
+  background: linear-gradient(135deg, var(--waitingBlue) 0%, #4a90e2 100%);
+  box-shadow: 0 8px 30px rgba(99, 173, 242, 0.3);
+}
+
+.track-dropdown.selected-track .track-label {
+  color: white;
+  font-weight: 600;
+}
+
+.track-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  cursor: pointer;
+  background-color: transparent;
+  border-radius: 16px 16px 0 0;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.track-header::after {
+  content: "";
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  border-right: 2px solid #64748b;
+  border-bottom: 2px solid #64748b;
+  transform: translateY(-50%) rotate(45deg);
+  transition: transform 0.3s ease;
+}
+
+.track-dropdown.expanded .track-header::after {
+  transform: translateY(-50%) rotate(-135deg);
+}
+
+.track-dropdown.selected-track .track-header::after {
+  border-color: white;
+}
+
+.track-header:hover {
+  /* background-color: rgba(0, 0, 0, 0.02); */
+  background-color: transparent;
+}
+
+.track-label {
+  font-weight: 600;
+  font-size: 16px;
+  color: #1e293b;
+  letter-spacing: 0.5px;
+}
+
+.selected-team-logo {
+  width: 50px;
+  height: 50px;
+  transition: all 0.3s ease;
+  margin-right: 30px; /* Account for arrow space */
+}
+
+.selected-team-logo.hidden {
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(0.8);
+}
+
+.track-dropdown.selected-track .selected-team-logo {
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.track-content {
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease,
+    opacity 0.3s ease;
+  max-height: 2000px;
+  padding: 0 24px 24px 24px;
+  opacity: 1;
+  background: linear-gradient(
+    180deg,
+    rgba(248, 250, 252, 0.5) 0%,
+    transparent 100%
+  );
+}
+
+.track-content.collapsed {
+  max-height: 0;
+  padding: 0 24px;
+  opacity: 0;
+}
+
+.individual-matchup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16px 0;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  gap: 16px;
+}
+
+.teamSelection {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 20px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.teamSelection::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.6),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.teamSelection:hover::before {
+  left: 100%;
+}
+
+.teamSelection:hover {
+  border-color: var(--waitingBlue);
+  background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(99, 173, 242, 0.2);
+}
+
+.teamSelection.selected {
+  border-color: #10b981;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25);
+}
+
+.teamSelection.selected::after {
+  content: "✓";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  background: #10b981;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.teamSelection.used_pick {
+  opacity: 0.4;
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  border-color: #f87171;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.teamSelection.used_pick::before {
+  display: none;
+}
+
+.teamSelection.used_pick:hover {
+  transform: none;
+  box-shadow: none;
+  border-color: #ef4444;
+}
+
+.teamSelection a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  text-decoration: none;
+}
+
+.teamLogos {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  transition: transform 0.2s ease;
+}
+
+.teamSelection:hover .teamLogos {
+  transform: scale(1.05);
+}
+
+.teamSelection h2 {
+  margin: 0;
+  margin-bottom: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.teamSelection h3.record {
+  margin: 0;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.vs {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #64748b;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  padding: 12px 16px;
+  border-radius: 50%;
+  min-width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* Animation for expand/collapse */
+.track-dropdown.expanded {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.track-dropdown.expanded.selected-track {
+  box-shadow: 0 12px 40px rgba(99, 173, 242, 0.4);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .track-header {
+    padding: 16px 20px;
+  }
+
+  .track-content {
+    padding: 0 20px 20px 20px;
+  }
+
+  .individual-matchup {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .teamSelection {
+    width: 100%;
+    padding: 14px 16px;
+  }
+
+  .teamLogos {
+    width: 40px;
+    height: 40px;
+  }
+
+  .vs {
+    margin: 0;
+    transform: rotate(90deg);
+    min-width: 40px;
+    height: 40px;
+    font-size: 14px;
+  }
+
+  .selected-team-logo {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Match the track width and centering */
+.track-actions {
+  width: 100%;
+  max-width: 600px; /* same as .track-dropdown */
+  margin: 0 auto 40px; /* centered, with some bottom space */
+  padding: 0 20px; /* same side padding feel as #gameMatchups */
+}
+
+/* Make buttons full-width and nicely spaced */
+.track-actions .btn {
+  width: 100%;
+  margin: 16px 0;
 }

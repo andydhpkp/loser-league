@@ -812,6 +812,30 @@ function registerClick(clicked_id) {
   }
 }
 
+// Helper function to sort users by tracks left (descending - most tracks first)
+function sortUsersByTracksLeft(users) {
+  return users.sort((a, b) => {
+    // Calculate tracks left for user A
+    const aTracksLeft = a.tracks.filter(
+      (track) => track.wrong_pick === null
+    ).length;
+
+    // Calculate tracks left for user B
+    const bTracksLeft = b.tracks.filter(
+      (track) => track.wrong_pick === null
+    ).length;
+
+    // Sort by tracks left (descending - most tracks first)
+    // If tracks are equal, sort alphabetically by first name as tiebreaker
+    if (bTracksLeft === aTracksLeft) {
+      return a.first_name.localeCompare(b.first_name);
+    }
+
+    return bTracksLeft - aTracksLeft;
+  });
+}
+
+// Updated leagueUserTableHandler function
 async function leagueUserTableHandler() {
   let headerHelp = document.getElementsByTagName("header")[0];
   console.log(headerHelp);
@@ -825,12 +849,19 @@ async function leagueUserTableHandler() {
   fetch("/api/users").then(function (response) {
     if (response.ok) {
       response.json().then(function (data) {
-        console.log(data);
+        console.log("Original data:", data);
+
+        // Sort users by tracks left using our helper function
+        const sortedData = sortUsersByTracksLeft(data);
+        console.log("Sorted data:", sortedData);
+
         let largestPickLength = 0;
         //find the picks length
         // @ts-ignore
-        for (p = 0; p < data.length; p++) {
-          let validTracks = data[p].tracks.filter((track) => !track.wrong_pick);
+        for (p = 0; p < sortedData.length; p++) {
+          let validTracks = sortedData[p].tracks.filter(
+            (track) => !track.wrong_pick
+          );
           let pickTester = validTracks.length;
 
           if (pickTester >= largestPickLength) {
@@ -882,28 +913,55 @@ async function leagueUserTableHandler() {
 
         let tBody = document.createElement("tbody");
 
-        // @ts-ignore
-        for (i = 0; i < data.length; i++) {
+        // @ts-ignore - Now using sortedData instead of data
+        for (i = 0; i < sortedData.length; i++) {
           let eliminated = false;
           let tr = document.createElement("tr");
           let th = document.createElement("th");
           th.setAttribute("scope", "row");
-          // @ts-ignore
-          th.innerText = i + 1;
+
+          // Create a container for the rank number and crown
+          let rankContainer = document.createElement("div");
+          rankContainer.style.display = "flex";
+          rankContainer.style.alignItems = "center";
+          rankContainer.style.justifyContent = "center";
+          rankContainer.style.gap = "8px";
+
+          // Add the rank number
+          let rankNumber = document.createElement("span");
+          rankNumber.innerText = i + 1;
+          rankContainer.appendChild(rankNumber);
+
+          // Check for crown using helper function - using sortedData
+          const crownInfo = getCrownInfo(sortedData[i].user_record);
+
+          // Always create a crown placeholder for consistent alignment
+          let crownImg = document.createElement("img");
+          crownImg.classList.add("crown-icon");
+
+          if (crownInfo) {
+            // User has a crown - show it
+            crownImg.src = crownInfo.src;
+            crownImg.alt = crownInfo.alt;
+            crownImg.title = crownInfo.title;
+            rankContainer.appendChild(crownImg);
+          }
+
+          th.appendChild(rankContainer);
           tr.appendChild(th);
 
           let tdFirst = document.createElement("td");
-          // @ts-ignore
-          tdFirst.innerText = data[i].first_name;
+          // @ts-ignore - using sortedData
+          tdFirst.innerText = sortedData[i].first_name;
           let tdLast = document.createElement("td");
-          // @ts-ignore
-          tdLast.innerText = data[i].last_name;
+          // @ts-ignore - using sortedData
+          tdLast.innerText = sortedData[i].last_name;
           let tdTracks = document.createElement("td");
-          // @ts-ignore
-          const wrongPicksCount = data[i].tracks.filter(
+          // @ts-ignore - using sortedData
+          const wrongPicksCount = sortedData[i].tracks.filter(
             (track) => track.wrong_pick !== null
           ).length;
-          tdTracks.innerText = data[i].tracks.length - wrongPicksCount;
+          tdTracks.innerText = sortedData[i].tracks.length - wrongPicksCount;
 
           if (tdTracks.innerText === "0") {
             eliminated = true;
@@ -912,25 +970,25 @@ async function leagueUserTableHandler() {
           let tdSubmitted = document.createElement("td");
           let submitted = "No";
 
-          // @ts-ignore
-          console.log(data[i]);
+          // @ts-ignore - using sortedData
+          console.log(sortedData[i]);
           // @ts-ignore
           let trackChecker = parseInt(currentWeek);
           trackChecker++;
-          // @ts-ignore
-          for (t = 0; t < data[i].tracks.length - wrongPicksCount; t++) {
+          // @ts-ignore - using sortedData
+          for (t = 0; t < sortedData[i].tracks.length - wrongPicksCount; t++) {
             console.log(trackChecker);
             // @ts-ignore
-            console.log(data[i].tracks[t].used_picks.length);
+            console.log(sortedData[i].tracks[t].used_picks.length);
             // @ts-ignore
             // @ts-ignore
             //
-            const matchingTracksCount = data[i].tracks.filter(
+            const matchingTracksCount = sortedData[i].tracks.filter(
               (track) => track.used_picks.length === parseInt(currentWeek)
             ).length;
             if (
               matchingTracksCount >=
-              data[i].tracks.length - wrongPicksCount
+              sortedData[i].tracks.length - wrongPicksCount
             ) {
               submitted = "Yes";
             }
@@ -952,15 +1010,15 @@ async function leagueUserTableHandler() {
 
           tBody.appendChild(tr);
 
-          // @ts-ignore
+          // @ts-ignore - using sortedData
           // Filter the tracks first
-          let validTracks = data[i].tracks.filter(
+          let validTracks = sortedData[i].tracks.filter(
             (track) => track.wrong_pick === null
           );
 
           for (x = 0; x < largestPickLength; x++) {
             try {
-              console.log(data);
+              console.log(sortedData);
               let tdTeamName = document.createElement("td");
               let hiddenTeamName = document.createElement("p");
               let hiddenTrackId = document.createElement("p");
