@@ -85,9 +85,16 @@ function computeWeekStats(users) {
   const currentPicks = [];
   const onTheBlock = [];
   const stillPerfect = [];
+  const userTrackCounts = [];
 
   users.forEach((user) => {
     const aliveTracks = user.tracks.filter((t) => t.wrong_pick === null);
+
+    // Store user info with their alive track count
+    userTrackCounts.push({
+      name: `${user.first_name} ${user.last_name}`,
+      aliveTracksCount: aliveTracks.length,
+    });
 
     if (aliveTracks.length === 1) {
       onTheBlock.push(`${user.first_name} ${user.last_name}`);
@@ -129,11 +136,25 @@ function computeWeekStats(users) {
     leastPopular = `${least.join(", ")} (${minCount})`;
   }
 
+  // Find users with the most tracks
+  let mostTracks = "—";
+  if (userTrackCounts.length > 0) {
+    const maxTracksCount = Math.max(
+      ...userTrackCounts.map((u) => u.aliveTracksCount)
+    );
+    const usersWithMostTracks = userTrackCounts
+      .filter((u) => u.aliveTracksCount === maxTracksCount)
+      .map((u) => u.name);
+
+    mostTracks = `${usersWithMostTracks.join(", ")} (${maxTracksCount})`;
+  }
+
   return {
     mostPopular,
     leastPopular,
     onTheBlock: onTheBlock.length ? onTheBlock.join(", ") : "None",
     stillPerfect: stillPerfect.length ? stillPerfect.join(", ") : "None",
+    mostTracks: mostTracks,
   };
 }
 
@@ -152,6 +173,7 @@ async function populateWeekStatsModal() {
     document.getElementById("stat-on-the-block").innerText = stats.onTheBlock;
     document.getElementById("stat-still-perfect").innerText =
       stats.stillPerfect;
+    document.getElementById("stat-most-tracks").innerText = stats.mostTracks;
   } catch (err) {
     console.error("Weekly stats error:", err);
   }
