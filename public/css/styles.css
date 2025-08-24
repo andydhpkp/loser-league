@@ -212,7 +212,6 @@ h3 {
 
 /* Remove the flex: 1 from the divs inside gameMatchups */
 #gameMatchups div {
-  margin: 25px 0; /* Change horizontal margin to vertical only */
   width: 100%; /* Take full width of the container */
   max-width: 600px; /* But don't exceed this max width */
 }
@@ -296,16 +295,6 @@ label {
 @media screen and (max-width: 550px) {
   #leagueMain {
     overflow-x: auto;
-  }
-  #gameMatchups div {
-    margin: 10px;
-  }
-}
-
-@media screen and (max-width: 365px) {
-  #gameMatchups div {
-    margin: 2px;
-    margin-top: 10px;
   }
 }
 
@@ -424,7 +413,7 @@ label {
 .individual-matchup {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   margin: 16px 0;
   padding: 0;
   border: none;
@@ -446,6 +435,7 @@ label {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  min-width: 0; /* Allow shrinking */
 }
 
 .teamSelection::before {
@@ -568,6 +558,7 @@ label {
   align-items: center;
   justify-content: center;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0; /* Prevent VS from shrinking */
 }
 
 /* Animation for expand/collapse */
@@ -580,7 +571,7 @@ label {
   box-shadow: 0 12px 40px rgba(99, 173, 242, 0.4);
 }
 
-/* Mobile responsiveness */
+/* Better responsive breakpoints - always keep horizontal */
 @media (max-width: 768px) {
   .track-header {
     padding: 16px 20px;
@@ -591,31 +582,163 @@ label {
   }
 
   .individual-matchup {
-    flex-direction: column;
     gap: 12px;
+    /* Keep horizontal layout but reduce gap */
   }
 
   .teamSelection {
-    width: 100%;
-    padding: 14px 16px;
+    padding: 12px 16px;
+    /* Smaller padding on tablets */
   }
 
   .teamLogos {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
   }
 
   .vs {
-    margin: 0;
-    transform: rotate(90deg);
     min-width: 40px;
     height: 40px;
     font-size: 14px;
+    padding: 8px 12px;
   }
 
   .selected-team-logo {
     width: 32px;
     height: 32px;
+  }
+}
+
+@media (max-width: 600px) {
+  .individual-matchup {
+    gap: 8px;
+    /* Even smaller gap for smaller screens */
+  }
+
+  .teamSelection {
+    padding: 10px 12px;
+  }
+
+  .teamSelection h2 {
+    font-size: 13px;
+  }
+
+  .teamSelection h3.record {
+    font-size: 11px;
+  }
+
+  .teamLogos {
+    width: 32px;
+    height: 32px;
+  }
+
+  .vs {
+    min-width: 36px;
+    height: 36px;
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .individual-matchup {
+    gap: 6px;
+  }
+
+  .teamSelection {
+    padding: 8px 10px;
+  }
+
+  .teamSelection h2 {
+    font-size: 12px;
+    line-height: 1.1;
+  }
+
+  .teamSelection h3.record {
+    font-size: 10px;
+  }
+
+  .teamLogos {
+    width: 28px;
+    height: 28px;
+    margin-bottom: 4px;
+  }
+
+  .vs {
+    min-width: 32px;
+    height: 32px;
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+}
+
+/* Keep horizontal even on very small screens */
+@media (max-width: 360px) {
+  .individual-matchup {
+    gap: 4px;
+    /* Stay horizontal but with minimal gap */
+  }
+
+  .teamSelection {
+    padding: 6px 8px;
+    /* Very compact padding */
+  }
+
+  .teamSelection h2 {
+    font-size: 11px;
+    line-height: 1;
+    /* Very compact text */
+  }
+
+  .teamSelection h3.record {
+    font-size: 9px;
+  }
+
+  .teamLogos {
+    width: 24px;
+    height: 24px;
+    margin-bottom: 2px;
+  }
+
+  .vs {
+    min-width: 28px;
+    height: 28px;
+    font-size: 8px;
+    padding: 2px 6px;
+    /* Keep normal orientation, just smaller */
+  }
+}
+
+/* Ultra small screens - still horizontal */
+@media (max-width: 320px) {
+  .individual-matchup {
+    gap: 2px;
+  }
+
+  .teamSelection {
+    padding: 4px 6px;
+  }
+
+  .teamSelection h2 {
+    font-size: 10px;
+    line-height: 1;
+  }
+
+  .teamSelection h3.record {
+    font-size: 8px;
+  }
+
+  .teamLogos {
+    width: 20px;
+    height: 20px;
+    margin-bottom: 1px;
+  }
+
+  .vs {
+    min-width: 24px;
+    height: 24px;
+    font-size: 7px;
+    padding: 1px 4px;
   }
 }
 
