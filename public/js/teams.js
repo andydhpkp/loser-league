@@ -709,68 +709,79 @@ async function doTeamsExist() {
   });
 }
 
-async function getCurrentWeek() {
-  try {
-    const response = await fetch(
-      "https://pacific-anchorage-21728.herokuapp.com/https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
-    );
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log(data);
-    const currentDate = getMyDate(); // Current date and time in UTC
-
-    const league = data.leagues[0];
-    const regularSeasonCalendar = league.calendar.find(
-      (item) => item.label === "Regular Season"
-    );
-
-    if (!regularSeasonCalendar) {
-      throw new Error("Could not find the Regular Season data");
-    }
-
-    let firstStartDate = new Date(regularSeasonCalendar.startDate);
-    firstStartDate.setHours(firstStartDate.getHours() - 16); // Subtract 16 hours
-
-    for (const entry of regularSeasonCalendar.entries) {
-      const startDate = new Date(entry.startDate);
-      startDate.setHours(startDate.getHours() - 16); // Subtract 16 hours
-
-      const endDate = new Date(entry.endDate);
-      endDate.setHours(endDate.getHours() - 16); // Subtract 16 hours
-
-      if (currentDate >= startDate && currentDate <= endDate) {
-        // localStorage.setItem("thisWeek", "1");
-        console.log("This is the current data: " + currentDate);
-        console.log("this is the start date: " + startDate);
-        console.log("this is the end date: " + endDate);
-        console.log("This is the current week: " + entry.value);
-        //THIS IS WHERE TO CHANGE
-        // localStorage.setItem("thisWeek", entry.value.toString());
-        // localStorage.setItem("thisWeek", "21");
-        return entry.value; // Return the value directly
-      }
-      console.log("IT GETS TOOOOOO HERERERERERERE");
-    }
-
-    if (currentDate < firstStartDate) {
-      localStorage.setItem("thisWeek", "1");
-      // return "2"; // Return the value directly
-    }
-
-    //TEMPORARY FOR PLAYOFFS
-
-    localStorage.setItem("thisWeek", "1");
-
-    return null;
-  } catch (error) {
-    console.error("Error fetching data:", error);
-    return null;
-  }
+function getCurrentWeek() {
+  localStorage.setItem("thisWeek", "1");
 }
+
+// async function getCurrentWeek() {
+//   try {
+//     const response = await fetch(
+//       "https://pacific-anchorage-21728.herokuapp.com/https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+//       {
+//         header: {
+//           "X-Requested-With": "XMLHttpRequest",
+//         },
+//       }
+//     );
+
+//     if (!response.ok) {
+//       throw new Error(
+//         `HTTP error! Status: ${response.status} - ${response.statusText}`
+//       );
+//     }
+
+//     const data = await response.json();
+//     console.log(data);
+//     const currentDate = getMyDate(); // Current date and time in UTC
+
+//     const league = data.leagues[0];
+//     const regularSeasonCalendar = league.calendar.find(
+//       (item) => item.label === "Regular Season"
+//     );
+
+//     if (!regularSeasonCalendar) {
+//       throw new Error("Could not find the Regular Season data");
+//     }
+
+//     let firstStartDate = new Date(regularSeasonCalendar.startDate);
+//     firstStartDate.setHours(firstStartDate.getHours() - 16); // Subtract 16 hours
+
+//     for (const entry of regularSeasonCalendar.entries) {
+//       const startDate = new Date(entry.startDate);
+//       startDate.setHours(startDate.getHours() - 16); // Subtract 16 hours
+
+//       const endDate = new Date(entry.endDate);
+//       endDate.setHours(endDate.getHours() - 16); // Subtract 16 hours
+
+//       if (currentDate >= startDate && currentDate <= endDate) {
+//         // localStorage.setItem("thisWeek", "1");
+//         console.log("This is the current data: " + currentDate);
+//         console.log("this is the start date: " + startDate);
+//         console.log("this is the end date: " + endDate);
+//         console.log("This is the current week: " + entry.value);
+//         //THIS IS WHERE TO CHANGE
+//         // localStorage.setItem("thisWeek", entry.value.toString());
+//         // localStorage.setItem("thisWeek", "21");
+//         return entry.value; // Return the value directly
+//       }
+//       console.log("IT GETS TOOOOOO HERERERERERERE");
+//     }
+
+//     if (currentDate < firstStartDate) {
+//       localStorage.setItem("thisWeek", "1");
+//       // return "2"; // Return the value directly
+//     }
+
+//     //TEMPORARY FOR PLAYOFFS
+
+//     localStorage.setItem("thisWeek", "1");
+
+//     return null;
+//   } catch (error) {
+//     console.error("Error fetching data:", error);
+//     return null;
+//   }
+// }
 
 function getMyDate() {
   const today = new Date();

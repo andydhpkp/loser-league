@@ -3,14 +3,27 @@
     "username": "root",
     "password": null,
     "database": "loser_league_db",
-    "host": "127.0.0.1",
-    "dialect": "mysql"
+    "host": "localhost",
+    "port": 3306,
+    "dialect": "mysql",
+    "dialectOptions": {
+      "connectTimeout": 60000,
+      "acquireTimeout": 60000,
+      "timeout": 60000
+    },
+    "pool": {
+      "max": 5,
+      "min": 0,
+      "acquire": 30000,
+      "idle": 10000
+    }
   },
   "test": {
     "username": "root",
     "password": null,
     "database": "database_test",
-    "host": "127.0.0.1",
+    "host": "localhost",
+    "port": 3306,
     "dialect": "mysql"
   },
   "production": {
