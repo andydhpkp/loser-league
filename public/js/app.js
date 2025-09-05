@@ -969,15 +969,12 @@ async function leagueUserTableHandler() {
           let submitted = "No";
 
           // @ts-ignore - using sortedData
-          console.log(sortedData[i]);
           // @ts-ignore
           let trackChecker = parseInt(currentWeek);
           trackChecker++;
           // @ts-ignore - using sortedData
           for (t = 0; t < sortedData[i].tracks.length - wrongPicksCount; t++) {
-            console.log(trackChecker);
             // @ts-ignore
-            console.log(sortedData[i].tracks[t].used_picks.length);
             // @ts-ignore
             // @ts-ignore
             //
@@ -990,8 +987,6 @@ async function leagueUserTableHandler() {
             ) {
               submitted = "Yes";
             }
-
-            console.log(matchingTracksCount);
           }
 
           tdSubmitted.innerText = submitted;
@@ -1016,7 +1011,6 @@ async function leagueUserTableHandler() {
 
           for (x = 0; x < largestPickLength; x++) {
             try {
-              console.log(sortedData);
               let tdTeamName = document.createElement("td");
               let hiddenTeamName = document.createElement("p");
               let hiddenTrackId = document.createElement("p");
@@ -1060,8 +1054,6 @@ function adminHandler() {
   let adminPassword = document
     .getElementById("adminPasswordInput")
     .value.trim();
-  console.log(adminPassword);
-  console.log(actualAdminPass);
   if (adminPassword === actualAdminPass) {
     location.href = "../admin.html";
   } else {
@@ -1113,10 +1105,8 @@ async function deleteTracksAdmin() {
 }
 
 async function createTrack(user_id) {
-  console.log(nflArray2);
   // @ts-ignore
   let available_picks = nflArray2.map(getTeamNames);
-  console.log(available_picks);
   let used_picks = [];
   let current_pick = "";
 
@@ -1132,7 +1122,6 @@ async function createTrack(user_id) {
   });
   if (response.ok) {
     console.log("CREATED TRACK");
-    console.log(response);
   } else {
     alert(response.statusText);
   }
@@ -1302,9 +1291,7 @@ async function displayTeamLogo() {
   ).then(function (response) {
     if (response.ok) {
       response.json().then(function (data) {
-        console.log(data);
         let textPicks = document.getElementsByClassName("teamNames");
-        console.log(textPicks);
         // @ts-ignore
         for (x = 0; x < textPicks.length; x++) {
           // @ts-ignore
@@ -1337,7 +1324,6 @@ async function getAliveTracksByUserId(userId) {
   let response = await fetch(`/api/tracks/user/${userId}/alive`);
   if (response.ok) {
     let tracks = await response.json();
-    console.log(tracks);
     return tracks;
   } else if (response.status === 404) {
     console.warn("No tracks available for user.");

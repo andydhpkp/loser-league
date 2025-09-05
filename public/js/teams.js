@@ -23,7 +23,6 @@ async function finalScores() {
   fetch("/api/proxy/nfl-2025").then(function (response) {
     if (response.ok) {
       response.json().then(async function (data) {
-        console.log(data);
         let currentWeek = parseInt(localStorage.getItem("thisWeek"));
         let thisWeeksGames = [];
         let thisWeeksGamesCheckerMonday = [];
@@ -41,7 +40,6 @@ async function finalScores() {
                 Object.keys(thisWeeksGamesCheckerMonday).length - 1
               ]
             ];
-          console.log(lastGame);
           if (lastGame.AwayTeamScore == null) {
             MondayGameNotFinished = true;
           }
@@ -51,9 +49,7 @@ async function finalScores() {
             thisWeeksGames.push(data[w]);
           }
         }
-        console.log(thisWeeksGames);
         let textPicks = document.getElementsByClassName("teamNames");
-        console.log(textPicks);
 
         //TODO this should be called once at the beginnig onLoad()
         let { winners, losers } = await fetchScheduleData(currentWeek);
@@ -72,8 +68,6 @@ async function finalScores() {
 
         let totalWinners = document.getElementsByClassName("winner");
         let totalLosers = document.getElementsByClassName("loser");
-        console.log(totalWinners);
-        console.log(totalLosers);
 
         if (
           totalWinners.length + totalLosers.length === textPicks.length &&
@@ -529,7 +523,6 @@ async function getTrackNumber() {
       throw new Error("Network response was not ok");
     }
     const data = await response.json();
-    console.log(data);
 
     totalTracks = data.length;
 
@@ -545,11 +538,9 @@ async function getTrackNumber() {
     }
     currentWeek++;
     let picksCompleteChecker = false;
-    console.log(trackIdArray);
     if (trackIdArray.length > 0) {
       let picksCompleteHelper = 0;
       for (let r = 0; r < totalTracks; r++) {
-        console.log(data);
         if (data[r].used_picks.length >= currentWeek) {
           picksCompleteHelper++;
         }
@@ -561,10 +552,6 @@ async function getTrackNumber() {
     if (picksCompleteChecker) {
       //location.href = "../league-page.html"
     }
-
-    console.log(totalTracks);
-    console.log(trackIdArray);
-    console.log(trackIdToUsedPicksMap);
     await matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap); // Assuming matchup is an async function
     if (trackIdArray.length === 0) {
       displayVenmoButton();
@@ -594,7 +581,6 @@ function getEndOfGameTime() {
   //Utah is -7 or -6 UTC depending on daylight savings FYI
 
   if (checkMatchupDay === 2 && checkMatchupHour >= 7) {
-    console.log("Checking Mathcup!!");
     //matchupResult()
   }
 }
@@ -799,7 +785,6 @@ async function fetchMatchesAndGetCurrentWeek() {
     }
 
     let matches = await response.json();
-    console.log("Current Week: " + getCurrentWeekForMatchFetch(matches));
   } catch (error) {
     console.error("There was a problem with the fetch operation:", error);
   }
@@ -836,10 +821,6 @@ function getCurrentWeekForMatchFetch(matches) {
 
 // Call the async function to fetch matches and get the current week
 async function matchup(totalTracks, trackIds, usedPicksMap) {
-  console.log(totalTracks);
-  console.log(trackIds);
-  console.log(usedPicksMap);
-
   let nflObj = {};
   try {
     const response = await fetch(
@@ -867,13 +848,9 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
     .then(function (response) {
       if (response.ok) {
         response.json().then(function (data) {
-          console.log(data);
-
           let currentWeek = parseInt(localStorage.getItem("thisWeek"));
-          console.log(currentWeek);
 
           let headerHelp = document.getElementsByTagName("header")[0];
-          console.log(headerHelp);
           let currentWeekDiv = document.createElement("div");
           let currentWeekH1 = document.createElement("h1");
           currentWeekH1.innerHTML = `Week ${currentWeek}`;
@@ -887,8 +864,6 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
               thisWeeksGames.push(data[w]);
             }
           }
-
-          console.log(thisWeeksGames);
 
           let thisWeeksMatchups = [];
 
@@ -1154,7 +1129,6 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
         });
       } else {
         alert("didn't work");
-        console.log(nflScoreApi);
       }
     })
     .catch(function (error) {

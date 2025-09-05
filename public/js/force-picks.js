@@ -105,7 +105,7 @@ class AutoPickScheduler {
     try {
       console.log("🎯 Calling auto-pick API...");
 
-      const response = await fetch("/api/tracks/auto-pick-missing", {
+      const response = await fetch("/api/tracks/force-picks/all-alive", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
