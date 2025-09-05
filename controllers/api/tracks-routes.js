@@ -879,4 +879,106 @@ router.put("/reset-picks/:trackId", (req, res) => {
     });
 });
 
+// Route to automatically make picks for alive tracks without current picks
+router.put("/force-picks/all-alive", async (req, res) => {
+  try {
+    // Find all alive tracks without current picks
+    const tracksNeedingPicks = await Track.findAll({
+      where: {
+        wrong_pick: null, // Tracks that are still "alive"
+        [Op.or]: [{ current_pick: null }, { current_pick: "" }],
+      },
+      include: [
+        {
+          model: User,
+          attributes: ["id", "first_name", "last_name", "username", "email"],
+        },
+      ],
+    });
+
+    if (!tracksNeedingPicks || tracksNeedingPicks.length === 0) {
+      return res.status(404).json({
+        message: "No alive tracks without current picks found",
+      });
+    }
+
+    const updatedTracks = [];
+    const errors = [];
+
+    // Process each track that needs a pick
+    for (const track of tracksNeedingPicks) {
+      try {
+        // Get available picks for this track
+        let availablePicks = track.available_picks;
+        let usedPicks = track.used_picks;
+
+        // Check if there are available picks
+        if (!availablePicks || availablePicks.length === 0) {
+          errors.push({
+            trackId: track.id,
+            userId: track.user_id,
+            username: track.User ? track.User.username : "Unknown",
+            error: "No available picks remaining",
+          });
+          continue;
+        }
+
+        // Select a random pick from available picks
+        const randomIndex = Math.floor(Math.random() * availablePicks.length);
+        const selectedPick = availablePicks[randomIndex];
+
+        // Remove the selected pick from available picks
+        availablePicks.splice(randomIndex, 1);
+
+        // Add the selected pick to used picks
+        usedPicks.push(selectedPick);
+
+        // Update the track with the new pick
+        track.available_picks = availablePicks;
+        track.used_picks = usedPicks;
+        track.current_pick = selectedPick;
+
+        // Save the updated track
+        const updatedTrack = await track.save();
+
+        updatedTracks.push({
+          trackId: track.id,
+          userId: track.user_id,
+          username: track.User ? track.User.username : "Unknown",
+          selectedPick: selectedPick,
+          remainingAvailable: availablePicks.length,
+        });
+      } catch (error) {
+        errors.push({
+          trackId: track.id,
+          userId: track.user_id,
+          username: track.User ? track.User.username : "Unknown",
+          error: error.message,
+        });
+      }
+    }
+
+    // Prepare response
+    const response = {
+      message: `Auto-pick completed for ${updatedTracks.length} tracks`,
+      updatedTracks: updatedTracks,
+      totalProcessed: tracksNeedingPicks.length,
+      successCount: updatedTracks.length,
+      errorCount: errors.length,
+    };
+
+    if (errors.length > 0) {
+      response.errors = errors;
+    }
+
+    res.json(response);
+  } catch (error) {
+    console.error("Error in auto-pick route:", error);
+    res.status(500).json({
+      error: "An error occurred while processing auto-picks",
+      errorMessage: error.message,
+    });
+  }
+});
+
 module.exports = router;
