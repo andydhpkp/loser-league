@@ -981,4 +981,156 @@ router.put("/force-picks/all-alive", async (req, res) => {
   }
 });
 
+// Route to reset all tracks to a specific number of picks
+router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
+  const pickCount = parseInt(req.params.pickCount);
+
+  if (isNaN(pickCount) || pickCount < 0) {
+    return res.status(400).json({ error: "A valid pick count (0 or greater) is required" });
+  }
+
+  try {
+    // Fetch all tracks
+    const tracks = await Track.findAll({
+      include: [
+        {
+          model: User,
+          attributes: ["id", "first_name", "last_name", "username", "email"],
+        },
+      ],
+    });
+
+    if (!tracks || tracks.length === 0) {
+      return res.status(404).json({ message: "No tracks found" });
+    }
+
+    const updatedTracks = [];
+    const trackUpdates = [];
+
+    // Process each track
+    for (const track of tracks) {
+      let usedPicks = [...track.used_picks]; // Create a copy
+      let availablePicks = [...track.available_picks]; // Create a copy
+      let wrongPick = track.wrong_pick;
+      
+      const originalUsedPicksLength = usedPicks.length;
+      
+      // If the track has more used picks than the target count, remove excess picks
+      if (usedPicks.length > pickCount) {
+        // Get the picks that need to be removed (from the end)
+        const picksToRemove = usedPicks.slice(pickCount);
+        
+        // Keep only the first 'pickCount' picks
+        usedPicks = usedPicks.slice(0, pickCount);
+        
+        // Add the removed picks back to available_picks if they're not already there
+        picksToRemove.forEach(pick => {
+          if (pick !== "placeholder" && !availablePicks.includes(pick)) {
+            availablePicks.push(pick);
+          }
+        });
+        
+        // Handle wrong_pick logic
+        if (wrongPick) {
+          // If pickCount is 0, clear wrong_pick
+          if (pickCount === 0) {
+            wrongPick = null;
+          } else {
+            // Only keep wrong_pick if it matches the first element in used_picks
+            const firstUsedPick = usedPicks[0];
+            if (wrongPick !== firstUsedPick) {
+              wrongPick = null;
+            }
+          }
+        }
+        
+        // Update the track
+        const updateData = {
+          used_picks: usedPicks,
+          available_picks: availablePicks,
+          wrong_pick: wrongPick,
+          current_pick: null // Clear current pick as requested
+        };
+        
+        trackUpdates.push(track.update(updateData));
+        
+        updatedTracks.push({
+          trackId: track.id,
+          userId: track.user_id,
+          username: track.User ? track.User.username : "Unknown",
+          originalUsedPicksCount: originalUsedPicksLength,
+          newUsedPicksCount: usedPicks.length,
+          removedPicks: picksToRemove,
+          wrongPickCleared: track.wrong_pick !== wrongPick,
+          newWrongPick: wrongPick
+        });
+      } else {
+        // Track already has pickCount or fewer picks, but still check wrong_pick logic
+        if (wrongPick && pickCount > 0) {
+          const firstUsedPick = usedPicks[0];
+          if (wrongPick !== firstUsedPick) {
+            wrongPick = null;
+            trackUpdates.push(track.update({ 
+              wrong_pick: wrongPick,
+              current_pick: null 
+            }));
+            
+            updatedTracks.push({
+              trackId: track.id,
+              userId: track.user_id,
+              username: track.User ? track.User.username : "Unknown",
+              originalUsedPicksCount: originalUsedPicksLength,
+              newUsedPicksCount: usedPicks.length,
+              removedPicks: [],
+              wrongPickCleared: true,
+              newWrongPick: wrongPick
+            });
+          } else {
+            // Just clear current_pick
+            trackUpdates.push(track.update({ current_pick: null }));
+          }
+        } else if (pickCount === 0 && wrongPick) {
+          // Clear wrong_pick if resetting to 0 picks
+          trackUpdates.push(track.update({ 
+            wrong_pick: null,
+            current_pick: null 
+          }));
+          
+          updatedTracks.push({
+            trackId: track.id,
+            userId: track.user_id,
+            username: track.User ? track.User.username : "Unknown",
+            originalUsedPicksCount: originalUsedPicksLength,
+            newUsedPicksCount: usedPicks.length,
+            removedPicks: [],
+            wrongPickCleared: true,
+            newWrongPick: null
+          });
+        } else {
+          // Just clear current_pick
+          trackUpdates.push(track.update({ current_pick: null }));
+        }
+      }
+    }
+
+    // Wait for all updates to complete
+    await Promise.all(trackUpdates);
+
+    res.json({
+      message: `Successfully reset ${tracks.length} tracks to ${pickCount} pick(s)`,
+      resetToPickCount: pickCount,
+      totalTracksProcessed: tracks.length,
+      tracksModified: updatedTracks.length,
+      modifiedTracks: updatedTracks
+    });
+
+  } catch (error) {
+    console.error("Error resetting tracks:", error);
+    res.status(500).json({
+      error: "An error occurred while resetting tracks",
+      errorMessage: error.message,
+    });
+  }
+});
+
 module.exports = router;
