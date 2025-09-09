@@ -22,22 +22,33 @@ class AutoPickScheduler {
   /**
    * Get the current week's Thursday deadline in Utah time
    */
-  getThisWeekDeadline() {
-    const now = new Date(this.getCurrentUtahTime());
-    const currentDay = now.getDay();
+getThisWeekDeadline() {
+  const now = new Date(this.getCurrentUtahTime());
+  const currentDay = now.getDay();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
 
-    // Calculate days until Thursday (or if it's Thursday, use today)
-    let daysUntilThursday = this.DEADLINE_DAY - currentDay;
-    if (daysUntilThursday < 0) {
-      daysUntilThursday += 7; // Next week's Thursday
+  // Calculate days until Thursday
+  let daysUntilThursday = this.DEADLINE_DAY - currentDay;
+  
+  // If it's Thursday but we're past the deadline time, target next Thursday
+  if (currentDay === this.DEADLINE_DAY) {
+    if (currentHour > this.DEADLINE_HOUR || 
+        (currentHour === this.DEADLINE_HOUR && currentMinute >= this.DEADLINE_MINUTE)) {
+      daysUntilThursday = 7; // Next Thursday
+    } else {
+      daysUntilThursday = 0; // Today (this Thursday)
     }
-
-    const deadline = new Date(now);
-    deadline.setDate(now.getDate() + daysUntilThursday);
-    deadline.setHours(this.DEADLINE_HOUR, this.DEADLINE_MINUTE, 0, 0);
-
-    return deadline;
+  } else if (daysUntilThursday < 0) {
+    daysUntilThursday += 7; // Next week's Thursday
   }
+
+  const deadline = new Date(now);
+  deadline.setDate(now.getDate() + daysUntilThursday);
+  deadline.setHours(this.DEADLINE_HOUR, this.DEADLINE_MINUTE, 0, 0);
+
+  return deadline;
+}
 
   /**
    * Get the previous week's Thursday deadline
