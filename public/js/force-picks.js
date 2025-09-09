@@ -53,23 +53,32 @@ class AutoPickScheduler {
    * Check if we're in the valid execution window
    * Valid window: After Thursday 6:20 PM until next Thursday 6:20 PM
    */
-  isInValidExecutionWindow() {
-    const now = new Date(this.getCurrentUtahTime());
-    const thisWeekDeadline = this.getThisWeekDeadline();
-    const lastWeekDeadline = this.getLastWeekDeadline();
+isInValidExecutionWindow() {
+  const now = new Date(this.getCurrentUtahTime());
+  const currentDay = now.getDay();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
 
-    // If current time is after this week's deadline, we're in next week's window
-    if (now >= thisWeekDeadline) {
-      return true;
-    }
-
-    // If current time is after last week's deadline but before this week's deadline
-    if (now >= lastWeekDeadline) {
-      return true;
-    }
-
+  // Must be Thursday (day 4)
+  if (currentDay !== this.DEADLINE_DAY) {
     return false;
   }
+
+  // Must be after 6:20 PM
+  if (currentHour < this.DEADLINE_HOUR) {
+    return false;
+  }
+  
+  if (currentHour === this.DEADLINE_HOUR && currentMinute < this.DEADLINE_MINUTE) {
+    return false;
+  }
+
+  // Must be before midnight (before day rolls over)
+  // Since we're using 24-hour format, anything before 24:00 (which becomes 00:00 next day) is valid
+  // This condition is automatically satisfied since we're checking the same day
+
+  return true;
+}
 
   /**
    * Check if auto-pick has already been executed for this week
