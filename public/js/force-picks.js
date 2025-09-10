@@ -1,15 +1,21 @@
 /**
  * Auto Pick Scheduler - Handles automatic pick selection for tracks
  * Only runs once per week after Thursday 6:20 PM Utah time
+ * Includes multiple guard layers to prevent successive executions
  */
 
 class AutoPickScheduler {
   constructor() {
-    this.UTAH_TIMEZONE = "America/Denver"; // Utah is in Mountain Time
-    this.DEADLINE_DAY = 4; // Thursday (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
-    this.DEADLINE_HOUR = 18; // 6 PM (24-hour format)
+    this.UTAH_TIMEZONE = "America/Denver";
+    this.DEADLINE_DAY = 4; // Thursday
+    this.DEADLINE_HOUR = 18; // 6 PM
     this.DEADLINE_MINUTE = 20; // 20 minutes
     this.STORAGE_KEY = "lastAutoPickExecution";
+    this.SEASON_START = new Date("2025-09-04T18:20:00-06:00");
+
+    // Guard properties
+    this.EXECUTION_LOCK_KEY = "autoPickInProgress";
+    this.MIN_EXECUTION_INTERVAL = 60 * 60 * 1000; // 1 hour minimum between calls
   }
 
   /**
@@ -22,77 +28,65 @@ class AutoPickScheduler {
   /**
    * Get the current week's Thursday deadline in Utah time
    */
-getThisWeekDeadline() {
-  const now = new Date(this.getCurrentUtahTime());
-  const currentDay = now.getDay();
-  const currentHour = now.getHours();
-  const currentMinute = now.getMinutes();
+  getThisWeekDeadline() {
+    const now = new Date(this.getCurrentUtahTime());
+    const currentDay = now.getDay();
 
-  // Calculate days until Thursday
-  let daysUntilThursday = this.DEADLINE_DAY - currentDay;
-  
-  // If it's Thursday but we're past the deadline time, target next Thursday
-  if (currentDay === this.DEADLINE_DAY) {
-    if (currentHour > this.DEADLINE_HOUR || 
-        (currentHour === this.DEADLINE_HOUR && currentMinute >= this.DEADLINE_MINUTE)) {
-      daysUntilThursday = 7; // Next Thursday
-    } else {
-      daysUntilThursday = 0; // Today (this Thursday)
+    let daysUntilThursday = this.DEADLINE_DAY - currentDay;
+
+    if (daysUntilThursday < 0) {
+      daysUntilThursday += 7;
+    } else if (daysUntilThursday === 0) {
+      const currentHour = now.getHours();
+      if (currentHour >= 0) {
+        daysUntilThursday = 0;
+      } else {
+        daysUntilThursday = 7;
+      }
     }
-  } else if (daysUntilThursday < 0) {
-    daysUntilThursday += 7; // Next week's Thursday
-  }
 
-  const deadline = new Date(now);
-  deadline.setDate(now.getDate() + daysUntilThursday);
-  deadline.setHours(this.DEADLINE_HOUR, this.DEADLINE_MINUTE, 0, 0);
+    const deadline = new Date(now);
+    deadline.setDate(now.getDate() + daysUntilThursday);
+    deadline.setHours(this.DEADLINE_HOUR, this.DEADLINE_MINUTE, 0, 0);
 
-  return deadline;
-}
-
-  /**
-   * Get the previous week's Thursday deadline
-   */
-  getLastWeekDeadline() {
-    const thisWeekDeadline = this.getThisWeekDeadline();
-    const lastWeekDeadline = new Date(thisWeekDeadline);
-    lastWeekDeadline.setDate(thisWeekDeadline.getDate() - 7);
-    return lastWeekDeadline;
+    return deadline;
   }
 
   /**
    * Check if we're in the valid execution window
-   * Valid window: After Thursday 6:20 PM until next Thursday 6:20 PM
+   * Valid window: ONLY Thursday 6:20 PM to Thursday 11:59 PM each week
    */
-isInValidExecutionWindow() {
-  const now = new Date(this.getCurrentUtahTime());
-  const currentDay = now.getDay();
-  const currentHour = now.getHours();
-  const currentMinute = now.getMinutes();
+  isInValidExecutionWindow() {
+    const now = new Date(this.getCurrentUtahTime());
 
-  // Must be Thursday (day 4)
-  if (currentDay !== this.DEADLINE_DAY) {
-    return false;
+    if (now < this.SEASON_START) {
+      return false;
+    }
+
+    const currentDay = now.getDay();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+
+    if (currentDay !== this.DEADLINE_DAY) {
+      return false;
+    }
+
+    if (currentHour < this.DEADLINE_HOUR) {
+      return false;
+    }
+
+    if (
+      currentHour === this.DEADLINE_HOUR &&
+      currentMinute < this.DEADLINE_MINUTE
+    ) {
+      return false;
+    }
+
+    return true;
   }
-
-  // Must be after 6:20 PM
-  if (currentHour < this.DEADLINE_HOUR) {
-    return false;
-  }
-  
-  if (currentHour === this.DEADLINE_HOUR && currentMinute < this.DEADLINE_MINUTE) {
-    return false;
-  }
-
-  // Must be before midnight (before day rolls over)
-  // Since we're using 24-hour format, anything before 24:00 (which becomes 00:00 next day) is valid
-  // This condition is automatically satisfied since we're checking the same day
-
-  return true;
-}
 
   /**
-   * Check if auto-pick has already been executed for this week
+   * Check if auto-pick has already been executed for this week's Thursday
    */
   hasExecutedThisWeek() {
     const lastExecution = localStorage.getItem(this.STORAGE_KEY);
@@ -101,10 +95,9 @@ isInValidExecutionWindow() {
     }
 
     const lastExecutionDate = new Date(lastExecution);
-    const lastWeekDeadline = this.getLastWeekDeadline();
+    const thisWeekDeadline = this.getThisWeekDeadline();
 
-    // If last execution was after the most recent deadline, we've already executed
-    return lastExecutionDate >= lastWeekDeadline;
+    return lastExecutionDate >= thisWeekDeadline;
   }
 
   /**
@@ -116,14 +109,57 @@ isInValidExecutionWindow() {
   }
 
   /**
-   * Call the auto-pick API endpoint
+   * Check if auto-pick is currently locked/running
    */
+  isExecutionLocked() {
+    const lockTime = localStorage.getItem(this.EXECUTION_LOCK_KEY);
+    if (!lockTime) return false;
+
+    const now = Date.now();
+    const lockTimestamp = parseInt(lockTime);
+
+    // If lock is older than 30 minutes, consider it stale and remove it
+    if (now - lockTimestamp > 30 * 60 * 1000) {
+      localStorage.removeItem(this.EXECUTION_LOCK_KEY);
+      return false;
+    }
+
+    return true;
+  }
+
   /**
-   * Call the auto-pick API endpoint - Updated to handle 404 as success
+   * Set execution lock
+   */
+  setExecutionLock() {
+    localStorage.setItem(this.EXECUTION_LOCK_KEY, Date.now().toString());
+  }
+
+  /**
+   * Release execution lock
+   */
+  releaseExecutionLock() {
+    localStorage.removeItem(this.EXECUTION_LOCK_KEY);
+  }
+
+  /**
+   * Check if minimum time has passed since last execution
+   */
+  hasMinimumTimePassed() {
+    const lastExecution = localStorage.getItem(this.STORAGE_KEY);
+    if (!lastExecution) return true;
+
+    const now = Date.now();
+    const lastExecutionTime = new Date(lastExecution).getTime();
+
+    return now - lastExecutionTime >= this.MIN_EXECUTION_INTERVAL;
+  }
+
+  /**
+   * Call the auto-pick API endpoint
    */
   async callAutoPickAPI() {
     try {
-      console.log("🎯 Calling auto-pick API...");
+      console.log("Calling auto-pick API...");
 
       const response = await fetch("/api/tracks/force-picks/all-alive", {
         method: "PUT",
@@ -132,12 +168,10 @@ isInValidExecutionWindow() {
         },
       });
 
-      // Handle 404 as "no work needed" rather than error
       if (response.status === 404) {
         const result = await response.json();
-        console.log("✅ Auto-pick checked: No picks needed -", result.message);
+        console.log("Auto-pick checked: No picks needed -", result.message);
 
-        // Mark as executed since we successfully checked
         this.markAsExecuted();
 
         return {
@@ -153,9 +187,8 @@ isInValidExecutionWindow() {
       }
 
       const result = await response.json();
-      console.log("✅ Auto-pick completed successfully:", result);
+      console.log("Auto-pick completed successfully:", result);
 
-      // Mark as executed after successful API call
       this.markAsExecuted();
 
       return {
@@ -166,44 +199,71 @@ isInValidExecutionWindow() {
         details: result,
       };
     } catch (error) {
-      console.error("❌ Error calling auto-pick API:", error);
+      console.error("Error calling auto-pick API:", error);
       throw error;
     }
   }
 
   /**
-   * Main function to check and potentially execute auto-pick
+   * Enhanced execution check with multiple guards
    */
   async checkAndExecuteAutoPick() {
     try {
-      console.log("🔍 Checking auto-pick conditions...");
+      console.log("Checking auto-pick conditions with guards...");
 
-      // Check if we're in a valid execution window
+      // GUARD 1: Check if execution is locked
+      if (this.isExecutionLocked()) {
+        console.log("Auto-pick execution is locked (another instance running)");
+        return {
+          executed: false,
+          reason: "Execution locked - another instance running",
+        };
+      }
+
+      // GUARD 2: Check minimum time interval
+      if (!this.hasMinimumTimePassed()) {
+        console.log("Minimum time interval not met (1 hour required)");
+        return { executed: false, reason: "Minimum time interval not met" };
+      }
+
+      // GUARD 3: Check if we're in a valid execution window
       if (!this.isInValidExecutionWindow()) {
-        console.log(
-          "⏰ Not in valid execution window (before Thursday 6:20 PM Utah time)"
-        );
+        const debugInfo = this.getDebugInfo();
+        console.log("Not in valid execution window", {
+          currentTime: debugInfo.currentUtahTime,
+          reason: "Must be Thursday 6:20 PM - 11:59 PM Utah time",
+        });
         return { executed: false, reason: "Outside execution window" };
       }
 
-      // Check if we've already executed this week
+      // GUARD 4: Check if we've already executed this week
       if (this.hasExecutedThisWeek()) {
-        console.log("✅ Auto-pick already executed this week");
+        console.log("Auto-pick already executed this week");
         return { executed: false, reason: "Already executed this week" };
       }
 
-      console.log("🚀 Conditions met! Executing auto-pick...");
+      console.log("All guards passed! Executing auto-pick...");
 
-      // Execute the auto-pick
-      const result = await this.callAutoPickAPI();
+      // GUARD 5: Set execution lock before starting
+      this.setExecutionLock();
 
-      return {
-        executed: true,
-        result: result,
-        executionTime: new Date(this.getCurrentUtahTime()).toISOString(),
-      };
+      try {
+        // Execute the auto-pick
+        const result = await this.callAutoPickAPI();
+
+        return {
+          executed: true,
+          result: result,
+          executionTime: new Date().toISOString(),
+        };
+      } finally {
+        // GUARD 6: Always release lock when done
+        this.releaseExecutionLock();
+      }
     } catch (error) {
-      console.error("💥 Error in auto-pick execution:", error);
+      // GUARD 7: Release lock on error
+      this.releaseExecutionLock();
+      console.error("Error in auto-pick execution:", error);
       return {
         executed: false,
         reason: "Execution failed",
@@ -218,41 +278,78 @@ isInValidExecutionWindow() {
   getDebugInfo() {
     const now = new Date(this.getCurrentUtahTime());
     const thisWeekDeadline = this.getThisWeekDeadline();
-    const lastWeekDeadline = this.getLastWeekDeadline();
     const lastExecution = localStorage.getItem(this.STORAGE_KEY);
 
     return {
       currentUtahTime: now.toISOString(),
+      currentDay: now.getDay(),
+      currentHour: now.getHours(),
+      currentMinute: now.getMinutes(),
+      seasonStart: this.SEASON_START.toISOString(),
+      isBeforeSeasonStart: now < this.SEASON_START,
       thisWeekDeadline: thisWeekDeadline.toISOString(),
-      lastWeekDeadline: lastWeekDeadline.toISOString(),
       lastExecution: lastExecution,
+      isThursday: now.getDay() === this.DEADLINE_DAY,
+      isAfterDeadlineTime:
+        now.getHours() > this.DEADLINE_HOUR ||
+        (now.getHours() === this.DEADLINE_HOUR &&
+          now.getMinutes() >= this.DEADLINE_MINUTE),
+      isBeforeMidnight: now.getHours() < 24,
       isInValidWindow: this.isInValidExecutionWindow(),
       hasExecutedThisWeek: this.hasExecutedThisWeek(),
       canExecute:
         this.isInValidExecutionWindow() && !this.hasExecutedThisWeek(),
+      isExecutionLocked: this.isExecutionLocked(),
+      hasMinimumTimePassed: this.hasMinimumTimePassed(),
     };
+  }
+
+  /**
+   * Helper method to test if a specific date/time would be in valid window
+   */
+  wouldBeValidAt(testDate) {
+    const originalGetCurrentUtahTime = this.getCurrentUtahTime;
+
+    this.getCurrentUtahTime = () =>
+      testDate.toLocaleString("en-US", { timeZone: this.UTAH_TIMEZONE });
+
+    const result = this.isInValidExecutionWindow();
+
+    this.getCurrentUtahTime = originalGetCurrentUtahTime;
+
+    return result;
   }
 }
 
 // Create global instance
 const autoPickScheduler = new AutoPickScheduler();
 
+// Prevent multiple initializations on the same page
+let autoPickInitialized = false;
+
 /**
  * Function to call on page load - checks and potentially executes auto-pick
  */
 async function initializeAutoPickCheck() {
-  console.log("🔄 Initializing auto-pick check...");
+  // GUARD: Prevent multiple initializations
+  if (autoPickInitialized) {
+    console.log("Auto-pick already initialized, skipping...");
+    return { executed: false, reason: "Already initialized" };
+  }
+
+  autoPickInitialized = true;
+  console.log("Initializing auto-pick check...");
 
   // Add debug info to console
-  console.log("📊 Auto-pick debug info:", autoPickScheduler.getDebugInfo());
+  const debugInfo = autoPickScheduler.getDebugInfo();
+  console.log("Auto-pick debug info:", debugInfo);
 
   try {
     const result = await autoPickScheduler.checkAndExecuteAutoPick();
 
     if (result.executed) {
-      console.log("🎉 Auto-pick executed successfully!", result);
+      console.log("Auto-pick executed successfully!", result);
 
-      // Optionally show user notification
       if (typeof showNotification === "function") {
         showNotification(
           "Auto-picks have been made for users without current picks!",
@@ -260,12 +357,12 @@ async function initializeAutoPickCheck() {
         );
       }
     } else {
-      console.log("ℹ️ Auto-pick not executed:", result.reason);
+      console.log("Auto-pick not executed:", result.reason);
     }
 
     return result;
   } catch (error) {
-    console.error("💀 Failed to initialize auto-pick:", error);
+    console.error("Failed to initialize auto-pick:", error);
     return {
       executed: false,
       reason: "Initialization failed",
@@ -275,19 +372,110 @@ async function initializeAutoPickCheck() {
 }
 
 /**
- * Manual trigger function for testing/admin use
+ * Manual trigger function for testing/admin use with confirmation
+ */
+async function manuallyTriggerAutoPickWithConfirmation() {
+  const confirmed = confirm(
+    "Are you sure you want to manually trigger auto-pick? This will bypass time checks but still respect other safety guards."
+  );
+
+  if (!confirmed) {
+    console.log("Manual auto-pick cancelled by user");
+    return;
+  }
+
+  // Check for execution lock even in manual mode
+  if (autoPickScheduler.isExecutionLocked()) {
+    alert("Auto-pick is currently running. Please wait and try again.");
+    return;
+  }
+
+  console.log("Manually triggering auto-pick (bypassing time checks)...");
+
+  try {
+    autoPickScheduler.setExecutionLock();
+    const result = await autoPickScheduler.callAutoPickAPI();
+    console.log("Manual auto-pick completed:", result);
+    return result;
+  } catch (error) {
+    console.error("Manual auto-pick failed:", error);
+    throw error;
+  } finally {
+    autoPickScheduler.releaseExecutionLock();
+  }
+}
+
+/**
+ * Simple manual trigger function (original version)
  */
 async function manuallyTriggerAutoPick() {
-  console.log("🔧 Manually triggering auto-pick (bypassing time checks)...");
+  console.log("Manually triggering auto-pick (bypassing time checks)...");
 
   try {
     const result = await autoPickScheduler.callAutoPickAPI();
-    console.log("✅ Manual auto-pick completed:", result);
+    console.log("Manual auto-pick completed:", result);
     return result;
   } catch (error) {
-    console.error("❌ Manual auto-pick failed:", error);
+    console.error("Manual auto-pick failed:", error);
     throw error;
   }
+}
+
+/**
+ * Testing helper function - check if auto-pick would run at different times
+ */
+function testAutoPickTiming() {
+  const tests = [
+    {
+      name: "Before season start",
+      date: new Date("2025-09-01T10:00:00-06:00"),
+    },
+    { name: "Week 1 Monday", date: new Date("2025-09-01T10:00:00-06:00") },
+    {
+      name: "First Thursday 6:00 PM (before deadline)",
+      date: new Date("2025-09-04T18:00:00-06:00"),
+    },
+    {
+      name: "First Thursday 6:20 PM (at deadline)",
+      date: new Date("2025-09-04T18:20:00-06:00"),
+    },
+    {
+      name: "First Thursday 6:30 PM",
+      date: new Date("2025-09-04T18:30:00-06:00"),
+    },
+    {
+      name: "First Thursday 11:59 PM",
+      date: new Date("2025-09-04T23:59:00-06:00"),
+    },
+    {
+      name: "Week 1 Friday 12:01 AM",
+      date: new Date("2025-09-05T00:01:00-06:00"),
+    },
+    { name: "Week 1 Friday noon", date: new Date("2025-09-05T12:00:00-06:00") },
+    {
+      name: "Week 2 Monday after MNF",
+      date: new Date("2025-09-08T10:00:00-06:00"),
+    },
+    { name: "Week 2 Wednesday", date: new Date("2025-09-10T15:00:00-06:00") },
+    {
+      name: "Week 2 Thursday 6:00 PM (before deadline)",
+      date: new Date("2025-09-11T18:00:00-06:00"),
+    },
+    {
+      name: "Week 2 Thursday 6:20 PM (at deadline)",
+      date: new Date("2025-09-11T18:20:00-06:00"),
+    },
+    {
+      name: "Week 2 Thursday 10:00 PM",
+      date: new Date("2025-09-11T22:00:00-06:00"),
+    },
+  ];
+
+  console.log("Testing auto-pick timing:");
+  tests.forEach((test) => {
+    const wouldRun = autoPickScheduler.wouldBeValidAt(test.date);
+    console.log(`${test.name}: ${wouldRun ? "WOULD RUN" : "would not run"}`);
+  });
 }
 
 // Export for use in other files
@@ -297,6 +485,8 @@ if (typeof module !== "undefined" && module.exports) {
     autoPickScheduler,
     initializeAutoPickCheck,
     manuallyTriggerAutoPick,
+    manuallyTriggerAutoPickWithConfirmation,
+    testAutoPickTiming,
   };
 }
 
@@ -306,3 +496,6 @@ if (typeof module !== "undefined" && module.exports) {
 
 // For debugging, you can check the current state anytime:
 // console.log(autoPickScheduler.getDebugInfo());
+
+// For testing timing logic:
+// testAutoPickTiming();

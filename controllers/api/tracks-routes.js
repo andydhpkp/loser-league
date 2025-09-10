@@ -880,12 +880,47 @@ router.put("/reset-picks/:trackId", (req, res) => {
 });
 
 // Route to automatically make picks for alive tracks without current picks
+const forcePickExecutions = new Map(); // trackId -> timestamp
+const FORCE_PICK_COOLDOWN = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const GLOBAL_FORCE_PICK_LOCK = { isRunning: false, lastExecution: null };
+
 router.put("/force-picks/all-alive", async (req, res) => {
   try {
+    // GUARD 1: Check if force-pick is already running globally
+    if (GLOBAL_FORCE_PICK_LOCK.isRunning) {
+      return res.status(429).json({
+        error: "Force-pick is already in progress. Please wait.",
+        lastExecution: GLOBAL_FORCE_PICK_LOCK.lastExecution,
+      });
+    }
+
+    // GUARD 2: Check if force-pick was executed recently (within 1 hour)
+    const now = Date.now();
+    const oneHour = 60 * 60 * 1000;
+    if (
+      GLOBAL_FORCE_PICK_LOCK.lastExecution &&
+      now - GLOBAL_FORCE_PICK_LOCK.lastExecution < oneHour
+    ) {
+      return res.status(429).json({
+        error:
+          "Force-pick executed too recently. Must wait at least 1 hour between executions.",
+        lastExecution: new Date(
+          GLOBAL_FORCE_PICK_LOCK.lastExecution
+        ).toISOString(),
+        timeUntilNext: new Date(
+          GLOBAL_FORCE_PICK_LOCK.lastExecution + oneHour
+        ).toISOString(),
+      });
+    }
+
+    // GUARD 3: Set global lock
+    GLOBAL_FORCE_PICK_LOCK.isRunning = true;
+    console.log("🔒 Force-pick lock acquired at", new Date().toISOString());
+
     // Find all alive tracks without current picks
     const tracksNeedingPicks = await Track.findAll({
       where: {
-        wrong_pick: null, // Tracks that are still "alive"
+        wrong_pick: null,
         [Op.or]: [{ current_pick: null }, { current_pick: "" }],
       },
       include: [
@@ -897,6 +932,10 @@ router.put("/force-picks/all-alive", async (req, res) => {
     });
 
     if (!tracksNeedingPicks || tracksNeedingPicks.length === 0) {
+      // Release lock before returning
+      GLOBAL_FORCE_PICK_LOCK.isRunning = false;
+      GLOBAL_FORCE_PICK_LOCK.lastExecution = now;
+
       return res.status(404).json({
         message: "No alive tracks without current picks found",
       });
@@ -908,6 +947,18 @@ router.put("/force-picks/all-alive", async (req, res) => {
     // Process each track that needs a pick
     for (const track of tracksNeedingPicks) {
       try {
+        // GUARD 4: Check individual track cooldown
+        const lastPickTime = forcePickExecutions.get(track.id);
+        if (lastPickTime && now - lastPickTime < FORCE_PICK_COOLDOWN) {
+          errors.push({
+            trackId: track.id,
+            userId: track.user_id,
+            username: track.User ? track.User.username : "Unknown",
+            error: "Track was force-picked too recently (24hr cooldown)",
+          });
+          continue;
+        }
+
         // Get available picks for this track
         let availablePicks = track.available_picks;
         let usedPicks = track.used_picks;
@@ -941,6 +992,9 @@ router.put("/force-picks/all-alive", async (req, res) => {
         // Save the updated track
         const updatedTrack = await track.save();
 
+        // GUARD 5: Record this execution for the track
+        forcePickExecutions.set(track.id, now);
+
         updatedTracks.push({
           trackId: track.id,
           userId: track.user_id,
@@ -948,6 +1002,8 @@ router.put("/force-picks/all-alive", async (req, res) => {
           selectedPick: selectedPick,
           remainingAvailable: availablePicks.length,
         });
+
+        console.log(`✅ Force-picked ${selectedPick} for track ${track.id}`);
       } catch (error) {
         errors.push({
           trackId: track.id,
@@ -958,6 +1014,11 @@ router.put("/force-picks/all-alive", async (req, res) => {
       }
     }
 
+    // GUARD 6: Update global execution time and release lock
+    GLOBAL_FORCE_PICK_LOCK.lastExecution = now;
+    GLOBAL_FORCE_PICK_LOCK.isRunning = false;
+    console.log("🔓 Force-pick lock released at", new Date().toISOString());
+
     // Prepare response
     const response = {
       message: `Auto-pick completed for ${updatedTracks.length} tracks`,
@@ -965,6 +1026,7 @@ router.put("/force-picks/all-alive", async (req, res) => {
       totalProcessed: tracksNeedingPicks.length,
       successCount: updatedTracks.length,
       errorCount: errors.length,
+      executionTime: new Date(now).toISOString(),
     };
 
     if (errors.length > 0) {
@@ -973,7 +1035,10 @@ router.put("/force-picks/all-alive", async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error("Error in auto-pick route:", error);
+    // GUARD 7: Always release lock on error
+    GLOBAL_FORCE_PICK_LOCK.isRunning = false;
+    console.error("❌ Error in force-pick route, lock released:", error);
+
     res.status(500).json({
       error: "An error occurred while processing auto-picks",
       errorMessage: error.message,
@@ -986,7 +1051,9 @@ router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
   const pickCount = parseInt(req.params.pickCount);
 
   if (isNaN(pickCount) || pickCount < 0) {
-    return res.status(400).json({ error: "A valid pick count (0 or greater) is required" });
+    return res
+      .status(400)
+      .json({ error: "A valid pick count (0 or greater) is required" });
   }
 
   try {
@@ -1012,24 +1079,24 @@ router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
       let usedPicks = [...track.used_picks]; // Create a copy
       let availablePicks = [...track.available_picks]; // Create a copy
       let wrongPick = track.wrong_pick;
-      
+
       const originalUsedPicksLength = usedPicks.length;
-      
+
       // If the track has more used picks than the target count, remove excess picks
       if (usedPicks.length > pickCount) {
         // Get the picks that need to be removed (from the end)
         const picksToRemove = usedPicks.slice(pickCount);
-        
+
         // Keep only the first 'pickCount' picks
         usedPicks = usedPicks.slice(0, pickCount);
-        
+
         // Add the removed picks back to available_picks if they're not already there
-        picksToRemove.forEach(pick => {
+        picksToRemove.forEach((pick) => {
           if (pick !== "placeholder" && !availablePicks.includes(pick)) {
             availablePicks.push(pick);
           }
         });
-        
+
         // Handle wrong_pick logic
         if (wrongPick) {
           // If pickCount is 0, clear wrong_pick
@@ -1043,17 +1110,17 @@ router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
             }
           }
         }
-        
+
         // Update the track
         const updateData = {
           used_picks: usedPicks,
           available_picks: availablePicks,
           wrong_pick: wrongPick,
-          current_pick: null // Clear current pick as requested
+          current_pick: null, // Clear current pick as requested
         };
-        
+
         trackUpdates.push(track.update(updateData));
-        
+
         updatedTracks.push({
           trackId: track.id,
           userId: track.user_id,
@@ -1062,7 +1129,7 @@ router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
           newUsedPicksCount: usedPicks.length,
           removedPicks: picksToRemove,
           wrongPickCleared: track.wrong_pick !== wrongPick,
-          newWrongPick: wrongPick
+          newWrongPick: wrongPick,
         });
       } else {
         // Track already has pickCount or fewer picks, but still check wrong_pick logic
@@ -1070,11 +1137,13 @@ router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
           const firstUsedPick = usedPicks[0];
           if (wrongPick !== firstUsedPick) {
             wrongPick = null;
-            trackUpdates.push(track.update({ 
-              wrong_pick: wrongPick,
-              current_pick: null 
-            }));
-            
+            trackUpdates.push(
+              track.update({
+                wrong_pick: wrongPick,
+                current_pick: null,
+              })
+            );
+
             updatedTracks.push({
               trackId: track.id,
               userId: track.user_id,
@@ -1083,7 +1152,7 @@ router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
               newUsedPicksCount: usedPicks.length,
               removedPicks: [],
               wrongPickCleared: true,
-              newWrongPick: wrongPick
+              newWrongPick: wrongPick,
             });
           } else {
             // Just clear current_pick
@@ -1091,11 +1160,13 @@ router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
           }
         } else if (pickCount === 0 && wrongPick) {
           // Clear wrong_pick if resetting to 0 picks
-          trackUpdates.push(track.update({ 
-            wrong_pick: null,
-            current_pick: null 
-          }));
-          
+          trackUpdates.push(
+            track.update({
+              wrong_pick: null,
+              current_pick: null,
+            })
+          );
+
           updatedTracks.push({
             trackId: track.id,
             userId: track.user_id,
@@ -1104,7 +1175,7 @@ router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
             newUsedPicksCount: usedPicks.length,
             removedPicks: [],
             wrongPickCleared: true,
-            newWrongPick: null
+            newWrongPick: null,
           });
         } else {
           // Just clear current_pick
@@ -1121,9 +1192,8 @@ router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
       resetToPickCount: pickCount,
       totalTracksProcessed: tracks.length,
       tracksModified: updatedTracks.length,
-      modifiedTracks: updatedTracks
+      modifiedTracks: updatedTracks,
     });
-
   } catch (error) {
     console.error("Error resetting tracks:", error);
     res.status(500).json({
