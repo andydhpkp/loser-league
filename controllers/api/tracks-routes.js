@@ -1203,4 +1203,92 @@ router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
   }
 });
 
+// Route to fix current_pick for tracks with specific used_picks length
+router.put("/fix-current-pick/:length", async (req, res) => {
+  const targetLength = parseInt(req.params.length);
+
+  if (isNaN(targetLength) || targetLength < 1) {
+    return res.status(400).json({
+      error: "A valid length (1 or greater) is required",
+    });
+  }
+
+  try {
+    // Find all alive tracks where current_pick is null or empty
+    const tracksToFix = await Track.findAll({
+      where: {
+        wrong_pick: null, // Only alive tracks
+        [Op.or]: [{ current_pick: null }, { current_pick: "" }],
+      },
+      include: [
+        {
+          model: User,
+          attributes: ["id", "first_name", "last_name", "username", "email"],
+        },
+      ],
+    });
+
+    if (!tracksToFix || tracksToFix.length === 0) {
+      return res.status(404).json({
+        message: "No alive tracks found with null current_pick",
+      });
+    }
+
+    const updatedTracks = [];
+    const skippedTracks = [];
+    const trackUpdates = [];
+
+    // Process each track
+    for (const track of tracksToFix) {
+      const usedPicks = track.used_picks || [];
+
+      // Check if the used_picks length matches our target length
+      if (usedPicks.length === targetLength) {
+        // Get the last pick from used_picks
+        const lastPick = usedPicks[usedPicks.length - 1];
+
+        // Update current_pick to the last used pick
+        trackUpdates.push(track.update({ current_pick: lastPick }));
+
+        updatedTracks.push({
+          trackId: track.id,
+          userId: track.user_id,
+          username: track.User ? track.User.username : "Unknown",
+          usedPicksLength: usedPicks.length,
+          newCurrentPick: lastPick,
+          usedPicks: usedPicks,
+        });
+      } else {
+        // Track doesn't match our target length, so we skip it
+        skippedTracks.push({
+          trackId: track.id,
+          userId: track.user_id,
+          username: track.User ? track.User.username : "Unknown",
+          usedPicksLength: usedPicks.length,
+          reason: `Used picks length (${usedPicks.length}) doesn't match target length (${targetLength})`,
+        });
+      }
+    }
+
+    // Wait for all updates to complete
+    await Promise.all(trackUpdates);
+
+    res.json({
+      message: `Successfully fixed current_pick for ${updatedTracks.length} alive tracks with ${targetLength} used picks`,
+      targetLength: targetLength,
+      totalTracksChecked: tracksToFix.length,
+      tracksUpdated: updatedTracks.length,
+      tracksSkipped: skippedTracks.length,
+      updatedTracks: updatedTracks,
+      skippedTracks: skippedTracks,
+    });
+  } catch (error) {
+    console.error("Error fixing current_pick:", error);
+    res.status(500).json({
+      error: "An error occurred while fixing current_pick",
+      errorMessage: error.message,
+    });
+  }
+});
+
 module.exports = router;
