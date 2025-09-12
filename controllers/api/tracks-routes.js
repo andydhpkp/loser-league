@@ -1291,4 +1291,90 @@ router.put("/fix-current-pick/:length", async (req, res) => {
   }
 });
 
+// Route to reset current picks for all alive tracks of a specific user
+router.put("/user/:userId/reset-current-picks", async (req, res) => {
+  const userId = req.params.userId;
+
+  if (!userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  try {
+    // Find all alive tracks for this user that have a current pick
+    const userAliveTracks = await Track.findAll({
+      where: {
+        user_id: userId,
+        wrong_pick: null, // Only alive tracks
+        current_pick: {
+          [Op.and]: [
+            { [Op.ne]: null }, // Not null
+            { [Op.ne]: "" }, // Not empty string
+          ],
+        },
+      },
+      include: [
+        {
+          model: User,
+          attributes: ["id", "first_name", "last_name", "username", "email"],
+        },
+      ],
+    });
+
+    if (!userAliveTracks || userAliveTracks.length === 0) {
+      return res.status(404).json({
+        message: "No alive tracks with current picks found for this user",
+      });
+    }
+
+    const updatedTracks = [];
+    const trackUpdates = [];
+
+    // Process each track
+    for (const track of userAliveTracks) {
+      const currentPick = track.current_pick;
+      let availablePicks = [...track.available_picks]; // Create a copy
+
+      // Add current_pick back to available_picks if it's not already there
+      if (currentPick && !availablePicks.includes(currentPick)) {
+        availablePicks.push(currentPick);
+      }
+
+      // Update the track: clear current_pick and update available_picks
+      trackUpdates.push(
+        track.update({
+          current_pick: null,
+          available_picks: availablePicks,
+        })
+      );
+
+      updatedTracks.push({
+        trackId: track.id,
+        userId: track.user_id,
+        username: track.User ? track.User.username : "Unknown",
+        resetPick: currentPick,
+        newAvailablePicksCount: availablePicks.length,
+      });
+    }
+
+    // Wait for all updates to complete
+    await Promise.all(trackUpdates);
+
+    res.json({
+      message: `Successfully reset current picks for ${updatedTracks.length} alive tracks for user ${userId}`,
+      userId: userId,
+      username: userAliveTracks[0].User
+        ? userAliveTracks[0].User.username
+        : "Unknown",
+      tracksReset: updatedTracks.length,
+      resetTracks: updatedTracks,
+    });
+  } catch (error) {
+    console.error("Error resetting user's current picks:", error);
+    res.status(500).json({
+      error: "An error occurred while resetting user's current picks",
+      errorMessage: error.message,
+    });
+  }
+});
+
 module.exports = router;
