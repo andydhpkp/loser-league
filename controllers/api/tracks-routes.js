@@ -1481,4 +1481,96 @@ router.put("/user/:userId/move-last-used-to-available", async (req, res) => {
   }
 });
 
+// Route to reduce used_picks to a specific length and update current_pick
+router.put("/reduce-used-picks/:trackId/:targetLength", (req, res) => {
+  const trackId = req.params.trackId;
+  const targetLength = parseInt(req.params.targetLength);
+
+  if (!trackId) {
+    return res.status(400).json({ error: "Track ID is required" });
+  }
+
+  if (isNaN(targetLength) || targetLength < 0) {
+    return res
+      .status(400)
+      .json({ error: "A valid target length (0 or greater) is required" });
+  }
+
+  // Fetch the track by its ID
+  Track.findOne({
+    where: {
+      id: trackId,
+    },
+  })
+    .then((dbTrack) => {
+      if (!dbTrack) {
+        return res.status(404).json({ message: "No track found with this id" });
+      }
+
+      // Retrieve the current arrays
+      let usedPicks = [...dbTrack.used_picks]; // Create a copy
+      let availablePicks = [...dbTrack.available_picks]; // Create a copy
+      let currentPick = dbTrack.current_pick;
+
+      // If used_picks is already at or below target length, no changes needed
+      if (usedPicks.length <= targetLength) {
+        return res.status(400).json({
+          message: `Used picks array already has ${usedPicks.length} elements, which is <= target length of ${targetLength}`,
+          currentUsedPicksLength: usedPicks.length,
+          targetLength: targetLength,
+        });
+      }
+
+      // Calculate how many picks to remove
+      const picksToRemove = usedPicks.length - targetLength;
+
+      // Get the picks that will be removed (from the end)
+      const removedPicks = usedPicks.slice(-picksToRemove);
+
+      // Remove the picks from used_picks
+      usedPicks = usedPicks.slice(0, targetLength);
+
+      // Add removed picks back to available_picks (if not already there)
+      removedPicks.forEach((pick) => {
+        if (pick !== "placeholder" && !availablePicks.includes(pick)) {
+          availablePicks.push(pick);
+        }
+      });
+
+      // Set current_pick to the last element in the shortened used_picks array
+      // (or null if the array is now empty)
+      if (usedPicks.length > 0) {
+        currentPick = usedPicks[usedPicks.length - 1];
+      } else {
+        currentPick = null;
+      }
+
+      // Update the track with the modified values
+      return dbTrack.update({
+        used_picks: usedPicks,
+        available_picks: availablePicks,
+        current_pick: currentPick,
+      });
+    })
+    .then((updatedTrack) => {
+      res.json({
+        message: `Successfully reduced used picks to ${targetLength} elements`,
+        trackId: trackId,
+        previousUsedPicksLength:
+          updatedTrack.used_picks.length +
+          (updatedTrack.used_picks.length - targetLength),
+        newUsedPicksLength: updatedTrack.used_picks.length,
+        newCurrentPick: updatedTrack.current_pick,
+        updatedTrack: updatedTrack,
+      });
+    })
+    .catch((err) => {
+      console.log(err);
+      res.status(500).json({
+        error: "An error occurred while updating the track",
+        errorMessage: err.message,
+      });
+    });
+});
+
 module.exports = router;
