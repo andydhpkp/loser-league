@@ -1573,4 +1573,121 @@ router.put("/reduce-used-picks/:trackId/:targetLength", (req, res) => {
     });
 });
 
+// Route to reduce used_picks to a specific length for ALL tracks that exceed the target length
+router.put("/reduce-all-used-picks/:targetLength", async (req, res) => {
+  const targetLength = parseInt(req.params.targetLength);
+
+  if (isNaN(targetLength) || targetLength < 0) {
+    return res
+      .status(400)
+      .json({ error: "A valid target length (0 or greater) is required" });
+  }
+
+  try {
+    // Fetch all tracks
+    const tracks = await Track.findAll({
+      include: [
+        {
+          model: User,
+          attributes: ["id", "first_name", "last_name", "username", "email"],
+        },
+      ],
+    });
+
+    if (!tracks || tracks.length === 0) {
+      return res.status(404).json({ message: "No tracks found" });
+    }
+
+    const updatedTracks = [];
+    const skippedTracks = [];
+    const trackUpdates = [];
+
+    // Process each track
+    for (const track of tracks) {
+      let usedPicks = [...track.used_picks]; // Create a copy
+      let availablePicks = [...track.available_picks]; // Create a copy
+      let currentPick = track.current_pick;
+
+      const originalUsedPicksLength = usedPicks.length;
+
+      // Only process tracks that exceed the target length
+      if (usedPicks.length > targetLength) {
+        // Calculate how many picks to remove
+        const picksToRemove = usedPicks.length - targetLength;
+
+        // Get the picks that will be removed (from the end)
+        const removedPicks = usedPicks.slice(-picksToRemove);
+
+        // Remove the picks from used_picks
+        usedPicks = usedPicks.slice(0, targetLength);
+
+        // Add removed picks back to available_picks (if not already there)
+        removedPicks.forEach((pick) => {
+          if (pick !== "placeholder" && !availablePicks.includes(pick)) {
+            availablePicks.push(pick);
+          }
+        });
+
+        // Set current_pick to the last element in the shortened used_picks array
+        // (or null if the array is now empty)
+        if (usedPicks.length > 0) {
+          currentPick = usedPicks[usedPicks.length - 1];
+        } else {
+          currentPick = null;
+        }
+
+        // Update the track
+        const updateData = {
+          used_picks: usedPicks,
+          available_picks: availablePicks,
+          current_pick: currentPick,
+        };
+
+        trackUpdates.push(track.update(updateData));
+
+        updatedTracks.push({
+          trackId: track.id,
+          userId: track.user_id,
+          username: track.User ? track.User.username : "Unknown",
+          originalUsedPicksLength: originalUsedPicksLength,
+          newUsedPicksLength: usedPicks.length,
+          removedPicks: removedPicks,
+          newCurrentPick: currentPick,
+          picksMovedToAvailable: removedPicks.filter(
+            (pick) => pick !== "placeholder"
+          ),
+        });
+      } else {
+        // Track already at or below target length
+        skippedTracks.push({
+          trackId: track.id,
+          userId: track.user_id,
+          username: track.User ? track.User.username : "Unknown",
+          currentUsedPicksLength: originalUsedPicksLength,
+          reason: `Already at or below target length of ${targetLength}`,
+        });
+      }
+    }
+
+    // Wait for all updates to complete
+    await Promise.all(trackUpdates);
+
+    res.json({
+      message: `Successfully reduced used picks to ${targetLength} elements for ${updatedTracks.length} tracks`,
+      targetLength: targetLength,
+      totalTracksProcessed: tracks.length,
+      tracksUpdated: updatedTracks.length,
+      tracksSkipped: skippedTracks.length,
+      updatedTracks: updatedTracks,
+      skippedTracks: skippedTracks,
+    });
+  } catch (error) {
+    console.error("Error reducing used picks:", error);
+    res.status(500).json({
+      error: "An error occurred while reducing used picks",
+      errorMessage: error.message,
+    });
+  }
+});
+
 module.exports = router;
