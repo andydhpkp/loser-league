@@ -196,47 +196,69 @@ router.post("/", (req, res) => {
 });
 
 //Make Pick
-router.put("/:id", (req, res) => {
-  // First, fetch the current track
-  Track.findOne({
-    where: {
-      id: req.params.id,
-    },
-  })
-    .then((dbTrack) => {
-      if (!dbTrack) {
-        res.status(404).json({ message: "No track found with this id" });
-        return;
-      }
+//Make Pick - Fixed version with database transactions
+router.put("/:id", async (req, res) => {
+  const transaction = await sequelize.transaction();
 
-      // Retrieve and modify available_picks and used_picks using the getters
-      let availablePicks = dbTrack.available_picks;
-      let usedPicks = dbTrack.used_picks;
-
-      const index = availablePicks.indexOf(req.body.current_pick);
-
-      if (index !== -1) {
-        availablePicks.splice(index, 1); // Remove from available_picks
-        usedPicks.push(req.body.current_pick); // Add to used_picks
-      }
-
-      // Use the setters to store the modified arrays
-      dbTrack.available_picks = availablePicks;
-      dbTrack.used_picks = usedPicks;
-
-      // Update the current_pick property
-      dbTrack.current_pick = req.body.current_pick;
-
-      // Now, save the track with the modified properties
-      return dbTrack.save();
-    })
-    .then((updatedTrack) => {
-      res.json(updatedTrack);
-    })
-    .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+  try {
+    // Fetch the track with a lock to prevent concurrent modifications
+    const dbTrack = await Track.findOne({
+      where: {
+        id: req.params.id,
+      },
+      lock: transaction.LOCK.UPDATE,
+      transaction,
     });
+
+    if (!dbTrack) {
+      await transaction.rollback();
+      return res.status(404).json({ message: "No track found with this id" });
+    }
+
+    // Retrieve and modify available_picks and used_picks using the getters
+    let availablePicks = dbTrack.available_picks;
+    let usedPicks = dbTrack.used_picks;
+    const newPick = req.body.current_pick;
+
+    // Always set the current pick first
+    dbTrack.current_pick = newPick;
+
+    // Handle array updates
+    const index = availablePicks.indexOf(newPick);
+    if (index !== -1) {
+      // Pick exists in available_picks - normal flow
+      availablePicks.splice(index, 1); // Remove from available_picks
+      usedPicks.push(newPick); // Add to used_picks
+    } else {
+      // Pick not in available_picks - add to used_picks if not already there
+      if (!usedPicks.includes(newPick)) {
+        usedPicks.push(newPick);
+      }
+      console.warn(
+        `Pick ${newPick} not found in available_picks for track ${req.params.id}`
+      );
+    }
+
+    // Use the setters to store the modified arrays
+    dbTrack.available_picks = availablePicks;
+    dbTrack.used_picks = usedPicks;
+
+    // Save with transaction
+    const updatedTrack = await dbTrack.save({ transaction });
+
+    // Commit the transaction
+    await transaction.commit();
+
+    res.json(updatedTrack);
+  } catch (err) {
+    // Rollback on error
+    await transaction.rollback();
+    console.error("Error updating track:", err);
+    res.status(500).json({
+      error: "Failed to update track",
+      message: err.message,
+    });
+  }
 });
 
 //Set Losing Team
