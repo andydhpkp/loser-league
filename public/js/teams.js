@@ -137,13 +137,28 @@ async function fetchScheduleData(weekNumber) {
     for (let date in data.content.schedule) {
       data.content.schedule[date].games.forEach((game) => {
         if (game.status.type.completed) {
-          game.competitions[0].competitors.forEach((competitor) => {
-            if (competitor.winner) {
-              winners.push(competitor.team.displayName);
-            } else {
-              losers.push(competitor.team.displayName);
-            }
-          });
+          const competitors = game.competitions[0].competitors;
+          const homeTeam = competitors.find((c) => c.homeAway === "home");
+          const awayTeam = competitors.find((c) => c.homeAway === "away");
+
+          // Check if it's a tie by comparing scores
+          const homeScore = homeTeam.score;
+          const awayScore = awayTeam.score;
+
+          if (homeScore === awayScore) {
+            // It's a tie - both teams should be in winners array (bad picks)
+            winners.push(homeTeam.team.displayName);
+            winners.push(awayTeam.team.displayName);
+          } else {
+            // Normal win/loss
+            competitors.forEach((competitor) => {
+              if (competitor.winner) {
+                winners.push(competitor.team.displayName);
+              } else {
+                losers.push(competitor.team.displayName);
+              }
+            });
+          }
         }
       });
     }
