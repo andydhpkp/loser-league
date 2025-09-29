@@ -96,8 +96,8 @@ async function finalScores() {
               thisWeeksGames[p].AwayTeamScore ===
               thisWeeksGames[p].HomeTeamScore
             ) {
-              postLoserRecord(thisWeeksGames[p].AwayTeam, [0, 1]);
-              postLoserRecord(thisWeeksGames[p].HomeTeam, [0, 1]);
+              postWinnerRecord(thisWeeksGames[p].AwayTeam, [1, 0]);
+              postWinnerRecord(thisWeeksGames[p].HomeTeam, [1, 0]);
             }
           }
           await resetCurrentPicks();
