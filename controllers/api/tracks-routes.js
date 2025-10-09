@@ -1789,7 +1789,7 @@ router.put("/fix-wrong-pick/:minLength", async (req, res) => {
 });
 
 // Route to set wrong_pick if the last used pick matches teams passed in the body
-router.put("/set-wrong-pick-for-teams", async (req, res) => {
+router.put("/bug-fix/set-wrong-pick-for-teams", async (req, res) => {
   const { teams } = req.body;
 
   // Validate that teams array is provided
