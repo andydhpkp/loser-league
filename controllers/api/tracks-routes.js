@@ -1885,4 +1885,98 @@ router.put("/bug-fix/set-wrong-pick-for-teams", async (req, res) => {
   }
 });
 
+// Route to clear wrong_pick if it matches current_pick for tracks with specific used_picks length
+router.put("/bug-fix/clear-wrong-pick-if-matches/:length", async (req, res) => {
+  const targetLength = parseInt(req.params.length);
+
+  if (isNaN(targetLength) || targetLength < 0) {
+    return res.status(400).json({
+      error: "A valid length (0 or greater) is required",
+    });
+  }
+
+  try {
+    // Fetch all tracks with the specified used_picks length
+    const tracks = await Track.findAll({
+      include: [
+        {
+          model: User,
+          attributes: ["id", "first_name", "last_name", "username", "email"],
+        },
+      ],
+    });
+
+    if (!tracks || tracks.length === 0) {
+      return res.status(404).json({ message: "No tracks found" });
+    }
+
+    const updatedTracks = [];
+    const skippedTracks = [];
+    const trackUpdates = [];
+
+    // Process each track
+    for (const track of tracks) {
+      let usedPicks = [...track.used_picks]; // Create a copy
+
+      // Only process tracks with the target used_picks length
+      if (usedPicks.length === targetLength) {
+        // Check if wrong_pick matches current_pick
+        if (track.wrong_pick && track.current_pick && track.wrong_pick === track.current_pick) {
+          // Clear wrong_pick
+          trackUpdates.push(track.update({ wrong_pick: null }));
+
+          updatedTracks.push({
+            trackId: track.id,
+            userId: track.user_id,
+            username: track.User ? track.User.username : "Unknown",
+            usedPicksLength: usedPicks.length,
+            previousWrongPick: track.wrong_pick,
+            currentPick: track.current_pick,
+            action: "Cleared wrong_pick because it matched current_pick",
+          });
+        } else {
+          // wrong_pick doesn't match current_pick, skip
+          skippedTracks.push({
+            trackId: track.id,
+            userId: track.user_id,
+            username: track.User ? track.User.username : "Unknown",
+            usedPicksLength: usedPicks.length,
+            wrongPick: track.wrong_pick,
+            currentPick: track.current_pick,
+            reason: "wrong_pick doesn't match current_pick or one of them is null",
+          });
+        }
+      } else {
+        // Track doesn't have the target length, skip
+        skippedTracks.push({
+          trackId: track.id,
+          userId: track.user_id,
+          username: track.User ? track.User.username : "Unknown",
+          usedPicksLength: usedPicks.length,
+          reason: `Used picks length (${usedPicks.length}) doesn't match target length (${targetLength})`,
+        });
+      }
+    }
+
+    // Wait for all updates to complete
+    await Promise.all(trackUpdates);
+
+    res.json({
+      message: `Successfully cleared wrong_pick for ${updatedTracks.length} tracks with used_picks length = ${targetLength}`,
+      targetLength: targetLength,
+      totalTracksProcessed: tracks.length,
+      tracksUpdated: updatedTracks.length,
+      tracksSkipped: skippedTracks.length,
+      updatedTracks: updatedTracks,
+      skippedTracks: skippedTracks,
+    });
+  } catch (error) {
+    console.error("Error clearing wrong_pick:", error);
+    res.status(500).json({
+      error: "An error occurred while clearing wrong_pick",
+      errorMessage: error.message,
+    });
+  }
+});
+
 module.exports = router;
