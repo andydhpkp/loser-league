@@ -477,6 +477,26 @@ router.delete("/clear-memory/delete-wrong-pick", async (req, res) => {
 
 // Get alive tracks with null current_pick
 router.get("/all-tracks/alive-without-pick", (req, res) => {
+  // Temporary fix, update next year
+  // Hardcode week number based on actual date
+  // Week 1: Sep 5, 2024 (Thursday)
+  // Each subsequent week is 7 days later
+  const now = new Date();
+  const week1Start = new Date('2024-09-05T00:00:00-06:00'); // Week 1 Thursday in Mountain Time
+  const millisecondsPerWeek = 7 * 24 * 60 * 60 * 1000;
+
+  const weeksSinceStart = Math.floor((now - week1Start) / millisecondsPerWeek);
+  const weekNumber = weeksSinceStart + 1;
+
+  console.log(`Calculated week number: ${weekNumber} based on date: ${now.toISOString()}`);
+
+  // Validate calculated weekNumber
+  if (weekNumber < 1 || weekNumber > 18) {
+    return res.status(400).json({
+      error: `Invalid calculated week number: ${weekNumber}. Season may not have started or may be over.`
+    });
+  }
+
   Track.findAll({
     where: {
       wrong_pick: null, // Tracks that are still "alive"
@@ -498,14 +518,31 @@ router.get("/all-tracks/alive-without-pick", (req, res) => {
       },
     ],
   })
-    .then((dbTrack) => {
-      if (!dbTrack || dbTrack.length === 0) {
+    .then((dbTracks) => {
+      if (!dbTracks || dbTracks.length === 0) {
         res
           .status(404)
           .json({ message: "No alive tracks without a current pick found" });
         return;
       }
-      res.json(dbTrack);
+
+      // Filter tracks to only include those that haven't made enough picks yet
+      // A track needs a pick if used_picks.length < weekNumber
+      const tracksNeedingPicks = dbTracks.filter((track) => {
+        const usedPicks = track.used_picks || [];
+        return usedPicks.length < weekNumber;
+      });
+
+      if (tracksNeedingPicks.length === 0) {
+        res
+          .status(404)
+          .json({
+            message: `No alive tracks found that need picks for week ${weekNumber}. All tracks have already made ${weekNumber} or more picks.`
+          });
+        return;
+      }
+
+      res.json(tracksNeedingPicks);
     })
     .catch((err) => {
       console.error(err);

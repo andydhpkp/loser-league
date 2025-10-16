@@ -1225,7 +1225,8 @@ async function forcePicks(weekNumber) {
     forcePickCalls[weekNumber] = (forcePickCalls[weekNumber] || 0) + 1;
     localStorage.setItem("forcePickCalls", JSON.stringify(forcePickCalls));
 
-    // Fetch all alive tracks (wrong_pick is null)
+    // Fetch all alive tracks (wrong_pick is null) that need picks for this week
+    // Note: Week number is now calculated automatically on the backend based on the current date
     const response = await fetch("/api/tracks/all-tracks/alive-without-pick");
     const aliveTracks = await response.json();
 
