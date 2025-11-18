@@ -711,7 +711,7 @@ async function doTeamsExist() {
 }
 
 function getCurrentWeek() {
-  localStorage.setItem("thisWeek", "11");
+  localStorage.setItem("thisWeek", "12");
 }
 
 // async function getCurrentWeek() {
