@@ -21,6 +21,8 @@
   responses.
 - League score rendering now tolerates an empty or incomplete schedule feed
   when checking whether the prior week's final game has completed.
+- Resetting all NFL Team records now passes the model's array representation
+  through its serializer instead of failing on a raw storage string.
 
 ## Remaining items requiring integration or live-data characterization
 

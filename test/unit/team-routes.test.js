@@ -71,7 +71,9 @@ test("Team routes preserve every successful endpoint contract", async (t) => {
     calls.some(
       ([name, values, query]) =>
         name === "update" &&
-        values.team_record === "0,0" &&
+        Array.isArray(values.team_record) &&
+        values.team_record[0] === 0 &&
+        values.team_record[1] === 0 &&
         Object.keys(query.where).length === 0
     )
   );

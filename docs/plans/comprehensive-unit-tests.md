@@ -54,15 +54,14 @@ change.
 
 Implemented with the following evidence:
 
-- `npm run test:unit`: 46 passing, 2 skipped known-defect regressions.
-- `npm run test:unit:coverage`: passing at 84.21% line coverage.
+- `npm run test:unit`: 49 passing, with no skips.
+- `npm run test:unit:coverage`: passing at 84.57% line coverage.
 - `npm run lint:browser`: passing.
-- `npm run test:integration`: safely skipped because `TEST_DATABASE_URL` is not
-  configured.
-- `npm run test:smoke`: four passing; the existing league-page
-  `AwayTeamScore` failure remains reproduced.
+- `npm run test:integration`: 3 passing against the disposable
+  `loser_league_test` MySQL schema.
+- `npm run test:smoke`: all five page-entry scenarios passing.
 
-The test work confirmed two promise-chain double-response defects, recorded in
-`docs/refactor/known-issues.md`. The next safe step is to fix each through its
-skipped regression test in a separate bug-fix change, then run MySQL integration
-coverage with a disposable database.
+The test work confirmed and corrected two promise-chain double-response
+defects, missing external schedule handling on the league page, and a Team
+record-reset serialization mismatch. The corrections retain existing
+successful response contracts.

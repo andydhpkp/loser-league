@@ -68,8 +68,8 @@ become merge gates. This file is no longer updated for routine future work.
   data; all five browser page-entry smoke scenarios now pass.
 - Unit/route coverage: 49 passing, 84.57% line coverage.
 - Browser ESLint: passing.
-- MySQL integration suite: safely skipped because `TEST_DATABASE_URL` is not
-  configured.
+- MySQL integration suite: 3 passing against the disposable
+  `loser_league_test` schema.
 
-The next safe step is to run the integration suite against a disposable MySQL
-database before creating the pull request.
+The next safe step is to create the pull request after the final committed
+source state passes the complete pull-request gate.
