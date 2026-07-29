@@ -240,6 +240,13 @@ npm run test:unit
 npm run lint:browser
 ```
 
+Run the unit coverage gate for changes to application infrastructure, models,
+domain modules, browser calculations, or API controllers:
+
+```sh
+npm run test:unit:coverage
+```
+
 Run MySQL integration tests for route, model, transaction, migration, session,
 or database behavior:
 
@@ -264,6 +271,26 @@ npm test
 CI should run every available required check. Until full-suite CI is
 established, manual execution must be recorded explicitly. A skipped,
 unavailable, or sandbox-blocked check is not a pass.
+
+### Pull request creation gate
+
+Immediately before creating any pull request, run all of the following from the
+final committed source state:
+
+```sh
+npm run test:unit
+npm run test:unit:coverage
+npm run lint:browser
+TEST_DATABASE_URL=mysql://user:password@127.0.0.1:3306/loser_league_test \
+  npm run test:integration
+npm run test:smoke
+```
+
+Every command must pass. Do not create the pull request when a check fails,
+skips, cannot run, or is blocked by the environment. A documented known failure
+is still a failure. Fix the failure or establish the required test environment,
+rerun the entire gate against the final source state, and only then create the
+pull request.
 
 ## Review and handoff
 

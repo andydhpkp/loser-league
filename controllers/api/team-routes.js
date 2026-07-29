@@ -149,7 +149,7 @@ router.delete("/", (req, res) => {
 // Reset all teams' records to 0-0
 router.put("/reset-records", (req, res) => {
   Team.update(
-    { team_record: "0,0" },
+    { team_record: [0, 0] },
     {
       where: {},
     }

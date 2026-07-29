@@ -59,3 +59,17 @@ reproduced through those interfaces.
 
 Establish full-suite CI so unit, integration, lint, and browser verification
 become merge gates. This file is no longer updated for routine future work.
+
+## 2026 comprehensive-test defect follow-up
+
+- Corrected the duplicate-response paths characterized by the User add-win and
+  individual Track-reduction route tests.
+- Corrected league score rendering for empty or incomplete upstream schedule
+  data; all five browser page-entry smoke scenarios now pass.
+- Unit/route coverage: 49 passing, 84.57% line coverage.
+- Browser ESLint: passing.
+- MySQL integration suite: 3 passing against the disposable
+  `loser_league_test` schema.
+
+The next safe step is to create the pull request after the final committed
+source state passes the complete pull-request gate.

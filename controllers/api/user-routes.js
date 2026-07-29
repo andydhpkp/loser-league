@@ -277,7 +277,8 @@ router.put("/:id/add-win", (req, res) => {
   User.findByPk(req.params.id)
     .then((user) => {
       if (!user) {
-        return res.status(404).json({ message: "No user found with this id" });
+        res.status(404).json({ message: "No user found with this id" });
+        return null;
       }
 
       const currentRecord = user.user_record || [];
@@ -315,6 +316,10 @@ router.put("/:id/add-win", (req, res) => {
       return user.save();
     })
     .then((updatedUser) => {
+      if (!updatedUser) {
+        return;
+      }
+
       res.json({
         message: "Win added successfully",
         user_record: updatedUser.user_record,

@@ -56,6 +56,12 @@ Run the relevant checks documented in `docs/engineering/README.md`. Database
 tests require a disposable schema supplied through `TEST_DATABASE_URL` whose
 name contains `test`.
 
+Before creating any pull request, run every required check in
+`docs/engineering/README.md`, including unit coverage, browser lint, integration
+tests with a disposable database, and browser smoke tests. Every check must
+pass. A skipped, unavailable, blocked, or known-failing check blocks pull
+request creation.
+
 Report exact commands and results, skipped or blocked checks, residual risk,
 and the next safe step. A change is not complete when required code, tests,
 documentation, migrations, or verification evidence is missing.

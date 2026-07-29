@@ -27,7 +27,7 @@ export async function finalScores() {
                 Object.keys(thisWeeksGamesCheckerMonday).length - 1
               ]
             ];
-          if (lastGame.AwayTeamScore == null) {
+          if (lastGame?.AwayTeamScore == null) {
             MondayGameFinished = false;
           }
         }
@@ -156,6 +156,7 @@ async function fetchScheduleData(weekNumber) {
     return { winners, losers };
   } catch (error) {
     browserLogger.error("Error fetching the schedule data:", error);
+    return { winners: [], losers: [] };
   }
 }
 

@@ -30,7 +30,7 @@ test("PUT /api/teams/reset-records reaches the named route", async (t) => {
   assert.deepEqual(response.body, {
     message: "All team records reset to 0-0",
   });
-  assert.deepEqual(calls[0], [{ team_record: "0,0" }, { where: {} }]);
+  assert.deepEqual(calls[0], [{ team_record: [0, 0] }, { where: {} }]);
 });
 
 test("GET /api/users/username/:username reaches the named route", async (t) => {
