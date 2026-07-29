@@ -80,6 +80,8 @@ Static/named paths must be registered before `/:id` so they are reachable.
 ## Other routes
 
 - `GET /api/proxy/nfl-2025`: proxies the external NFL fixture feed.
+- `GET /api/proxy/nfl-odds`: proxies NFL spread data using the server-only
+  `ODDS_API_KEY`.
 - Static files are served from `public/`.
 
 ## Error contract

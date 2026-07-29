@@ -29,10 +29,14 @@ Final verification and external integration follow-up.
 - Consolidated the model loader used by routes and seeds.
 - Fixed documented route, URL, secret-logging, force-pick, and strict-module
   defects.
+- Ensured failed force-pick commits do not activate global or per-track
+  cooldowns, with disposable-MySQL regression coverage.
+- Removed the browser-exposed Odds API credential and routed the unchanged
+  admin odds workflow through a server proxy configured by `ODDS_API_KEY`.
 
 ## Verification
 
-- Unit/route tests: 10 passing.
+- Unit/route tests: 11 passing.
 - Browser ESLint and ES-module syntax checks: passing.
 - Server/controller syntax checks: passing.
 - MySQL integration suite: safely skipped because `TEST_DATABASE_URL` is not

@@ -10,6 +10,7 @@ const { requestContext } = require("./middleware/request-context");
 function createApp({
   routes,
   sessionSecret = process.env.SESSION_SECRET,
+  oddsApiKey = process.env.ODDS_API_KEY,
   sessionStore,
   fetchImpl = global.fetch,
   logger = createLogger(),
@@ -57,6 +58,38 @@ function createApp({
         error instanceof UpstreamError
           ? error
           : new UpstreamError(undefined, error)
+      );
+    }
+  });
+
+  app.get("/api/proxy/nfl-odds", async (_req, res, next) => {
+    try {
+      if (!oddsApiKey) {
+        throw new UpstreamError("NFL odds configuration is unavailable");
+      }
+
+      const upstreamUrl = new URL(
+        "https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds/"
+      );
+      upstreamUrl.search = new URLSearchParams({
+        apiKey: oddsApiKey,
+        regions: "us",
+        markets: "spreads",
+        oddsFormat: "american",
+        bookmakers: "draftkings",
+      });
+
+      const response = await fetchImpl(upstreamUrl);
+      if (!response.ok) {
+        throw new UpstreamError("NFL odds data is unavailable");
+      }
+
+      res.json(await response.json());
+    } catch (error) {
+      next(
+        error instanceof UpstreamError
+          ? error
+          : new UpstreamError("NFL odds data is unavailable", error)
       );
     }
   });

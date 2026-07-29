@@ -43,12 +43,16 @@ logged.
 - Wrong picks remain recoverable by the existing reset and repair operations.
 - Force-pick work must not run concurrently and must not assign a team when no
   valid available pick exists.
+- Force-pick cooldowns become active only after the corresponding database
+  transaction commits successfully.
 - Batch maintenance must either complete consistently or roll back when its
   multi-row mutation fails.
 
 ## External schedule behavior
 
 - The server proxies the Fixture Download NFL feed.
+- The server proxies NFL odds using the server-only `ODDS_API_KEY`; browser
+  assets never contain the credential.
 - The browser also uses ESPN data for scores, teams, and matchup details.
 - External failures must produce a clear safe error while retaining enough
   context in a single server log for diagnosis.

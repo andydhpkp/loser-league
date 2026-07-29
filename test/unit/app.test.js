@@ -22,6 +22,33 @@ test("NFL proxy returns upstream JSON through the application interface", async 
   assert.deepEqual(response.body, upstreamBody);
 });
 
+test("NFL odds proxy keeps the API credential behind the server interface", async () => {
+  const upstreamBody = [{ id: "game-1", bookmakers: [] }];
+  let upstreamUrl;
+  const app = createApp({
+    routes: express.Router(),
+    sessionSecret: "test-session-secret",
+    oddsApiKey: "test-odds-api-key",
+    fetchImpl: async (url) => {
+      upstreamUrl = new URL(url);
+      return {
+        ok: true,
+        json: async () => upstreamBody,
+      };
+    },
+  });
+
+  const response = await request(app).get("/api/proxy/nfl-odds");
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body, upstreamBody);
+  assert.equal(upstreamUrl.hostname, "api.the-odds-api.com");
+  assert.equal(upstreamUrl.searchParams.get("apiKey"), "test-odds-api-key");
+  assert.equal(upstreamUrl.searchParams.get("regions"), "us");
+  assert.equal(upstreamUrl.searchParams.get("markets"), "spreads");
+  assert.equal(upstreamUrl.searchParams.get("bookmakers"), "draftkings");
+});
+
 test("unexpected route failures use one safe error interface", async () => {
   const routes = express.Router();
   const entries = [];

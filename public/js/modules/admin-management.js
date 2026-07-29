@@ -502,9 +502,7 @@ function createStatisticsModal(adminViewUserDiv, data) {
 
 async function getGameOdds(users) {
   try {
-    const response = await fetch(
-      "https://api.the-odds-api.com/v4/sports/americanfootball_nfl/odds/?apiKey=9935d03409a593557042e410f0de3da0&regions=us&markets=spreads&Format=american&bookmakers=draftkings"
-    );
+    const response = await fetch("/api/proxy/nfl-odds");
 
     if (!response.ok) throw new Error("Failed to fetch odds");
 
@@ -717,4 +715,3 @@ async function createTrack(user_id) {
     alert(response.statusText);
   }
 }
-

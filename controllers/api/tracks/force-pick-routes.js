@@ -59,10 +59,9 @@ router.put("/force-picks/all-alive", async (req, res) => {
     });
 
     if (!tracksNeedingPicks || tracksNeedingPicks.length === 0) {
-      // Release lock before returning
-      GLOBAL_FORCE_PICK_LOCK.isRunning = false;
-      GLOBAL_FORCE_PICK_LOCK.lastExecution = now;
       await transaction.commit();
+      GLOBAL_FORCE_PICK_LOCK.lastExecution = now;
+      GLOBAL_FORCE_PICK_LOCK.isRunning = false;
 
       return res.status(404).json({
         message: "No alive tracks without current picks found",
@@ -120,9 +119,6 @@ router.put("/force-picks/all-alive", async (req, res) => {
         // Save the updated track
         await track.save({ transaction });
 
-        // GUARD 5: Record this execution for the track
-        forcePickExecutions.set(track.id, now);
-
         updatedTracks.push({
           trackId: track.id,
           userId: track.user_id,
@@ -145,10 +141,12 @@ router.put("/force-picks/all-alive", async (req, res) => {
       }
     }
 
-    // GUARD 6: Update global execution time and release lock
+    await transaction.commit();
+    for (const track of updatedTracks) {
+      forcePickExecutions.set(track.trackId, now);
+    }
     GLOBAL_FORCE_PICK_LOCK.lastExecution = now;
     GLOBAL_FORCE_PICK_LOCK.isRunning = false;
-    await transaction.commit();
     logger.info("force_pick_completed", {
       processedTracks: updatedTracks.length,
       failedTracks: errors.length,

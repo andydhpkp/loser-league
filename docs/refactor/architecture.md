@@ -43,6 +43,8 @@ binding. The shared HTTP client owns request/error normalization.
   than constructing incompatible graphs.
 - Error middleware maps uncaught application errors to HTTP.
 - One structured logger owns redaction, levels, and output shape.
+- External NFL odds are fetched by a server proxy so `ODDS_API_KEY` is never
+  shipped in browser assets.
 
 ## Browser modules
 

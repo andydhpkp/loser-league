@@ -12,6 +12,8 @@
 - The Monday completion flag typo and successful password-reset redirect were
   corrected.
 - Force-pick completion no longer references an undefined `results` value.
+- The previously browser-exposed Odds API credential was removed from tracked
+  source; the server now reads its replacement from `ODDS_API_KEY`.
 
 ## Remaining items requiring integration or live-data characterization
 
