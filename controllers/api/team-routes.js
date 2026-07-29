@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const { Team } = require("../../models/my-index");
+const { logger } = require("../../server/lib/logger");
 
 router.get("/", (req, res) => {
   Team.findAll({})
@@ -7,12 +8,12 @@ router.get("/", (req, res) => {
       res.json(dbTeam);
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
-router.get("/:id", (req, res) => {
+router.get("/:id(\\d+)", (req, res) => {
   Team.findOne({
     where: {
       id: req.params.id,
@@ -26,8 +27,8 @@ router.get("/:id", (req, res) => {
       res.json(dbTeam);
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
@@ -46,8 +47,8 @@ router.get("/team/:team_name", (req, res) => {
       res.json(dbTeam);
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
@@ -62,13 +63,13 @@ router.post("/", (req, res) => {
       res.json(dbTeam);
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
 //update win/loss
-router.put("/:id", (req, res) => {
+router.put("/:id(\\d+)", (req, res) => {
   Team.update(req.body, {
     where: {
       id: req.params.id,
@@ -82,8 +83,8 @@ router.put("/:id", (req, res) => {
       res.json(dbTeam);
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
@@ -102,13 +103,13 @@ router.put("/team/:team_name", (req, res) => {
       res.json(dbTeam);
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
 //delete
-router.delete("/:id", (req, res) => {
+router.delete("/:id(\\d+)", (req, res) => {
   Team.destroy({
     where: {
       id: req.params.id,
@@ -122,8 +123,8 @@ router.delete("/:id", (req, res) => {
       res.json(dbTeam);
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
@@ -140,8 +141,8 @@ router.delete("/", (req, res) => {
       res.json(dbTeam);
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
@@ -161,8 +162,8 @@ router.put("/reset-records", (req, res) => {
       res.json({ message: "All team records reset to 0-0" });
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 

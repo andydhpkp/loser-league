@@ -4,3 +4,5 @@ node_modules
 .hardcode
 .DS_Store
 **/.DS_Store
+playwright-report
+test-results

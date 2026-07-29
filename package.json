@@ -10,16 +10,23 @@
     "google-auth-library": "^9.0.0",
     "mysql2": "^2.3.3",
     "nodemailer": "^6.7.3",
-    "nodemon": "^2.0.15",
     "sequelize": "^6.17.0"
   },
   "name": "loser-league",
   "description": "",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server/index.js",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon ./server",
+    "test": "npm run test:unit && npm run test:integration && npm run test:smoke",
+    "test:unit": "node --test \"test/unit/**/*.test.js\"",
+    "test:integration": "node --test \"test/integration/**/*.test.js\"",
+    "test:smoke": "PLAYWRIGHT_BROWSERS_PATH=0 playwright test",
+    "lint:browser": "eslint public/js",
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js",
     "seeds": "node seeds/index.js"
   },
   "repository": {
@@ -34,6 +41,10 @@
   "homepage": "https://github.com/andydhpkp/loser-league#readme",
   "web": "node index.js",
   "devDependencies": {
-    "sequelize-cli": "^6.6.1"
+    "@playwright/test": "^1.62.0",
+    "eslint": "^10.8.0",
+    "nodemon": "^2.0.15",
+    "sequelize-cli": "^6.6.1",
+    "supertest": "^7.2.2"
   }
 }

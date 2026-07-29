@@ -37,6 +37,45 @@ DB_NAME='loser_league_db'
 DB_USER='your_username'
 DB_PW='your_password'
 `
+
+Copy `.env.example` to `.env`, provide a long random `SESSION_SECRET`, and set
+`ODDS_API_KEY` to the credential from The Odds API. The ignored `.env` file is
+the only local file that should contain the real credential.
+The application targets Node.js 22 LTS.
+
+Development and production commands:
+
+```sh
+npm run dev
+npm start
+```
+
+## Verification
+
+Fast module and route tests:
+
+```sh
+npm run test:unit
+npm run lint:browser
+```
+
+MySQL integration tests require a disposable schema whose database name
+contains `test`:
+
+```sh
+TEST_DATABASE_URL=mysql://user:password@127.0.0.1:3306/loser_league_test \
+  npm run test:integration
+```
+
+Browser smoke tests run all five page entry modules against a static server:
+
+```sh
+PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium
+npm run test:smoke
+```
+
+Refactor architecture, behavior, route contracts, rules, decisions, and current
+status are indexed in `docs/refactor/README.md`.
 ## Usage
 Up to current status, click on create account and enter information. Once in, enter number of tracks you want to have and click the button. The matchups will then be displayed and that is as far as I have gotten.
 

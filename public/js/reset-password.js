@@ -1,4 +1,4 @@
-async function resetPasswordHandler(event) {
+export async function resetPasswordHandler(event) {
   event.preventDefault();
   const email = document.querySelector("#forgotPasswordEmail").value.trim();
   const newPassword = document
@@ -29,14 +29,15 @@ async function resetPasswordHandler(event) {
 
     if (response.ok) {
       alert("Password reset successful!");
-      window.localStorage.setItem("loggedInUser", username.toLowerCase());
-      location.href = "../profile.html";
+      location.href = "../index.html";
     } else {
       alert("Failed to reset password");
     }
   }
 }
 
-document
-  .querySelector("#resetPasswordBtn")
-  .addEventListener("click", resetPasswordHandler);
+export function bindResetPassword() {
+  document
+    .querySelector("#resetPasswordBtn")
+    .addEventListener("click", resetPasswordHandler);
+}

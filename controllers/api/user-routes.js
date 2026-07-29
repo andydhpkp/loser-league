@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const bcrypt = require("bcrypt");
 const { User, Track } = require("../../models/my-index");
+const { logger } = require("../../server/lib/logger");
 
 router.get("/", (req, res) => {
   User.findAll({
@@ -15,12 +16,12 @@ router.get("/", (req, res) => {
       res.json(dbUser);
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
-router.get("/:id", (req, res) => {
+router.get("/:id(\\d+)", (req, res) => {
   User.findOne({
     attributes: { exclude: ["password"] },
     where: {
@@ -41,8 +42,8 @@ router.get("/:id", (req, res) => {
       res.json(dbUser);
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
@@ -70,8 +71,8 @@ router.get("/username/:username", (req, res) => {
       res.json(dbUser);
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
@@ -93,8 +94,8 @@ router.post("/", (req, res) => {
       });
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
@@ -111,7 +112,6 @@ router.post("/login", (req, res) => {
     }
 
     //use User model's password validator
-    console.log("this is req.password " + JSON.stringify(req.body));
     const validPassword = dbUser.checkPassword(req.body.password);
 
     if (!validPassword) {
@@ -150,8 +150,8 @@ router.get("/logged", (req, res) => {
       res.json(dbUser);
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
@@ -167,7 +167,7 @@ router.post("/logout", (req, res) => {
 });
 
 //update
-router.put("/:id", (req, res) => {
+router.put("/:id(\\d+)", (req, res) => {
   User.update(req.body, {
     where: {
       id: req.params.id,
@@ -181,13 +181,13 @@ router.put("/:id", (req, res) => {
       res.json(dbUser);
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
 //delete
-router.delete("/:id", (req, res) => {
+router.delete("/:id(\\d+)", (req, res) => {
   User.destroy({
     where: {
       id: req.params.id,
@@ -201,8 +201,8 @@ router.delete("/:id", (req, res) => {
       res.json(dbUser);
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
@@ -221,8 +221,8 @@ router.delete("/username/:username", (req, res) => {
       res.json(dbUser);
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
@@ -255,13 +255,13 @@ router.post("/reset-password", (req, res) => {
           res.status(200).json({ message: "Password updated successfully!" });
         })
         .catch((err) => {
-          console.log(err);
-          res.status(500).json(err);
+          logger.error("route_operation_failed", { errorType: err.name });
+          res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
         });
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
@@ -324,8 +324,8 @@ router.put("/:id/add-win", (req, res) => {
       });
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 
@@ -347,8 +347,8 @@ router.get("/:id/wins", (req, res) => {
       });
     })
     .catch((err) => {
-      console.log(err);
-      res.status(500).json(err);
+      logger.error("route_operation_failed", { errorType: err.name });
+      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
     });
 });
 

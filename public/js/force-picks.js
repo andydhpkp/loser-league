@@ -1,10 +1,12 @@
+import { browserLogger } from "./logger.js";
+
 /**
  * Auto Pick Scheduler - Handles automatic pick selection for tracks
  * Only runs once per week after Thursday 6:20 PM Utah time
  * Includes multiple guard layers to prevent successive executions
  */
 
-class AutoPickScheduler {
+export class AutoPickScheduler {
   constructor() {
     this.UTAH_TIMEZONE = "America/Denver";
     this.DEADLINE_DAY = 4; // Thursday
@@ -159,7 +161,7 @@ class AutoPickScheduler {
    */
   async callAutoPickAPI() {
     try {
-      console.log("Calling auto-pick API...");
+      browserLogger.debug("Calling auto-pick API...");
 
       const response = await fetch("/api/tracks/force-picks/all-alive", {
         method: "PUT",
@@ -170,7 +172,7 @@ class AutoPickScheduler {
 
       if (response.status === 404) {
         const result = await response.json();
-        console.log("Auto-pick checked: No picks needed -", result.message);
+        browserLogger.debug("Auto-pick checked: No picks needed -", result.message);
 
         this.markAsExecuted();
 
@@ -187,7 +189,7 @@ class AutoPickScheduler {
       }
 
       const result = await response.json();
-      console.log("Auto-pick completed successfully:", result);
+      browserLogger.debug("Auto-pick completed successfully:", result);
 
       this.markAsExecuted();
 
@@ -199,7 +201,7 @@ class AutoPickScheduler {
         details: result,
       };
     } catch (error) {
-      console.error("Error calling auto-pick API:", error);
+      browserLogger.error("Error calling auto-pick API:", error);
       throw error;
     }
   }
@@ -209,11 +211,11 @@ class AutoPickScheduler {
    */
   async checkAndExecuteAutoPick() {
     try {
-      console.log("Checking auto-pick conditions with guards...");
+      browserLogger.debug("Checking auto-pick conditions with guards...");
 
       // GUARD 1: Check if execution is locked
       if (this.isExecutionLocked()) {
-        console.log("Auto-pick execution is locked (another instance running)");
+        browserLogger.debug("Auto-pick execution is locked (another instance running)");
         return {
           executed: false,
           reason: "Execution locked - another instance running",
@@ -222,14 +224,14 @@ class AutoPickScheduler {
 
       // GUARD 2: Check minimum time interval
       if (!this.hasMinimumTimePassed()) {
-        console.log("Minimum time interval not met (1 hour required)");
+        browserLogger.debug("Minimum time interval not met (1 hour required)");
         return { executed: false, reason: "Minimum time interval not met" };
       }
 
       // GUARD 3: Check if we're in a valid execution window
       if (!this.isInValidExecutionWindow()) {
         const debugInfo = this.getDebugInfo();
-        console.log("Not in valid execution window", {
+        browserLogger.debug("Not in valid execution window", {
           currentTime: debugInfo.currentUtahTime,
           reason: "Must be Thursday 6:20 PM - 11:59 PM Utah time",
         });
@@ -238,11 +240,11 @@ class AutoPickScheduler {
 
       // GUARD 4: Check if we've already executed this week
       if (this.hasExecutedThisWeek()) {
-        console.log("Auto-pick already executed this week");
+        browserLogger.debug("Auto-pick already executed this week");
         return { executed: false, reason: "Already executed this week" };
       }
 
-      console.log("All guards passed! Executing auto-pick...");
+      browserLogger.debug("All guards passed! Executing auto-pick...");
 
       // GUARD 5: Set execution lock before starting
       this.setExecutionLock();
@@ -263,7 +265,7 @@ class AutoPickScheduler {
     } catch (error) {
       // GUARD 7: Release lock on error
       this.releaseExecutionLock();
-      console.error("Error in auto-pick execution:", error);
+      browserLogger.error("Error in auto-pick execution:", error);
       return {
         executed: false,
         reason: "Execution failed",
@@ -330,39 +332,39 @@ let autoPickInitialized = false;
 /**
  * Function to call on page load - checks and potentially executes auto-pick
  */
-async function initializeAutoPickCheck() {
+export async function initializeAutoPickCheck() {
   // GUARD: Prevent multiple initializations
   if (autoPickInitialized) {
-    console.log("Auto-pick already initialized, skipping...");
+    browserLogger.debug("Auto-pick already initialized, skipping...");
     return { executed: false, reason: "Already initialized" };
   }
 
   autoPickInitialized = true;
-  console.log("Initializing auto-pick check...");
+  browserLogger.debug("Initializing auto-pick check...");
 
   // Add debug info to console
   const debugInfo = autoPickScheduler.getDebugInfo();
-  console.log("Auto-pick debug info:", debugInfo);
+  browserLogger.debug("Auto-pick debug info:", debugInfo);
 
   try {
     const result = await autoPickScheduler.checkAndExecuteAutoPick();
 
     if (result.executed) {
-      console.log("Auto-pick executed successfully!", result);
+      browserLogger.debug("Auto-pick executed successfully!", result);
 
-      if (typeof showNotification === "function") {
-        showNotification(
+      if (typeof globalThis.showNotification === "function") {
+        globalThis.showNotification(
           "Auto-picks have been made for users without current picks!",
           "success"
         );
       }
     } else {
-      console.log("Auto-pick not executed:", result.reason);
+      browserLogger.debug("Auto-pick not executed:", result.reason);
     }
 
     return result;
   } catch (error) {
-    console.error("Failed to initialize auto-pick:", error);
+    browserLogger.error("Failed to initialize auto-pick:", error);
     return {
       executed: false,
       reason: "Initialization failed",
@@ -374,13 +376,13 @@ async function initializeAutoPickCheck() {
 /**
  * Manual trigger function for testing/admin use with confirmation
  */
-async function manuallyTriggerAutoPickWithConfirmation() {
+export async function manuallyTriggerAutoPickWithConfirmation() {
   const confirmed = confirm(
     "Are you sure you want to manually trigger auto-pick? This will bypass time checks but still respect other safety guards."
   );
 
   if (!confirmed) {
-    console.log("Manual auto-pick cancelled by user");
+    browserLogger.debug("Manual auto-pick cancelled by user");
     return;
   }
 
@@ -390,15 +392,15 @@ async function manuallyTriggerAutoPickWithConfirmation() {
     return;
   }
 
-  console.log("Manually triggering auto-pick (bypassing time checks)...");
+  browserLogger.debug("Manually triggering auto-pick (bypassing time checks)...");
 
   try {
     autoPickScheduler.setExecutionLock();
     const result = await autoPickScheduler.callAutoPickAPI();
-    console.log("Manual auto-pick completed:", result);
+    browserLogger.debug("Manual auto-pick completed:", result);
     return result;
   } catch (error) {
-    console.error("Manual auto-pick failed:", error);
+    browserLogger.error("Manual auto-pick failed:", error);
     throw error;
   } finally {
     autoPickScheduler.releaseExecutionLock();
@@ -408,15 +410,15 @@ async function manuallyTriggerAutoPickWithConfirmation() {
 /**
  * Simple manual trigger function (original version)
  */
-async function manuallyTriggerAutoPick() {
-  console.log("Manually triggering auto-pick (bypassing time checks)...");
+export async function manuallyTriggerAutoPick() {
+  browserLogger.debug("Manually triggering auto-pick (bypassing time checks)...");
 
   try {
     const result = await autoPickScheduler.callAutoPickAPI();
-    console.log("Manual auto-pick completed:", result);
+    browserLogger.debug("Manual auto-pick completed:", result);
     return result;
   } catch (error) {
-    console.error("Manual auto-pick failed:", error);
+    browserLogger.error("Manual auto-pick failed:", error);
     throw error;
   }
 }
@@ -424,7 +426,7 @@ async function manuallyTriggerAutoPick() {
 /**
  * Testing helper function - check if auto-pick would run at different times
  */
-function testAutoPickTiming() {
+export function testAutoPickTiming() {
   const tests = [
     {
       name: "Before season start",
@@ -471,23 +473,11 @@ function testAutoPickTiming() {
     },
   ];
 
-  console.log("Testing auto-pick timing:");
+  browserLogger.debug("Testing auto-pick timing:");
   tests.forEach((test) => {
     const wouldRun = autoPickScheduler.wouldBeValidAt(test.date);
-    console.log(`${test.name}: ${wouldRun ? "WOULD RUN" : "would not run"}`);
+    browserLogger.debug(`${test.name}: ${wouldRun ? "WOULD RUN" : "would not run"}`);
   });
-}
-
-// Export for use in other files
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = {
-    AutoPickScheduler,
-    autoPickScheduler,
-    initializeAutoPickCheck,
-    manuallyTriggerAutoPick,
-    manuallyTriggerAutoPickWithConfirmation,
-    testAutoPickTiming,
-  };
 }
 
 // Usage example:
@@ -495,7 +485,7 @@ if (typeof module !== "undefined" && module.exports) {
 // initializeAutoPickCheck();
 
 // For debugging, you can check the current state anytime:
-// console.log(autoPickScheduler.getDebugInfo());
+// browserLogger.debug(autoPickScheduler.getDebugInfo());
 
 // For testing timing logic:
 // testAutoPickTiming();
