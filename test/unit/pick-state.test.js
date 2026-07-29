@@ -56,3 +56,21 @@ test("replaceCurrentPick restores the prior pick and consumes the replacement", 
     currentPick: "Raiders",
   });
 });
+
+test("replaceCurrentPick handles an empty current Pick without mutating inputs", () => {
+  const state = {
+    availablePicks: ["Broncos", "Raiders", "Raiders"],
+    usedPicks: [],
+    currentPick: null,
+  };
+
+  const result = replaceCurrentPick(state, "Raiders");
+
+  assert.deepEqual(result, {
+    availablePicks: ["Broncos"],
+    usedPicks: ["Raiders"],
+    currentPick: "Raiders",
+  });
+  assert.deepEqual(state.availablePicks, ["Broncos", "Raiders", "Raiders"]);
+  assert.deepEqual(state.usedPicks, []);
+});

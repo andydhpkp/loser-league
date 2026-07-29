@@ -240,6 +240,13 @@ npm run test:unit
 npm run lint:browser
 ```
 
+Run the unit coverage gate for changes to application infrastructure, models,
+domain modules, browser calculations, or API controllers:
+
+```sh
+npm run test:unit:coverage
+```
+
 Run MySQL integration tests for route, model, transaction, migration, session,
 or database behavior:
 

@@ -56,6 +56,7 @@ Fast module and route tests:
 
 ```sh
 npm run test:unit
+npm run test:unit:coverage
 npm run lint:browser
 ```
 

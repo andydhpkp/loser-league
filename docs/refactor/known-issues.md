@@ -18,6 +18,12 @@
 ## Remaining items requiring integration or live-data characterization
 
 - Batch repair routes may leave partial updates when a later row fails.
+- The User add-win route continues its promise chain after returning its
+  missing-User 404, dereferences the response object as an updated User, and
+  attempts to emit a second response.
+- The individual used-Pick reduction route continues its promise chain after
+  its missing-Track 404 and already-short-enough 400 responses, then
+  dereferences the response object and attempts to emit a second response.
 - The league-page smoke scenario reaches the browser but throws
   `Cannot read properties of undefined (reading 'AwayTeamScore')`; the other
   four page-entry scenarios pass. Reproduce and characterize the missing score

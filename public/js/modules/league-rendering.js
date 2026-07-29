@@ -1,34 +1,13 @@
 import { finalScores } from "../teams.js";
 import { getCrownInfo } from "../utilityFunctions.js";
 import { browserLogger } from "../logger.js";
+import { sortUsersByTracksLeft } from "./league-stats.js";
 
 let i;
 let p;
 let t;
 let x;
 let y;
-
-function sortUsersByTracksLeft(users) {
-  return users.sort((a, b) => {
-    // Calculate tracks left for user A
-    const aTracksLeft = a.tracks.filter(
-      (track) => track.wrong_pick === null
-    ).length;
-
-    // Calculate tracks left for user B
-    const bTracksLeft = b.tracks.filter(
-      (track) => track.wrong_pick === null
-    ).length;
-
-    // Sort by tracks left (descending - most tracks first)
-    // If tracks are equal, sort alphabetically by first name as tiebreaker
-    if (bTracksLeft === aTracksLeft) {
-      return a.first_name.localeCompare(b.first_name);
-    }
-
-    return bTracksLeft - aTracksLeft;
-  });
-}
 
 // Updated leagueUserTableHandler function
 export async function leagueUserTableHandler() {
@@ -277,4 +256,3 @@ async function displayTeamLogo() {
 }
 
 async function espnFetchTeam() {}
-

@@ -1,4 +1,7 @@
 import { browserLogger } from "./logger.js";
+import { computeWeekStats, sortUsersByTracksLeft } from "./modules/league-stats.js";
+
+export { computeWeekStats, sortUsersByTracksLeft };
 
 export function getCrownInfo(userRecord) {
   // If no user_record, no crown
@@ -55,109 +58,6 @@ export function getCrownInfo(userRecord) {
   // For now, any other wins (clean wins) get no crown since we only have silver
   // In the future, this would be where you'd add other crown types
   return null;
-}
-
-function sortUsersByTracksLeft(users) {
-  return users.sort((a, b) => {
-    // Calculate tracks left for user A
-    const aTracksLeft = a.tracks.filter(
-      (track) => track.wrong_pick === null
-    ).length;
-
-    // Calculate tracks left for user B
-    const bTracksLeft = b.tracks.filter(
-      (track) => track.wrong_pick === null
-    ).length;
-
-    // Sort by tracks left (descending - most tracks first)
-    // If tracks are equal, sort alphabetically by first name as tiebreaker
-    if (bTracksLeft === aTracksLeft) {
-      return a.first_name.localeCompare(b.first_name);
-    }
-
-    return bTracksLeft - aTracksLeft;
-  });
-}
-
-// weeklyStats.js
-
-// js/weeklyStats.js
-
-function computeWeekStats(users) {
-  const currentPicks = [];
-  const onTheBlock = [];
-  const stillPerfect = [];
-  const userTrackCounts = [];
-
-  users.forEach((user) => {
-    const aliveTracks = user.tracks.filter((t) => t.wrong_pick === null);
-
-    // Store user info with their alive track count
-    userTrackCounts.push({
-      name: `${user.first_name} ${user.last_name}`,
-      aliveTracksCount: aliveTracks.length,
-    });
-
-    if (aliveTracks.length === 1) {
-      onTheBlock.push(`${user.first_name} ${user.last_name}`);
-    }
-
-    // "Still Perfect": user has NOT lost a valid track (i.e., all tracks are still alive)
-    if (
-      user.tracks.length > 0 &&
-      user.tracks.every((t) => t.wrong_pick === null)
-    ) {
-      stillPerfect.push(`${user.first_name} ${user.last_name}`);
-    }
-
-    // Count only current valid picks toward popularity
-    aliveTracks.forEach((t) => {
-      if (t.current_pick) currentPicks.push(t.current_pick);
-    });
-  });
-
-  // Count occurrences of each pick
-  const pickCount = {};
-  currentPicks.forEach(
-    (pick) => (pickCount[pick] = (pickCount[pick] || 0) + 1)
-  );
-
-  let mostPopular = "—";
-  let leastPopular = "—";
-
-  const keys = Object.keys(pickCount);
-  if (keys.length > 0) {
-    const counts = Object.values(pickCount);
-    const maxCount = Math.max(...counts);
-    const minCount = Math.min(...counts);
-
-    const most = keys.filter((k) => pickCount[k] === maxCount);
-    const least = keys.filter((k) => pickCount[k] === minCount);
-
-    mostPopular = `${most.join(", ")} (${maxCount})`;
-    leastPopular = `${least.join(", ")} (${minCount})`;
-  }
-
-  // Find users with the most tracks
-  let mostTracks = "—";
-  if (userTrackCounts.length > 0) {
-    const maxTracksCount = Math.max(
-      ...userTrackCounts.map((u) => u.aliveTracksCount)
-    );
-    const usersWithMostTracks = userTrackCounts
-      .filter((u) => u.aliveTracksCount === maxTracksCount)
-      .map((u) => u.name);
-
-    mostTracks = `${usersWithMostTracks.join(", ")} (${maxTracksCount})`;
-  }
-
-  return {
-    mostPopular,
-    leastPopular,
-    onTheBlock: onTheBlock.length ? onTheBlock.join(", ") : "None",
-    stillPerfect: stillPerfect.length ? stillPerfect.join(", ") : "None",
-    mostTracks: mostTracks,
-  };
 }
 
 export async function populateWeekStatsModal() {

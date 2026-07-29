@@ -27,3 +27,21 @@ test("rejects malformed database URLs", () => {
     /valid MySQL URL/
   );
 });
+
+test("accepts MariaDB test URLs and returns the parsed URL", () => {
+  const parsed = assertDisposableTestDatabase(
+    "mariadb://user:pass@localhost/league_TEST"
+  );
+  assert.equal(parsed.protocol, "mariadb:");
+});
+
+test("rejects non-MySQL protocols and empty database names", () => {
+  assert.throws(
+    () => assertDisposableTestDatabase("postgres://localhost/league_test"),
+    /valid MySQL URL/
+  );
+  assert.throws(
+    () => assertDisposableTestDatabase("mysql://localhost"),
+    /must contain "test"/
+  );
+});
