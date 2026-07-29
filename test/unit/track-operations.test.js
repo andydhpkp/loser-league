@@ -103,9 +103,35 @@ test("individual Track reduction preserves its successful contract", async (t) =
   assert.ok(track.available_picks.includes("Raiders"));
 });
 
-test.skip("individual Track reduction terminal responses do not continue their promise chain", () => {
-  // Known issue: both the missing-Track 404 and already-short-enough 400 flow
-  // into the next `.then`, dereference the response object, and double-send.
+test("individual Track reduction missing-Track response terminates with one 404", async (t) => {
+  mockTracks(t, []);
+  const response = await request(
+    createRouteApp("/api/tracks", trackRoutes)
+  ).put("/api/tracks/reduce-used-picks/999/1");
+
+  assert.equal(response.status, 404);
+  assert.deepEqual(response.body, { message: "No track found with this id" });
+});
+
+test("individual Track reduction no-op response terminates with one 400", async (t) => {
+  mockTracks(t, [
+    createTrack({
+      used_picks: ["Broncos"],
+      available_picks: ["Raiders"],
+      current_pick: "Broncos",
+    }),
+  ]);
+  const response = await request(
+    createRouteApp("/api/tracks", trackRoutes)
+  ).put("/api/tracks/reduce-used-picks/7/1");
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(response.body, {
+    message:
+      "Used picks array already has 1 elements, which is <= target length of 1",
+    currentUsedPicksLength: 1,
+    targetLength: 1,
+  });
 });
 
 test("all Track repair endpoints preserve matching and nonmatching batch summaries", async (t) => {

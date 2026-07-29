@@ -174,9 +174,16 @@ test("User routes characterize validation, authentication, and not-found respons
   assert.equal((await request(app).get("/api/users/999/wins")).status, 404);
 });
 
-test.skip("User add-win missing-user response does not continue its promise chain", () => {
-  // Known issue: the 404 response currently flows into the next `.then`,
-  // attempts to read updatedUser, and then tries to emit a second response.
+test("User add-win missing-user response terminates with one 404", async (t) => {
+  const app = createRouteApp("/api/users", userRoutes);
+  t.mock.method(User, "findByPk", async () => null);
+
+  const response = await request(app)
+    .put("/api/users/999/add-win")
+    .send({ year: 2026 });
+
+  assert.equal(response.status, 404);
+  assert.deepEqual(response.body, { message: "No user found with this id" });
 });
 
 test("User routes map model failures to safe errors", async (t) => {

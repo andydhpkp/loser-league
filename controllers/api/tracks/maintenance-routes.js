@@ -462,7 +462,8 @@ router.put("/reduce-used-picks/:trackId/:targetLength", (req, res) => {
   })
     .then((dbTrack) => {
       if (!dbTrack) {
-        return res.status(404).json({ message: "No track found with this id" });
+        res.status(404).json({ message: "No track found with this id" });
+        return null;
       }
 
       // Retrieve the current arrays
@@ -472,11 +473,12 @@ router.put("/reduce-used-picks/:trackId/:targetLength", (req, res) => {
 
       // If used_picks is already at or below target length, no changes needed
       if (usedPicks.length <= targetLength) {
-        return res.status(400).json({
+        res.status(400).json({
           message: `Used picks array already has ${usedPicks.length} elements, which is <= target length of ${targetLength}`,
           currentUsedPicksLength: usedPicks.length,
           targetLength: targetLength,
         });
+        return null;
       }
 
       // Calculate how many picks to remove
@@ -511,6 +513,10 @@ router.put("/reduce-used-picks/:trackId/:targetLength", (req, res) => {
       });
     })
     .then((updatedTrack) => {
+      if (!updatedTrack) {
+        return;
+      }
+
       res.json({
         message: `Successfully reduced used picks to ${targetLength} elements`,
         trackId: trackId,
