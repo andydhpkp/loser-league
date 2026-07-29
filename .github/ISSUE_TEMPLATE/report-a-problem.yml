@@ -1,0 +1,70 @@
+name: Report a problem
+description: Tell us when something in Loser League is broken or confusing.
+title: "[Problem]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. You do not need to diagnose it or use technical language.
+
+        This is public. Please do not include passwords, private phone numbers, payment details, or other sensitive information.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe what you saw, including any message shown by the app.
+      placeholder: I was trying to... and then...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+      description: Tell us what you thought should happen instead.
+      placeholder: I expected...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Can you make it happen again?
+      description: List what you tapped or did before the problem appeared. It is okay if you are not sure.
+      placeholder: |
+        1. I opened...
+        2. I tapped...
+        3. Then...
+    validations:
+      required: false
+
+  - type: dropdown
+    id: device
+    attributes:
+      label: Where did this happen?
+      options:
+        - iPhone or iPad
+        - Android phone or tablet
+        - Computer
+        - I am not sure
+    validations:
+      required: false
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Add a screenshot or other detail if it would help. You can leave this blank.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I have not included a password, private contact information, payment details, or other sensitive information.
+          required: true

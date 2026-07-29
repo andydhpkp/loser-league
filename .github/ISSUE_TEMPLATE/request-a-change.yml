@@ -1,0 +1,46 @@
+name: Request a change
+description: Suggest an improvement or something new for Loser League.
+title: "[Request]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Loser League. You do not need to know anything about coding—just describe what you would like.
+
+        This is public. Please do not include passwords, private phone numbers, payment details, or other sensitive information.
+
+  - type: textarea
+    id: request
+    attributes:
+      label: What would you like changed?
+      description: Tell us what you would like the app to do.
+      placeholder: I would like...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reason
+    attributes:
+      label: Why would this be helpful?
+      description: Describe the problem, confusion, or inconvenience this would address.
+      placeholder: This would help because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Anything else?
+      description: Add an example, screenshot, or other detail if it would help. You can leave this blank.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I have not included a password, private contact information, payment details, or other sensitive information.
+          required: true
