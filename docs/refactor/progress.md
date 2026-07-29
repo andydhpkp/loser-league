@@ -1,8 +1,9 @@
 # Refactor progress
 
-## Current stage
+## Status
 
-Final verification and external integration follow-up.
+Historical. The behavior-preserving refactor was merged in pull request #8.
+Future work follows `docs/engineering/README.md`.
 
 ## Completed
 
@@ -41,12 +42,20 @@ Final verification and external integration follow-up.
 - Server/controller syntax checks: passing.
 - MySQL integration suite: safely skipped because `TEST_DATABASE_URL` is not
   configured.
-- Playwright suite: five scenarios created, but Chromium is blocked by this
-  desktop sandbox with `SIGTRAP` before page launch.
+- Playwright suite: four scenarios pass; the league-page scenario reproduces
+  the `AwayTeamScore` failure recorded in `known-issues.md`.
 - Documentation foundation commit: `2e47d0c`.
+
+The evergreen engineering-documentation transition was verified with
+`git diff --check`, `npm run lint:browser`, `npm run test:unit` (11 passing),
+`npm run test:integration` (safely skipped without `TEST_DATABASE_URL`), and
+`npm run test:smoke` (four passing and the documented league-page failure).
 
 ## Next
 
 Run the integration suite with a disposable MySQL schema and the Playwright
-suite in a normal terminal or CI environment. Address only failures reproduced
-through those interfaces.
+league-page scenario with representative score data. Address only failures
+reproduced through those interfaces.
+
+Establish full-suite CI so unit, integration, lint, and browser verification
+become merge gates. This file is no longer updated for routine future work.

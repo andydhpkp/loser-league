@@ -18,8 +18,10 @@
 ## Remaining items requiring integration or live-data characterization
 
 - Batch repair routes may leave partial updates when a later row fails.
-- Browser smoke execution is pending outside the Codex desktop sandbox because
-  its Chromium process exits with `SIGTRAP` before opening a page.
+- The league-page smoke scenario reaches the browser but throws
+  `Cannot read properties of undefined (reading 'AwayTeamScore')`; the other
+  four page-entry scenarios pass. Reproduce and characterize the missing score
+  data before changing league rendering.
 - Full MySQL route characterization requires a configured disposable
   `TEST_DATABASE_URL`.
 - Commented Handlebars routes remain disconnected and are retained until page
