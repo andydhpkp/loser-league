@@ -1,7 +1,9 @@
-# Refactor reference library
+# Historical refactor reference library
 
-This directory is the durable source of truth for the behavior-preserving
-refactor. It is committed so work can resume without relying on chat history.
+This directory preserves the evidence, contracts, and progress of the completed
+behavior-preserving refactor. It is historical documentation, not the default
+workflow for future changes. Current engineering rules live in
+[`../engineering/README.md`](../engineering/README.md).
 
 ## Documents
 
@@ -11,7 +13,8 @@ refactor. It is committed so work can resume without relying on chat history.
 - `refactor-rules.md`: non-negotiable implementation and safety rules.
 - `known-issues.md`: suspected and confirmed defects.
 - `progress.md`: current stage, evidence, and next steps.
-- `decisions/`: architectural decision records.
+- [`../adr/`](../adr/): permanent architectural decision records, including
+  decisions made during the refactor.
 
 ## Approved test seams
 
@@ -37,8 +40,9 @@ Integration tests require a disposable MySQL schema through
 `TEST_DATABASE_URL`. The harness must reject any database name that does not
 contain `test`.
 
-## Maintenance
+## Historical status
 
-Update behavior, route, architecture, decision, or known-issue documentation in
-the same commit that changes the corresponding code. Keep `progress.md` short,
-current, and sufficient for a new session to resume safely.
+Preserve these files as evidence of the refactor. Future changes should update
+the current engineering guide, glossary, plan, ADRs, and relevant interface or
+behavior documentation. `progress.md` is a final handoff record and is no
+longer a required per-change log.

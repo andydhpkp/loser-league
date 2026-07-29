@@ -76,6 +76,12 @@ npm run test:smoke
 
 Refactor architecture, behavior, route contracts, rules, decisions, and current
 status are indexed in `docs/refactor/README.md`.
+
+Contributors should follow the permanent engineering standards in
+[`docs/engineering/README.md`](docs/engineering/README.md), use the canonical
+product language in [`CONTEXT.md`](CONTEXT.md), and plan non-trivial changes
+from [`docs/plans/TEMPLATE.md`](docs/plans/TEMPLATE.md). The refactor library is
+retained as historical evidence.
 ## Usage
 Up to current status, click on create account and enter information. Once in, enter number of tracks you want to have and click the button. The matchups will then be displayed and that is as far as I have gotten.
 
