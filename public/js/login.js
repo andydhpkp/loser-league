@@ -1,14 +1,12 @@
 // const { post } = require("../../controllers/api/user-routes");
 
-async function loginFormHandler(event) {
+export async function loginFormHandler(event) {
   event.preventDefault();
   const username = document.querySelector("#inputUsername").value.trim();
   const password = document.querySelector("#inputPassword").value.trim();
   const staySignedIn = true;
 
   if (username && password) {
-    console.log(username);
-    console.log(password);
     const response = await fetch("/api/users/login", {
       method: "post",
       body: JSON.stringify({
@@ -28,14 +26,13 @@ async function loginFormHandler(event) {
       window.localStorage.setItem("loggedInUserId", userId);
 
       location.href = "../profile.html";
-      console.log(response);
     } else {
       alert("Sorry, incorrect username or password");
     }
   }
 }
 
-function revealLoginPassword() {
+export function revealLoginPassword() {
   var x = document.getElementById("inputPassword");
   if (x.type === "password") {
     x.type = "text";
@@ -44,8 +41,8 @@ function revealLoginPassword() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", function () {
+export function bindLoginForm() {
   document
     .querySelector(".login-form")
     .addEventListener("submit", loginFormHandler);
-});
+}

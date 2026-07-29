@@ -12,7 +12,7 @@
 - Static pages load overlapping classic scripts into one global namespace.
 - `app.js` and `teams.js` exceed 1,100 lines and contain duplicate global names.
 
-## Target dependency direction
+## Implemented dependency direction
 
 ```text
 server/index.js
@@ -31,21 +31,25 @@ Dependencies point inward from transport adapters to deep modules. League logic
 does not import Express or manipulate the DOM. Page entry modules own DOM event
 binding. The shared HTTP client owns request/error normalization.
 
-## Planned server modules
+## Server modules
 
-- Application creation and startup are separate interfaces.
-- User, team, track, and auto-pick modules own behavior behind small interfaces.
-- Track internals are grouped into access, pick lifecycle, weekly maintenance,
-  force-pick, and repair behavior without exposing those internal seams to
-  callers.
-- One model loader owns model initialization and associations.
-- One error middleware maps application errors to HTTP.
-- One logger owns redaction, levels, and output shape.
+- `server/app.js` creates the Express application; `server/index.js` owns the
+  database synchronization and listener lifecycle.
+- Track routes are grouped into access, pick lifecycle, force-pick,
+  maintenance, and repair modules behind the unchanged route entry point.
+- Pure pick-state transitions live behind `makePick` and
+  `replaceCurrentPick`.
+- `models/index.js` and `models/my-index.js` now share one model graph rather
+  than constructing incompatible graphs.
+- Error middleware maps uncaught application errors to HTTP.
+- One structured logger owns redaction, levels, and output shape.
 
-## Planned browser modules
+## Browser modules
 
-- Page entries: home, registration, profile, league, and admin.
-- Reusable behavior: HTTP client, authentication, users, tracks/picks,
-  teams/schedule, week calculation, auto-pick scheduling, and DOM rendering.
-- Pages import only what they execute. No behavior depends on global function
-  declaration order.
+- Page entries exist for home, registration, profile, league, and admin.
+- Reusable modules own admin management, track actions, league rendering,
+  profile navigation, team results, team catalog data, auto-pick scheduling,
+  weekly statistics, and browser logging.
+- `app.js` is a compatibility re-export rather than a shared implementation.
+- Pages import only their entry module. No active behavior depends on global
+  function declaration order or inline event attributes.

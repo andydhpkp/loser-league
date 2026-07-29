@@ -1,6 +1,17 @@
+import { nflTeams } from "./data/nfl-teams.js";
 // You can already set Homescore > Awayscore to do what you want with the outcome of the game. If null than nothing, if tie than loss for both
 
-//const { parse } = require("dotenv");
+import { getUserId, handleSubmitPicks } from "./modules/track-actions.js";
+import { browserLogger } from "./logger.js";
+
+let c;
+let i;
+let l;
+let m;
+let p;
+let r;
+let w;
+let x;
 
 //add logic so logged in users who have made their picks go straight to league view
 
@@ -12,463 +23,14 @@
     fetch(`http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard`).then(function(response) {
         if(response.ok) {
             response.json().then(function(data) {
-                console.log(data)
+                browserLogger.debug(data)
                 for(i=0; i<data.events)
             })
         }
     })
 } */
 
-async function finalScores() {
-  fetch("/api/proxy/nfl-2025").then(function (response) {
-    if (response.ok) {
-      response.json().then(async function (data) {
-        let currentWeek = parseInt(localStorage.getItem("thisWeek"));
-        let thisWeeksGames = [];
-        let thisWeeksGamesCheckerMonday = [];
-        let makeSureMondayGameIsDone = currentWeek - 1;
-        let MondayGameFinished = true;
-        if (makeSureMondayGameIsDone > 0) {
-          for (c = 0; c < data.length; c++) {
-            if (data[c].RoundNumber === makeSureMondayGameIsDone) {
-              thisWeeksGamesCheckerMonday.push(data[c]);
-            }
-          }
-          let lastGame =
-            thisWeeksGamesCheckerMonday[
-              Object.keys(thisWeeksGamesCheckerMonday)[
-                Object.keys(thisWeeksGamesCheckerMonday).length - 1
-              ]
-            ];
-          if (lastGame.AwayTeamScore == null) {
-            MondayGameNotFinished = true;
-          }
-        }
-        for (w = 0; w < data.length; w++) {
-          if (data[w].RoundNumber === currentWeek) {
-            thisWeeksGames.push(data[w]);
-          }
-        }
-        let textPicks = document.getElementsByClassName("teamNames");
-
-        //TODO this should be called once at the beginnig onLoad()
-        let { winners, losers } = await fetchScheduleData(currentWeek);
-
-        for (i = 0; i < textPicks.length; i++) {
-          let didTheyLoseTeamName = textPicks[i].children[0].innerText;
-
-          if (winners.includes(didTheyLoseTeamName)) {
-            textPicks[i].classList.add("loser");
-            textPicks[i].classList.remove("winner");
-          } else if (losers.includes(didTheyLoseTeamName)) {
-            textPicks[i].classList.add("winner");
-            textPicks[i].classList.remove("loser");
-          }
-        }
-
-        let totalWinners = document.getElementsByClassName("winner");
-        let totalLosers = document.getElementsByClassName("loser");
-
-        if (
-          totalWinners.length + totalLosers.length === textPicks.length &&
-          textPicks.length > 0
-        ) {
-          for (l = 0; l < totalLosers.length; l++) {
-            let deleteTrackId = parseInt(totalLosers[l].children[1].innerText);
-            let loserTeam = totalLosers[l].children[0].innerText;
-            addLoser(deleteTrackId, loserTeam);
-          }
-          //THIS IS A BANDAID UNTIL YOU SEE HOW ESPN UPDATES RECORDS BY TUESDAY
-          for (p = 0; p < thisWeeksGames.length; p++) {
-            if (
-              thisWeeksGames[p].AwayTeamScore > thisWeeksGames[p].HomeTeamScore
-            ) {
-              postWinnerRecord(thisWeeksGames[p].AwayTeam, [1, 0]);
-              postLoserRecord(thisWeeksGames[p].HomeTeam, [0, 1]);
-            }
-            if (
-              thisWeeksGames[p].HomeTeamScore > thisWeeksGames[p].AwayTeamScore
-            ) {
-              postWinnerRecord(thisWeeksGames[p].HomeTeam, [1, 0]);
-              postLoserRecord(thisWeeksGames[p].AwayTeam, [0, 1]);
-            }
-            if (
-              thisWeeksGames[p].AwayTeamScore ===
-              thisWeeksGames[p].HomeTeamScore
-            ) {
-              postWinnerRecord(thisWeeksGames[p].AwayTeam, [1, 0]);
-              postWinnerRecord(thisWeeksGames[p].HomeTeam, [1, 0]);
-            }
-          }
-          await resetCurrentPicks();
-        }
-      });
-    }
-  });
-}
-
-async function resetCurrentPicks() {
-  try {
-    const response = await fetch("api/tracks/all-tracks/reset-current-pick", {
-      method: "PUT",
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    console.log("Success:", data);
-  } catch (error) {
-    console.error("Error:", error);
-  }
-}
-
-async function fetchScheduleData(weekNumber) {
-  try {
-    const response = await fetch(
-      `https://pacific-anchorage-21728.herokuapp.com/https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2025&week=${weekNumber}`
-    );
-    const data = await response.json();
-
-    let winners = [];
-    let losers = [];
-
-    for (let date in data.content.schedule) {
-      data.content.schedule[date].games.forEach((game) => {
-        if (game.status.type.completed) {
-          const competitors = game.competitions[0].competitors;
-          const homeTeam = competitors.find((c) => c.homeAway === "home");
-          const awayTeam = competitors.find((c) => c.homeAway === "away");
-
-          // Check if it's a tie by comparing scores
-          const homeScore = homeTeam.score;
-          const awayScore = awayTeam.score;
-
-          if (homeScore === awayScore) {
-            // It's a tie - both teams should be in winners array (bad picks)
-            winners.push(homeTeam.team.displayName);
-            winners.push(awayTeam.team.displayName);
-          } else {
-            // Normal win/loss
-            competitors.forEach((competitor) => {
-              if (competitor.winner) {
-                winners.push(competitor.team.displayName);
-              } else {
-                losers.push(competitor.team.displayName);
-              }
-            });
-          }
-        }
-      });
-    }
-
-    console.log("Winners:", winners);
-    console.log("Losers:", losers);
-
-    return { winners, losers };
-  } catch (error) {
-    console.error("Error fetching the schedule data:", error);
-  }
-}
-
-async function fetchScheduleOdds(weekNumber) {
-  try {
-    const response = await fetch(
-      `https://pacific-anchorage-21728.herokuapp.com/https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2025&week=${weekNumber}`
-    );
-    const data = await response.json();
-
-    let oddsDetails = [];
-
-    for (let date in data.content.schedule) {
-      data.content.schedule[date].games.forEach((game) => {
-        // Extracting odds details
-        if (
-          game.competitions[0].odds &&
-          game.competitions[0].odds.length > 0 &&
-          game.competitions[0].odds[0].details
-        ) {
-          oddsDetails.push(game.competitions[0].odds[0].details);
-        }
-      });
-      console.log(data);
-    }
-    console.log(oddsDetails);
-    return oddsDetails;
-  } catch (error) {
-    console.error("Error fetching schedule odds:", error);
-    throw error; // Propagating the error
-  }
-}
-
-async function postWinnerRecord(winnerId, team_record) {
-  const response = await fetch(`/api/teams/team/${winnerId}`, {
-    method: "PUT",
-    body: JSON.stringify({
-      team_record,
-    }),
-    headers: { "Content-Type": "application/json" },
-  });
-  if (response.ok) {
-    console.log("RECORD UPDATED");
-  } else {
-    alert(response.statusText);
-  }
-}
-
-async function resetAllTeamRecords() {
-  const response = await fetch(`/api/teams/reset-records`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-  });
-
-  if (response.ok) {
-    console.log("All team records reset to 0-0");
-  } else {
-    alert(response.statusText);
-  }
-}
-
-async function postLoserRecord(loserId, team_record) {
-  const response = await fetch(`/api/teams/team/${loserId}`, {
-    method: "PUT",
-    body: JSON.stringify({
-      team_record,
-    }),
-    headers: { "Content-Type": "application/json" },
-  });
-  if (response.ok) {
-    console.log("RECORD UPDATED");
-  } else {
-    alert(response.statusText);
-  }
-}
-
-async function getTeam(teamId) {
-  const response = await fetch(`/api/teams/${teamId}`, {});
-  if (response.ok) {
-    response.json().then(function (data) {
-      console.log(data);
-      let teamName = data.team_name;
-      console.log(teamName);
-      return teamName;
-    });
-  } else {
-    alert(response.statusText);
-  }
-}
-
-async function addLoser(trackId, loserTeam) {
-  try {
-    // Fetch the current state of the track data
-    let trackResponse = await fetch(`api/tracks/${trackId}`);
-
-    if (!trackResponse.ok) {
-      throw new Error(trackResponse.statusText);
-    }
-
-    let trackData = await trackResponse.json();
-
-    // Only proceed if wrong_pick is null
-    if (trackData.wrong_pick === null) {
-      let response = await fetch(`api/tracks/${trackId}/loser`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          wrong_pick: loserTeam,
-        }),
-      });
-
-      if (response.ok) {
-        console.log("it worked");
-      } else {
-        alert(response.statusText);
-      }
-    } else {
-      console.log("wrong_pick is not null, so not proceeding with the update");
-    }
-  } catch (error) {
-    alert("Failed to fetch or update data: " + error.message);
-  }
-}
-
-async function getAllTracks() {
-  const response = await fetch(`/api/tracks`, {});
-  if (response.ok) {
-    response.json().then(function (data) {
-      console.log(data);
-      let tracksObj = data;
-      console.log(tracksObj);
-      return tracksObj;
-    });
-  }
-}
-
-let nflArray2 = [
-  {
-    teamName: "San Francisco 49ers",
-    teamLogo: "../css/assets/san-francisco-49ers-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Arizona Cardinals",
-    teamLogo: "../css/assets/arizona-cardinals-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Atlanta Falcons",
-    teamLogo: "../css/assets/atlanta-falcons-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Baltimore Ravens",
-    teamLogo: "../css/assets/baltimore-ravens-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Buffalo Bills",
-    teamLogo: "../css/assets/buffalo-bills-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Philadelphia Eagles",
-    teamLogo: "../css/assets/philadelphia-eagles-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Carolina Panthers",
-    teamLogo: "../css/assets/carolina-panthers-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Chicago Bears",
-    teamLogo: "../css/assets/chicago-bears-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Cincinnati Bengals",
-    teamLogo: "../css/assets/cincinnati-bengals-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Cleveland Browns",
-    teamLogo: "../css/assets/cleveland-browns-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Dallas Cowboys",
-    teamLogo: "../css/assets/dallas-cowboys-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Denver Broncos",
-    teamLogo: "../css/assets/denver-broncos-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Detroit Lions",
-    teamLogo: "../css/assets/detroit-lions-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Green Bay Packers",
-    teamLogo: "../css/assets/green-bay-packers-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Houston Texans",
-    teamLogo: "../css/assets/houston-texans-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Indianapolis Colts",
-    teamLogo: "../css/assets/indianapolis-colts-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Jacksonville Jaguars",
-    teamLogo: "../css/assets/jacksonville-jaguars-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Kansas City Chiefs",
-    teamLogo: "../css/assets/kansas-city-chiefs-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Los Angeles Chargers",
-    teamLogo: "../css/assets/los-angeles-chargers-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Miami Dolphins",
-    teamLogo: "../css/assets/miami-dolphins-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Minnesota Vikings",
-    teamLogo: "../css/assets/minnesota-vikings-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "New England Patriots",
-    teamLogo: "../css/assets/new-england-patriots-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "New Orleans Saints",
-    teamLogo: "../css/assets/new-orleans-saints-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "New York Giants",
-    teamLogo: "../css/assets/new-york-giants-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "New York Jets",
-    teamLogo: "../css/assets/new-york-jets-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Las Vegas Raiders",
-    teamLogo: "../css/assets/oakland-raiders-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Pittsburgh Steelers",
-    teamLogo: "../css/assets/pittsburgh-steelers-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Los Angeles Rams",
-    teamLogo: "../css/assets/Rams-icon.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Seattle Seahawks",
-    teamLogo: "../css/assets/seattle-seahawks-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Tampa Bay Buccaneers",
-    teamLogo: "../css/assets/tampa-bay-buccaneers-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Tennessee Titans",
-    teamLogo: "../css/assets/tennessee-titans-logo.png",
-    teamRecord: [0, 0],
-  },
-  {
-    teamName: "Washington Commanders",
-    teamLogo: "../css/assets/Washington-Commanders-icon.png",
-    teamRecord: [0, 0],
-  },
-];
+export { finalScores } from "./modules/team-results.js";
 
 function displayVenmoButton() {
   let sectionHelp = document.getElementById("games");
@@ -515,7 +77,7 @@ function displayVenmoButton() {
   sectionHelp.appendChild(nothingDiv);
 }
 
-async function getTrackNumber() {
+export async function getTrackNumber() {
   let userId = localStorage.getItem("loggedInUserId");
 
   if (!userId) {
@@ -523,7 +85,7 @@ async function getTrackNumber() {
   }
 
   if (!userId) {
-    console.error("Failed to get user ID.");
+    browserLogger.error("Failed to get user ID.");
     return;
   }
 
@@ -572,7 +134,7 @@ async function getTrackNumber() {
       displayVenmoButton();
     }
   } catch (error) {
-    console.log("Error: ", error);
+    browserLogger.debug("Error: ", error);
     //displayVenmoButton();
   }
 }
@@ -581,17 +143,17 @@ function goToLeaguePage() {
   location.href = "../league-page.html";
 }
 
-function getEndOfGameTime() {
+export function getEndOfGameTime() {
   let currentMoment = new Date();
 
   let checkMatchupDay = currentMoment.getUTCDay();
 
   let checkMatchupHour = currentMoment.getUTCHours();
 
-  console.log("check day, then hour");
+  browserLogger.debug("check day, then hour");
 
-  console.log(checkMatchupDay);
-  console.log(checkMatchupHour);
+  browserLogger.debug(checkMatchupDay);
+  browserLogger.debug(checkMatchupHour);
 
   //Utah is -7 or -6 UTC depending on daylight savings FYI
 
@@ -608,7 +170,7 @@ async function espnFetchScoreboard() {
   ).then(function (response) {
     if (response.ok) {
       response.json().then(function (data) {
-        console.log(data);
+        browserLogger.debug(data);
       });
     }
   });
@@ -620,7 +182,7 @@ async function espnFetchTeam() {
   ).then(function (response) {
     if (response.ok) {
       response.json().then(function (data) {
-        console.log(data);
+        browserLogger.debug(data);
       });
     }
   });
@@ -664,15 +226,15 @@ async function getRecords(currentWeek) {
       }
     }
   } catch (error) {
-    console.error("Error in getRecords:", error);
+    browserLogger.error("Error in getRecords:", error);
   }
 }
 
 async function createTeams() {
-  for (i = 0; i < nflArray2.length; i++) {
-    let team_name = nflArray2[i].teamName;
-    let team_logo = nflArray2[i].teamLogo;
-    let team_record = nflArray2[i].teamRecord;
+  for (i = 0; i < nflTeams.length; i++) {
+    let team_name = nflTeams[i].teamName;
+    let team_logo = nflTeams[i].teamLogo;
+    let team_record = nflTeams[i].teamRecord;
 
     const response = await fetch("/api/teams", {
       method: "post",
@@ -684,22 +246,22 @@ async function createTeams() {
       headers: { "Content-Type": "application/json" },
     });
     if (response.ok) {
-      console.log("CREATED TEAM");
-      console.log(response);
+      browserLogger.debug("CREATED TEAM");
+      browserLogger.debug(response);
     } else {
       alert(response.statusText);
     }
   }
 }
 
-async function doTeamsExist() {
+export async function doTeamsExist() {
   fetch("/api/teams").then(function (response) {
     if (response.ok) {
       response.json().then(function (data) {
-        console.log(data);
+        browserLogger.debug(data);
 
         if (data.length < 32 || data.length > 32) {
-          console.log("DELETING ALL TEAMS AND RECREATING THEM");
+          browserLogger.debug("DELETING ALL TEAMS AND RECREATING THEM");
           deleteAllTeams();
           createTeams();
         }
@@ -710,7 +272,14 @@ async function doTeamsExist() {
   });
 }
 
-function getCurrentWeek() {
+async function deleteAllTeams() {
+  const response = await fetch("/api/teams", { method: "DELETE" });
+  if (!response.ok && response.status !== 404) {
+    throw new Error("Unable to reset the team list");
+  }
+}
+
+export function getCurrentWeek() {
   localStorage.setItem("thisWeek", "12");
 }
 
@@ -732,7 +301,7 @@ function getCurrentWeek() {
 //     }
 
 //     const data = await response.json();
-//     console.log(data);
+//     browserLogger.debug(data);
 //     const currentDate = getMyDate(); // Current date and time in UTC
 
 //     const league = data.leagues[0];
@@ -756,16 +325,16 @@ function getCurrentWeek() {
 
 //       if (currentDate >= startDate && currentDate <= endDate) {
 //         // localStorage.setItem("thisWeek", "1");
-//         console.log("This is the current data: " + currentDate);
-//         console.log("this is the start date: " + startDate);
-//         console.log("this is the end date: " + endDate);
-//         console.log("This is the current week: " + entry.value);
+//         browserLogger.debug("This is the current data: " + currentDate);
+//         browserLogger.debug("this is the start date: " + startDate);
+//         browserLogger.debug("this is the end date: " + endDate);
+//         browserLogger.debug("This is the current week: " + entry.value);
 //         //THIS IS WHERE TO CHANGE
 //         // localStorage.setItem("thisWeek", entry.value.toString());
 //         // localStorage.setItem("thisWeek", "21");
 //         return entry.value; // Return the value directly
 //       }
-//       console.log("IT GETS TOOOOOO HERERERERERERE");
+//       browserLogger.debug("IT GETS TOOOOOO HERERERERERERE");
 //     }
 
 //     if (currentDate < firstStartDate) {
@@ -779,7 +348,7 @@ function getCurrentWeek() {
 
 //     return null;
 //   } catch (error) {
-//     console.error("Error fetching data:", error);
+//     browserLogger.error("Error fetching data:", error);
 //     return null;
 //   }
 // }
@@ -791,7 +360,7 @@ function getMyDate() {
   return today;
 }
 
-async function fetchMatchesAndGetCurrentWeek() {
+export async function fetchMatchesAndGetCurrentWeek() {
   try {
     let response = await fetch("/api/proxy/nfl-2025");
 
@@ -801,7 +370,7 @@ async function fetchMatchesAndGetCurrentWeek() {
 
     let matches = await response.json();
   } catch (error) {
-    console.error("There was a problem with the fetch operation:", error);
+    browserLogger.error("There was a problem with the fetch operation:", error);
   }
 }
 
@@ -847,7 +416,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
       throw new Error("Failed to retrieve nflObj");
     }
   } catch (error) {
-    console.error("Error fetching the ESPN API", error);
+    browserLogger.error("Error fetching the ESPN API", error);
   }
 
   let containerNumber = totalTracks;
@@ -1147,7 +716,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
       }
     })
     .catch(function (error) {
-      console.log("unable to connect");
+      browserLogger.debug("unable to connect");
     });
 }
 

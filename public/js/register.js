@@ -1,9 +1,9 @@
-function capitalizeFirstLetter(string) {
+export function capitalizeFirstLetter(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
   }
   
 
-async function signupFormHandler(event) {
+export async function signupFormHandler(event) {
     event.preventDefault();
     let first_name = document.querySelector('#createFirstName').value.trim();
     first_name = capitalizeFirstLetter(first_name)
@@ -35,7 +35,7 @@ async function signupFormHandler(event) {
     }
 }
 
-function revealPassword() {
+export function revealPassword() {
     var x = document.getElementById("register-master-password");
     if (x.type === "password") {
         x.type = "text";
@@ -44,4 +44,8 @@ function revealPassword() {
     }
 }
 
-document.querySelector('.register-form').addEventListener('submit', signupFormHandler);
+export function bindRegistrationForm() {
+  document
+    .querySelector(".register-form")
+    .addEventListener("submit", signupFormHandler);
+}

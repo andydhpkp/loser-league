@@ -1,4 +1,6 @@
-function getCrownInfo(userRecord) {
+import { browserLogger } from "./logger.js";
+
+export function getCrownInfo(userRecord) {
   // If no user_record, no crown
   if (!userRecord || userRecord.length === 0) {
     return null;
@@ -158,7 +160,7 @@ function computeWeekStats(users) {
   };
 }
 
-async function populateWeekStatsModal() {
+export async function populateWeekStatsModal() {
   try {
     const res = await fetch("/api/users");
     if (!res.ok) throw new Error("Failed to load users");
@@ -175,16 +177,13 @@ async function populateWeekStatsModal() {
       stats.stillPerfect;
     document.getElementById("stat-most-tracks").innerText = stats.mostTracks;
   } catch (err) {
-    console.error("Weekly stats error:", err);
+    browserLogger.error("Weekly stats error", err);
   }
 }
 
-// Wire up: refresh stats each time the modal opens
-document.addEventListener("DOMContentLoaded", () => {
+export function bindWeekStatsModal() {
   const modalEl = document.getElementById("weekStatsModal");
   if (!modalEl) return;
 
-  modalEl.addEventListener("show.bs.modal", () => {
-    populateWeekStatsModal();
-  });
-});
+  modalEl.addEventListener("show.bs.modal", populateWeekStatsModal);
+}
