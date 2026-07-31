@@ -10,11 +10,16 @@ The browser reads ESPN NFL data only through these public, same-origin routes:
 | Route | Upstream | Response |
 | --- | --- | --- |
 | `GET /api/nfl/teams` | ESPN NFL Teams | Upstream JSON unchanged |
-| `GET /api/nfl/schedule?year=<year>&week=<week>` | ESPN NFL Schedule | Upstream JSON unchanged |
+| `GET /api/nfl/schedule?year=<year>&week=<week>` | ESPN NFL Scoreboard | Normalized schedule JSON |
 
 The Schedule route accepts one canonical integer `year` from 2000 through the
 server's current UTC year plus one and one canonical integer `week` from 1
 through 22. Invalid or repeated values return `400 VALIDATION_ERROR`.
+
+The Schedule response preserves `content.schedule[date].games` for browser
+consumers. The server builds that shape from ESPN scoreboard events. League
+Season weeks 1–18 map to ESPN regular-season weeks; weeks 19–22 map to ESPN
+postseason weeks 1–4.
 
 The existing `GET /api/proxy/nfl-2025` Fixture Download route remains the
 source for the 2025 fixture feed. It is intentionally separate from the ESPN
@@ -32,8 +37,8 @@ browser page modules
 
 Browser code cannot select an upstream host or path. The NFL router validates
 HTTP input; the ESPN client owns approved URLs, timeout behavior, upstream
-status checks, and JSON parsing. ESPN response shapes remain external
-contracts consumed by the existing browser rendering code.
+status checks, JSON parsing, and schedule normalization. The server isolates
+ESPN's scoreboard shape from the existing browser rendering contract.
 
 ## Failures and safety
 

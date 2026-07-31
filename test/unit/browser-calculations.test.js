@@ -92,7 +92,7 @@ test("crown presentation maps supported model types to winner artwork", async ()
 });
 
 test("browser NFL data requests use only same-origin application routes", async () => {
-  const { fetchNflSchedule, fetchNflTeams } = await import(
+  const { fetchNflSchedule, fetchNflTeams, getLeagueSeasonYear } = await import(
     "../../public/js/modules/nfl-data.js"
   );
   const urls = [];
@@ -108,4 +108,9 @@ test("browser NFL data requests use only same-origin application routes", async 
     "/api/nfl/teams",
     "/api/nfl/schedule?year=2025&week=7",
   ]);
+  assert.equal(
+    getLeagueSeasonYear([{ DateUtc: "2025-09-05 00:20:00Z" }]),
+    2025
+  );
+  assert.equal(getLeagueSeasonYear([]), null);
 });

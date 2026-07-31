@@ -40,7 +40,11 @@ test("admin records a confirmed solo win from the existing User modal", async ({
 
   await page.goto("/admin.html");
   await page.getByRole("link", { name: "Example" }).click();
-  await page.getByLabel("League Season year").fill("2025");
+  const yearInput = page.getByLabel("League Season year");
+  await expect(yearInput).toHaveAttribute("type", "text");
+  await expect(yearInput).toHaveAttribute("inputmode", "numeric");
+  await expect(yearInput).toHaveAttribute("pattern", "[0-9]{4}");
+  await yearInput.fill("2025");
   await page.getByRole("button", { name: "Add solo win" }).click();
 
   await expect(page.getByText("2025 solo")).toBeVisible();
