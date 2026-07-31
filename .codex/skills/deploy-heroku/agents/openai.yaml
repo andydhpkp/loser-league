@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deploy Heroku"
+  short_description: "Operate verified Loser League deployments"
+  default_prompt: "Use $deploy-heroku to verify or troubleshoot the Loser League Heroku deployment."

@@ -16,6 +16,10 @@ Current status is Users can create accounts and login, and they can manually inp
 ## Deployment
 https://loser-league.herokuapp.com/
 
+Pushes to `main` are tested and deployed automatically through GitHub Actions.
+Setup, verification, and rollback procedures are documented in
+[`docs/operations/heroku-deploy.md`](docs/operations/heroku-deploy.md).
+
 ## Installation
 
 To run this application locally, please do the following installation:

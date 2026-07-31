@@ -1,0 +1,130 @@
+name: Test and deploy
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Complete test gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: test-password
+          MYSQL_DATABASE: loser_league_ci_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --host=127.0.0.1 --user=root --password=test-password"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      TEST_DATABASE_URL: mysql://root:test-password@127.0.0.1:3306/loser_league_ci_test
+    steps:
+      - name: Check out tested commit
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install --with-deps chromium
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Run unit coverage gate
+        run: npm run test:unit:coverage
+
+      - name: Lint browser modules
+        run: npm run lint:browser
+
+      - name: Run MySQL integration tests
+        run: npm run test:integration
+
+      - name: Run browser smoke tests
+        run: npm run test:smoke
+
+  deploy:
+    name: Deploy tested commit to Heroku
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    concurrency:
+      group: loser-league-production
+      cancel-in-progress: false
+    env:
+      HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      HEROKU_APP_NAME: ${{ vars.HEROKU_APP_NAME }}
+    steps:
+      - name: Check out tested commit
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Confirm commit is still current main
+        id: freshness
+        run: |
+          git fetch origin main
+          if [ "$(git rev-parse origin/main)" = "$GITHUB_SHA" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping stale deployment for $GITHUB_SHA"
+          fi
+
+      - name: Set up Node.js
+        if: steps.freshness.outputs.deploy == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Install Heroku CLI
+        if: steps.freshness.outputs.deploy == 'true'
+        run: npm install --global heroku@11.8.1
+
+      - name: Configure Heroku Git remote
+        if: steps.freshness.outputs.deploy == 'true'
+        run: heroku git:remote --app "$HEROKU_APP_NAME"
+
+      - name: Deploy tested commit
+        if: steps.freshness.outputs.deploy == 'true'
+        run: git push heroku "$GITHUB_SHA:refs/heads/main"
+
+      - name: Verify production health
+        if: steps.freshness.outputs.deploy == 'true'
+        env:
+          PRODUCTION_ORIGIN: https://${{ vars.HEROKU_APP_NAME }}.herokuapp.com
+        run: |
+          for path in / /api/nfl/teams; do
+            healthy=false
+            for attempt in {1..12}; do
+              if curl --fail --silent --show-error --max-time 10 \
+                "$PRODUCTION_ORIGIN$path" > /dev/null; then
+                healthy=true
+                break
+              fi
+              sleep 5
+            done
+            if [ "$healthy" != true ]; then
+              echo "Production health check failed for $path" >&2
+              exit 1
+            fi
+          done
