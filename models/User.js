@@ -12,23 +12,28 @@ class User extends Model {
   // Helper method to add a win to user's record
   addWin(year, wasTie = false) {
     const currentRecord = this.user_record || [];
-    const existingEntry = currentRecord.find((entry) => entry.year === year);
+    const existingEntryIndex = currentRecord.findIndex(
+      (entry) => entry.year === year
+    );
 
-    if (existingEntry) {
-      // Update existing entry if needed
-      if (wasTie && !existingEntry.won_with_tie) {
-        existingEntry.won_with_tie = true;
-      }
+    if (existingEntryIndex !== -1) {
+      this.user_record = currentRecord.map((entry, index) =>
+        index === existingEntryIndex && wasTie && !entry.won_with_tie
+          ? { ...entry, won_with_tie: true }
+          : entry
+      );
     } else {
-      // Add new entry
-      currentRecord.push({
-        year: year,
-        won: true,
-        won_with_tie: wasTie,
-      });
+      this.user_record = [
+        ...currentRecord,
+        {
+          year: year,
+          won: true,
+          won_with_tie: wasTie,
+        },
+      ];
     }
 
-    this.user_record = currentRecord;
+    this.changed("user_record", true);
     return this.save();
   }
 
@@ -52,6 +57,28 @@ class User extends Model {
       ? this.user_record.filter((entry) => entry.won && !entry.won_with_tie)
           .length
       : 0;
+  }
+
+  // Derive a stable presentation key from the User's complete win history.
+  getCrownType() {
+    const soloWins = this.getCleanWins();
+    const tiedWins = this.user_record
+      ? this.user_record.filter((entry) => entry.won && entry.won_with_tie)
+          .length
+      : 0;
+
+    if (soloWins === 0 && tiedWins === 0) {
+      return null;
+    }
+
+    const crownParts = [];
+    if (soloWins > 0) {
+      crownParts.push(`solo_${soloWins}`);
+    }
+    if (tiedWins > 0) {
+      crownParts.push(`tied_${tiedWins}`);
+    }
+    return crownParts.join("_");
   }
 }
 
@@ -94,6 +121,12 @@ User.init(
       defaultValue: [],
       comment:
         "Array of objects tracking league wins by year: [{year: 2025, won: true, won_with_tie: false}]",
+    },
+    crown_type: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        return this.getCrownType();
+      },
     },
   },
   {

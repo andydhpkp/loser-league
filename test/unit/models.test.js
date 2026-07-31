@@ -34,8 +34,48 @@ test("User win totals handle missing records", () => {
   assert.equal(user.getWinsWithTies(), 0);
 });
 
+test("User derives and serializes extensible crown types from career wins", () => {
+  const cases = [
+    { user_record: null, crownType: null },
+    { user_record: [], crownType: null },
+    {
+      user_record: [{ year: 2024, won: false, won_with_tie: true }],
+      crownType: null,
+    },
+    {
+      user_record: [{ year: 2024, won: true, won_with_tie: false }],
+      crownType: "solo_1",
+    },
+    {
+      user_record: [{ year: 2024, won: true, won_with_tie: true }],
+      crownType: "tied_1",
+    },
+    {
+      user_record: [
+        { year: 2024, won: true, won_with_tie: false },
+        { year: 2025, won: true, won_with_tie: false },
+      ],
+      crownType: "solo_2",
+    },
+    {
+      user_record: [
+        { year: 2024, won: true, won_with_tie: true },
+        { year: 2025, won: true, won_with_tie: false },
+      ],
+      crownType: "solo_1_tied_1",
+    },
+  ];
+
+  for (const { user_record, crownType } of cases) {
+    const user = User.build({ user_record });
+    assert.equal(user.getCrownType(), crownType);
+    assert.equal(user.toJSON().crown_type, crownType);
+  }
+});
+
 test("User addWin inserts, preserves, and upgrades annual records", async (t) => {
   const user = User.build({ user_record: [] });
+  const initialRecord = user.user_record;
   const saved = [];
   t.mock.method(user, "save", async () => {
     saved.push(user.user_record.map((entry) => ({ ...entry })));
@@ -49,6 +89,8 @@ test("User addWin inserts, preserves, and upgrades annual records", async (t) =>
   assert.deepEqual(user.user_record, [
     { year: 2025, won: true, won_with_tie: true },
   ]);
+  assert.notEqual(user.user_record, initialRecord);
+  assert.equal(user.crown_type, "tied_1");
   assert.equal(saved.length, 3);
 });
 
