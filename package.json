@@ -23,7 +23,7 @@
     "test": "npm run test:unit && npm run test:integration && npm run test:smoke",
     "test:unit": "node --test \"test/unit/**/*.test.js\"",
     "test:unit:coverage": "node --test --experimental-test-coverage --test-coverage-lines=80 --test-coverage-include='server/**/*.js' --test-coverage-include='config/test-database.js' --test-coverage-include='models/*.js' --test-coverage-include='controllers/api/**/*.js' --test-coverage-include='public/js/modules/league-stats.js' \"test/unit/**/*.test.js\"",
-    "test:integration": "node --test \"test/integration/**/*.test.js\"",
+    "test:integration": "node --env-file-if-exists=.env --test \"test/integration/**/*.test.js\"",
     "test:smoke": "PLAYWRIGHT_BROWSERS_PATH=0 playwright test",
     "lint:browser": "eslint public/js",
     "start": "node server/index.js",
