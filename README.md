@@ -43,8 +43,9 @@ DB_PW='your_password'
 `
 
 Copy `.env.example` to `.env`, provide a long random `SESSION_SECRET`, and set
-`ODDS_API_KEY` to the credential from The Odds API. The ignored `.env` file is
-the only local file that should contain the real credential.
+`ADMIN_PASSWORD` to the shared admin password and `ODDS_API_KEY` to the
+credential from The Odds API. The ignored `.env` file is the only local file
+that should contain real credential values.
 The application targets Node.js 22 LTS.
 
 Development and production commands:

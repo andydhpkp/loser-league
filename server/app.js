@@ -2,6 +2,7 @@ const path = require("node:path");
 const express = require("express");
 const session = require("express-session");
 
+const { createAdminRouter } = require("./admin/routes");
 const { UpstreamError } = require("./lib/errors");
 const { createLogger } = require("./lib/logger");
 const { createErrorHandler } = require("./middleware/error-handler");
@@ -11,6 +12,7 @@ const { createNflRouter } = require("./nfl/routes");
 function createApp({
   routes,
   sessionSecret = process.env.SESSION_SECRET,
+  adminPassword = process.env.ADMIN_PASSWORD,
   oddsApiKey = process.env.ODDS_API_KEY,
   sessionStore,
   fetchImpl = global.fetch,
@@ -19,22 +21,40 @@ function createApp({
   if (!sessionSecret) {
     throw new Error("SESSION_SECRET is required");
   }
+  if (!adminPassword) {
+    throw new Error("ADMIN_PASSWORD is required");
+  }
 
   const app = express();
+  const isProduction = process.env.NODE_ENV === "production";
+  if (isProduction) {
+    app.set("trust proxy", 1);
+  }
 
   app.use(requestContext);
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+  const sessionMiddleware = session({
+    secret: sessionSecret,
+    cookie: {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: isProduction,
+    },
+    resave: false,
+    saveUninitialized: true,
+    ...(sessionStore ? { store: sessionStore } : {}),
+  });
+  app.get("/admin.html", sessionMiddleware, (req, res) => {
+    if (req.session.adminAuthenticated !== true) {
+      res.redirect("/index.html");
+      return;
+    }
+    res.sendFile(path.join(__dirname, "../public/admin.html"));
+  });
   app.use(express.static(path.join(__dirname, "../public")));
-  app.use(
-    session({
-      secret: sessionSecret,
-      cookie: { secure: false },
-      resave: false,
-      saveUninitialized: true,
-      ...(sessionStore ? { store: sessionStore } : {}),
-    })
-  );
+  app.use(sessionMiddleware);
+  app.use("/api/admin", createAdminRouter({ adminPassword }));
 
   app.get("/api/proxy/nfl-2025", async (_req, res, next) => {
     try {

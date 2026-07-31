@@ -43,6 +43,7 @@ requires a four-digit integer `year`; `won_with_tie` defaults to `false` and,
 when supplied, must be a Boolean. Repeated annual submissions are idempotent,
 and a tied submission may upgrade—but not downgrade—that year's record.
 
-The route's existing authorization behavior is unchanged. Server-side admin
-authorization and admin controls for recording or correcting wins are required
-follow-up work before exposing new controls.
+The route requires a server-authenticated admin session. From the admin page,
+select a User, enter the explicit League Season year, and confirm either “Add
+solo win” or “Add tied win.” Correcting, downgrading, or removing a win is not
+supported by this workflow.

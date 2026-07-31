@@ -21,7 +21,11 @@ test("PUT /api/teams/reset-records reaches the named route", async (t) => {
   const routes = express.Router();
   routes.use("/api/teams", require("../../controllers/api/team-routes"));
   const response = await request(
-    createApp({ routes, sessionSecret: "test-session-secret" })
+    createApp({
+      routes,
+      sessionSecret: "test-session-secret",
+      adminPassword: "test-admin-password",
+    })
   )
     .put("/api/teams/reset-records")
     .send({});
@@ -48,7 +52,11 @@ test("GET /api/users/username/:username reaches the named route", async (t) => {
   const routes = express.Router();
   routes.use("/api/users", require("../../controllers/api/user-routes"));
   const response = await request(
-    createApp({ routes, sessionSecret: "test-session-secret" })
+    createApp({
+      routes,
+      sessionSecret: "test-session-secret",
+      adminPassword: "test-admin-password",
+    })
   ).get("/api/users/username/alice");
 
   assert.equal(response.status, 200);
