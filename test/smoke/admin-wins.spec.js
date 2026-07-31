@@ -30,7 +30,7 @@ test("admin records a confirmed solo win from the existing User modal", async ({
           last_name: "User",
           username: "example",
           tracks: [],
-          user_record: [],
+          user_record: null,
           crown_type: null,
         },
       ]),

@@ -1,6 +1,14 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 
+test("admin formats a nullable User win record as no wins", async () => {
+  const { formatUserWinHistory } = await import(
+    "../../public/js/modules/admin-management.js"
+  );
+
+  assert.equal(formatUserWinHistory(null), "No wins recorded");
+});
+
 test("admin login sends the shared password only to the server", async () => {
   const calls = [];
   const { loginAdmin } = await import(
