@@ -111,7 +111,7 @@ export async function leagueUserTableHandler() {
           // Crown column
           let tdCrown = document.createElement("td");
           tdCrown.className = "crown-column";
-          const crownInfo = getCrownInfo(sortedData[i].user_record);
+          const crownInfo = getCrownInfo(sortedData[i].crown_type);
 
           if (crownInfo) {
             let crownImg = document.createElement("img");

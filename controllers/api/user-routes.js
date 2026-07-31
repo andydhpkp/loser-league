@@ -266,12 +266,16 @@ router.post("/reset-password", (req, res) => {
 });
 
 // Add win to user's record
-// Add win to user's record
 router.put("/:id/add-win", (req, res) => {
   const { year, won_with_tie = false } = req.body;
 
-  if (!year) {
-    return res.status(400).json({ message: "Year is required" });
+  const validYear = Number.isInteger(year) && year >= 1000 && year <= 9999;
+  const validTieFlag = typeof won_with_tie === "boolean";
+  if (!validYear || !validTieFlag) {
+    return res.status(400).json({
+      message:
+        "Year must be a four-digit integer and won_with_tie must be a boolean",
+    });
   }
 
   User.findByPk(req.params.id)
@@ -281,39 +285,7 @@ router.put("/:id/add-win", (req, res) => {
         return null;
       }
 
-      const currentRecord = user.user_record || [];
-      const existingEntryIndex = currentRecord.findIndex(
-        (entry) => entry.year === year
-      );
-
-      let newRecord;
-
-      if (existingEntryIndex !== -1) {
-        // Update existing entry if needed
-        newRecord = [...currentRecord]; // Create a new array
-        if (won_with_tie && !newRecord[existingEntryIndex].won_with_tie) {
-          newRecord[existingEntryIndex] = {
-            ...newRecord[existingEntryIndex],
-            won_with_tie: true,
-          };
-        }
-      } else {
-        // Add new entry
-        newRecord = [
-          ...currentRecord,
-          {
-            year: year,
-            won: true,
-            won_with_tie: won_with_tie,
-          },
-        ];
-      }
-
-      // Set the new array and mark the field as changed
-      user.user_record = newRecord;
-      user.changed("user_record", true);
-
-      return user.save();
+      return user.addWin(year, won_with_tie);
     })
     .then((updatedUser) => {
       if (!updatedUser) {
@@ -326,6 +298,7 @@ router.put("/:id/add-win", (req, res) => {
         total_wins: updatedUser.getTotalWins(),
         clean_wins: updatedUser.getCleanWins(),
         tie_wins: updatedUser.getWinsWithTies(),
+        crown_type: updatedUser.getCrownType(),
       });
     })
     .catch((err) => {
@@ -349,6 +322,7 @@ router.get("/:id/wins", (req, res) => {
         total_wins: user.getTotalWins(),
         clean_wins: user.getCleanWins(),
         tie_wins: user.getWinsWithTies(),
+        crown_type: user.getCrownType(),
       });
     })
     .catch((err) => {

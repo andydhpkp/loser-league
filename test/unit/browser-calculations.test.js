@@ -74,26 +74,21 @@ test("weekly summaries handle ties, missing Picks, and empty input", async () =>
   });
 });
 
-test("crown calculation distinguishes absent, clean, and tied wins", async () => {
+test("crown presentation maps supported model types to winner artwork", async () => {
   const { getCrownInfo } = await import("../../public/js/utilityFunctions.js");
 
   assert.equal(getCrownInfo(), null);
-  assert.equal(getCrownInfo([]), null);
-  assert.equal(
-    getCrownInfo([{ won: true, won_with_tie: false }]),
-    null
-  );
-  assert.deepEqual(
-    getCrownInfo([
-      { won: true, won_with_tie: true },
-      { won: true, won_with_tie: true },
-    ]),
-    {
-      src: "/css/assets/crowns/silver-crown-1.png",
-      alt: "Silver Crown - Won with tie",
-      title: "2 wins (including 2 ties)",
-    }
-  );
+  assert.equal(getCrownInfo(null), null);
+  assert.equal(getCrownInfo("solo_2"), null);
+  assert.equal(getCrownInfo("solo_1_tied_1"), null);
+  assert.deepEqual(getCrownInfo("solo_1"), {
+    src: "/css/assets/crowns/first_time_solo_winner_crown.png",
+    alt: "Crown for a first-time solo winner",
+  });
+  assert.deepEqual(getCrownInfo("tied_1"), {
+    src: "/css/assets/crowns/first_time_tie_crown_2_people.png",
+    alt: "Crown for a first-time winner in a two-person tie",
+  });
 });
 
 test("browser NFL data requests use only same-origin application routes", async () => {

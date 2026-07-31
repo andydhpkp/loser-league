@@ -21,9 +21,17 @@ test("User routes preserve successful CRUD, authentication, and win contracts", 
       calls.push(["save"]);
       return this;
     },
+    async addWin(year, wonWithTie) {
+      calls.push(["addWin", year, wonWithTie]);
+      this.user_record = [
+        { year, won: true, won_with_tie: wonWithTie },
+      ];
+      return this;
+    },
     getTotalWins: () => 1,
     getCleanWins: () => 1,
     getWinsWithTies: () => 0,
+    getCrownType: () => "solo_1",
   };
   let found = user;
 
@@ -100,6 +108,13 @@ test("User routes preserve successful CRUD, authentication, and win contracts", 
     .send({ year: 2026, won_with_tie: false });
   assert.equal(addWin.status, 200);
   assert.equal(addWin.body.total_wins, 1);
+  assert.equal(addWin.body.crown_type, "solo_1");
+  assert.ok(
+    calls.some(
+      ([name, year, wonWithTie]) =>
+        name === "addWin" && year === 2026 && wonWithTie === false
+    )
+  );
   assert.deepEqual(user.user_record, [
     { year: 2026, won: true, won_with_tie: false },
   ]);
@@ -107,6 +122,7 @@ test("User routes preserve successful CRUD, authentication, and win contracts", 
   const wins = await agent.get("/api/users/3/wins");
   assert.equal(wins.status, 200);
   assert.equal(wins.body.username, "alicia");
+  assert.equal(wins.body.crown_type, "solo_1");
 
   assert.equal((await agent.post("/api/users/logout")).status, 204);
   assert.equal((await agent.post("/api/users/logout")).status, 404);
@@ -184,6 +200,28 @@ test("User add-win missing-user response terminates with one 404", async (t) => 
 
   assert.equal(response.status, 404);
   assert.deepEqual(response.body, { message: "No user found with this id" });
+});
+
+test("User add-win rejects malformed years and tie flags before lookup", async (t) => {
+  const app = createRouteApp("/api/users", userRoutes);
+  const calls = [];
+  t.mock.method(User, "findByPk", async (id) => {
+    calls.push(id);
+    return null;
+  });
+
+  const invalidBodies = [
+    { year: "2026", won_with_tie: false },
+    { year: 26, won_with_tie: false },
+    { year: 2026, won_with_tie: "false" },
+    { year: 2026, won_with_tie: 0 },
+  ];
+
+  for (const body of invalidBodies) {
+    const response = await request(app).put("/api/users/3/add-win").send(body);
+    assert.equal(response.status, 400);
+  }
+  assert.deepEqual(calls, []);
 });
 
 test("User routes map model failures to safe errors", async (t) => {

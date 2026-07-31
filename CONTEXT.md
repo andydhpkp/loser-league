@@ -37,3 +37,9 @@ _Avoid_: Bet, vote
 A Track that has recorded a Wrong Pick and no longer continues in the current
 League Season.
 _Avoid_: Dead Track, eliminated User
+
+**Winner Crown**:
+An icon beside a User's name that represents the User's complete history of
+solo and tied League Season wins. A Winner Crown is derived from the User's win
+record and is shown only when artwork exists for that exact history.
+_Avoid_: User badge, player crown
