@@ -3,7 +3,11 @@ import { nflTeams } from "./data/nfl-teams.js";
 
 import { getUserId, handleSubmitPicks } from "./modules/track-actions.js";
 import { browserLogger } from "./logger.js";
-import { fetchNflSchedule, fetchNflTeams } from "./modules/nfl-data.js";
+import {
+  fetchNflSchedule,
+  fetchNflTeams,
+  getLeagueSeasonYear,
+} from "./modules/nfl-data.js";
 
 let c;
 let i;
@@ -153,9 +157,9 @@ export function getEndOfGameTime() {
 //3600000
 setInterval(getEndOfGameTime, 3600000);
 
-async function getRecords(currentWeek) {
+async function getRecords(seasonYear, currentWeek) {
   try {
-    const response = await fetchNflSchedule(2025, currentWeek);
+    const response = await fetchNflSchedule(seasonYear, currentWeek);
     if (!response.ok) {
       throw new Error("Failed to fetch data.");
     }
@@ -593,7 +597,12 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
           actions.insertBefore(submitBtn, document.getElementById("logoutBtn"));
 
           getLoading.remove();
-          getRecords(currentWeek);
+          const seasonYear = getLeagueSeasonYear(data);
+          if (seasonYear) {
+            getRecords(seasonYear, currentWeek);
+          } else {
+            browserLogger.error("Unable to determine the League Season year.");
+          }
         });
       } else {
         alert("didn't work");

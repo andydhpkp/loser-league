@@ -155,8 +155,15 @@ test("NFL Teams route passes through the approved ESPN response", async () => {
   assert.equal(upstreamUrl.search, "");
 });
 
-test("NFL Schedule route validates inputs and passes through approved ESPN JSON", async () => {
-  const upstreamBody = { content: { schedule: {} } };
+test("NFL Schedule route normalizes approved ESPN scoreboard JSON", async () => {
+  const upstreamBody = {
+    events: [
+      {
+        date: "2025-11-21T01:15Z",
+        competitions: [{ competitors: [] }],
+      },
+    ],
+  };
   let upstreamUrl;
   const app = createTestApp({
     routes: express.Router(),
@@ -175,12 +182,28 @@ test("NFL Schedule route validates inputs and passes through approved ESPN JSON"
   );
 
   assert.equal(response.status, 200);
-  assert.deepEqual(response.body, upstreamBody);
-  assert.equal(upstreamUrl.origin, "https://cdn.espn.com");
-  assert.equal(upstreamUrl.pathname, "/core/nfl/schedule");
-  assert.equal(upstreamUrl.searchParams.get("xhr"), "1");
-  assert.equal(upstreamUrl.searchParams.get("year"), "2025");
-  assert.equal(upstreamUrl.searchParams.get("week"), "22");
+  assert.deepEqual(response.body, {
+    content: {
+      schedule: {
+        "2025-11-21": { games: upstreamBody.events },
+      },
+    },
+  });
+  assert.equal(upstreamUrl.origin, "https://site.api.espn.com");
+  assert.equal(
+    upstreamUrl.pathname,
+    "/apis/site/v2/sports/football/nfl/scoreboard"
+  );
+  assert.equal(upstreamUrl.searchParams.get("dates"), "2025");
+  assert.equal(upstreamUrl.searchParams.get("seasontype"), "3");
+  assert.equal(upstreamUrl.searchParams.get("week"), "4");
+
+  const regularSeasonResponse = await request(app).get(
+    "/api/nfl/schedule?year=2025&week=12"
+  );
+  assert.equal(regularSeasonResponse.status, 200);
+  assert.equal(upstreamUrl.searchParams.get("seasontype"), "2");
+  assert.equal(upstreamUrl.searchParams.get("week"), "12");
 });
 
 test("NFL Schedule route rejects unsafe or unsupported query values", async () => {

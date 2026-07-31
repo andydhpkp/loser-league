@@ -44,10 +44,10 @@ function createWinControls(user) {
 
   const yearInput = document.createElement("input");
   yearInput.setAttribute("id", `win-year-${user.id}`);
-  yearInput.setAttribute("type", "number");
-  yearInput.setAttribute("min", "1000");
-  yearInput.setAttribute("max", "9999");
-  yearInput.setAttribute("step", "1");
+  yearInput.setAttribute("type", "text");
+  yearInput.setAttribute("inputmode", "numeric");
+  yearInput.setAttribute("pattern", "[0-9]{4}");
+  yearInput.setAttribute("maxlength", "4");
   yearInput.setAttribute("required", "");
   yearInput.className = "form-control mb-2";
 
