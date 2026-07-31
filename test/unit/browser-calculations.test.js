@@ -95,3 +95,22 @@ test("crown calculation distinguishes absent, clean, and tied wins", async () =>
     }
   );
 });
+
+test("browser NFL data requests use only same-origin application routes", async () => {
+  const { fetchNflSchedule, fetchNflTeams } = await import(
+    "../../public/js/modules/nfl-data.js"
+  );
+  const urls = [];
+  const fetchImpl = async (url) => {
+    urls.push(url);
+    return { ok: true };
+  };
+
+  await fetchNflTeams(fetchImpl);
+  await fetchNflSchedule(2025, 7, fetchImpl);
+
+  assert.deepEqual(urls, [
+    "/api/nfl/teams",
+    "/api/nfl/schedule?year=2025&week=7",
+  ]);
+});

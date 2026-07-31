@@ -32,14 +32,6 @@ for (const [name, url, entry] of pages) {
         body: JSON.stringify(body),
       });
     });
-    await page.route("**/site.api.espn.com/**", (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({ events: [], sports: [] }),
-      })
-    );
-
     await page.goto(url);
     await page.waitForLoadState("networkidle");
 

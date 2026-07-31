@@ -1,6 +1,7 @@
 import { finalScores } from "../teams.js";
 import { getCrownInfo } from "../utilityFunctions.js";
 import { browserLogger } from "../logger.js";
+import { fetchNflTeams } from "./nfl-data.js";
 import { sortUsersByTracksLeft } from "./league-stats.js";
 
 let i;
@@ -223,9 +224,7 @@ export async function leagueUserTableHandler() {
 }
 
 async function displayTeamLogo() {
-  fetch(
-    `https://pacific-anchorage-21728.herokuapp.com/https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams`
-  ).then(function (response) {
+  fetchNflTeams().then(function (response) {
     if (response.ok) {
       response.json().then(function (data) {
         let textPicks = document.getElementsByClassName("teamNames");
@@ -254,5 +253,3 @@ async function displayTeamLogo() {
     }
   });
 }
-
-async function espnFetchTeam() {}

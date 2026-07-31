@@ -6,6 +6,7 @@ const { UpstreamError } = require("./lib/errors");
 const { createLogger } = require("./lib/logger");
 const { createErrorHandler } = require("./middleware/error-handler");
 const { requestContext } = require("./middleware/request-context");
+const { createNflRouter } = require("./nfl/routes");
 
 function createApp({
   routes,
@@ -94,6 +95,7 @@ function createApp({
     }
   });
 
+  app.use("/api/nfl", createNflRouter({ fetchImpl }));
   app.use(routes || require("../controllers"));
   app.use(createErrorHandler(logger));
 

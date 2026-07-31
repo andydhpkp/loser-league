@@ -3,6 +3,7 @@ import { nflTeams } from "./data/nfl-teams.js";
 
 import { getUserId, handleSubmitPicks } from "./modules/track-actions.js";
 import { browserLogger } from "./logger.js";
+import { fetchNflSchedule, fetchNflTeams } from "./modules/nfl-data.js";
 
 let c;
 let i;
@@ -17,18 +18,6 @@ let x;
 
 //add button to originally create teams
 //add button to manually check matchup
-
-//Maybe do the espn one just for Monday night? Seems easier to have the random time update
-/* async function finalScores() {
-    fetch(`http://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard`).then(function(response) {
-        if(response.ok) {
-            response.json().then(function(data) {
-                browserLogger.debug(data)
-                for(i=0; i<data.events)
-            })
-        }
-    })
-} */
 
 export { finalScores } from "./modules/team-results.js";
 
@@ -164,35 +153,9 @@ export function getEndOfGameTime() {
 //3600000
 setInterval(getEndOfGameTime, 3600000);
 
-async function espnFetchScoreboard() {
-  fetch(
-    "https://pacific-anchorage-21728.herokuapp.com/https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard"
-  ).then(function (response) {
-    if (response.ok) {
-      response.json().then(function (data) {
-        browserLogger.debug(data);
-      });
-    }
-  });
-}
-
-async function espnFetchTeam() {
-  fetch(
-    "https://pacific-anchorage-21728.herokuapp.com/https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
-  ).then(function (response) {
-    if (response.ok) {
-      response.json().then(function (data) {
-        browserLogger.debug(data);
-      });
-    }
-  });
-}
-
 async function getRecords(currentWeek) {
   try {
-    const response = await fetch(
-      `https://pacific-anchorage-21728.herokuapp.com/https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2025&week=${currentWeek}`
-    );
+    const response = await fetchNflSchedule(2025, currentWeek);
     if (!response.ok) {
       throw new Error("Failed to fetch data.");
     }
@@ -283,83 +246,6 @@ export function getCurrentWeek() {
   localStorage.setItem("thisWeek", "12");
 }
 
-// async function getCurrentWeek() {
-//   try {
-//     const response = await fetch(
-//       "https://pacific-anchorage-21728.herokuapp.com/https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
-//       {
-//         header: {
-//           "X-Requested-With": "XMLHttpRequest",
-//         },
-//       }
-//     );
-
-//     if (!response.ok) {
-//       throw new Error(
-//         `HTTP error! Status: ${response.status} - ${response.statusText}`
-//       );
-//     }
-
-//     const data = await response.json();
-//     browserLogger.debug(data);
-//     const currentDate = getMyDate(); // Current date and time in UTC
-
-//     const league = data.leagues[0];
-//     const regularSeasonCalendar = league.calendar.find(
-//       (item) => item.label === "Regular Season"
-//     );
-
-//     if (!regularSeasonCalendar) {
-//       throw new Error("Could not find the Regular Season data");
-//     }
-
-//     let firstStartDate = new Date(regularSeasonCalendar.startDate);
-//     firstStartDate.setHours(firstStartDate.getHours() - 16); // Subtract 16 hours
-
-//     for (const entry of regularSeasonCalendar.entries) {
-//       const startDate = new Date(entry.startDate);
-//       startDate.setHours(startDate.getHours() - 16); // Subtract 16 hours
-
-//       const endDate = new Date(entry.endDate);
-//       endDate.setHours(endDate.getHours() - 16); // Subtract 16 hours
-
-//       if (currentDate >= startDate && currentDate <= endDate) {
-//         // localStorage.setItem("thisWeek", "1");
-//         browserLogger.debug("This is the current data: " + currentDate);
-//         browserLogger.debug("this is the start date: " + startDate);
-//         browserLogger.debug("this is the end date: " + endDate);
-//         browserLogger.debug("This is the current week: " + entry.value);
-//         //THIS IS WHERE TO CHANGE
-//         // localStorage.setItem("thisWeek", entry.value.toString());
-//         // localStorage.setItem("thisWeek", "21");
-//         return entry.value; // Return the value directly
-//       }
-//       browserLogger.debug("IT GETS TOOOOOO HERERERERERERE");
-//     }
-
-//     if (currentDate < firstStartDate) {
-//       localStorage.setItem("thisWeek", "1");
-//       // return "2"; // Return the value directly
-//     }
-
-//     //TEMPORARY FOR PLAYOFFS
-
-//     localStorage.setItem("thisWeek", "1");
-
-//     return null;
-//   } catch (error) {
-//     browserLogger.error("Error fetching data:", error);
-//     return null;
-//   }
-// }
-
-function getMyDate() {
-  const today = new Date();
-  //for testing different days
-  //today.setDate(today.getDate() + 15);
-  return today;
-}
-
 export async function fetchMatchesAndGetCurrentWeek() {
   try {
     let response = await fetch("/api/proxy/nfl-2025");
@@ -407,9 +293,7 @@ function getCurrentWeekForMatchFetch(matches) {
 async function matchup(totalTracks, trackIds, usedPicksMap) {
   let nflObj = {};
   try {
-    const response = await fetch(
-      "https://pacific-anchorage-21728.herokuapp.com/https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams"
-    );
+    const response = await fetchNflTeams();
     if (response.ok) {
       nflObj = await response.json();
     } else {

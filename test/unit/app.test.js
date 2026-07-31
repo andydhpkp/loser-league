@@ -22,6 +22,99 @@ test("NFL proxy returns upstream JSON through the application interface", async 
   assert.deepEqual(response.body, upstreamBody);
 });
 
+test("NFL Teams route passes through the approved ESPN response", async () => {
+  const upstreamBody = { sports: [{ leagues: [{ teams: [] }] }] };
+  let upstreamUrl;
+  const app = createApp({
+    routes: express.Router(),
+    sessionSecret: "test-session-secret",
+    fetchImpl: async (url) => {
+      upstreamUrl = new URL(url);
+      return {
+        ok: true,
+        json: async () => upstreamBody,
+      };
+    },
+  });
+
+  const response = await request(app).get("/api/nfl/teams");
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body, upstreamBody);
+  assert.equal(upstreamUrl.origin, "https://site.api.espn.com");
+  assert.equal(
+    upstreamUrl.pathname,
+    "/apis/site/v2/sports/football/nfl/teams"
+  );
+  assert.equal(upstreamUrl.search, "");
+});
+
+test("NFL Schedule route validates inputs and passes through approved ESPN JSON", async () => {
+  const upstreamBody = { content: { schedule: {} } };
+  let upstreamUrl;
+  const app = createApp({
+    routes: express.Router(),
+    sessionSecret: "test-session-secret",
+    fetchImpl: async (url) => {
+      upstreamUrl = new URL(url);
+      return {
+        ok: true,
+        json: async () => upstreamBody,
+      };
+    },
+  });
+
+  const response = await request(app).get(
+    "/api/nfl/schedule?year=2025&week=22"
+  );
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body, upstreamBody);
+  assert.equal(upstreamUrl.origin, "https://cdn.espn.com");
+  assert.equal(upstreamUrl.pathname, "/core/nfl/schedule");
+  assert.equal(upstreamUrl.searchParams.get("xhr"), "1");
+  assert.equal(upstreamUrl.searchParams.get("year"), "2025");
+  assert.equal(upstreamUrl.searchParams.get("week"), "22");
+});
+
+test("NFL Schedule route rejects unsafe or unsupported query values", async () => {
+  const currentYear = new Date().getUTCFullYear();
+  const invalidQueries = [
+    "",
+    "?year=2025",
+    "?week=1",
+    "?year=1999&week=1",
+    `?year=${currentYear + 2}&week=1`,
+    "?year=2025&week=0",
+    "?year=2025&week=23",
+    "?year=2025.0&week=1",
+    "?year=+2025&week=1",
+    "?year=2025x&week=1",
+    "?year=2025&week=01",
+    "?year=2025&year=2026&week=1",
+    "?year=2025&week=1&week=2",
+  ];
+  let fetchCalls = 0;
+  const app = createApp({
+    routes: express.Router(),
+    sessionSecret: "test-session-secret",
+    fetchImpl: async () => {
+      fetchCalls += 1;
+      throw new Error("fetch must not be called");
+    },
+  });
+
+  for (const query of invalidQueries) {
+    const response = await request(app).get(`/api/nfl/schedule${query}`);
+    assert.equal(response.status, 400, query);
+    assert.deepEqual(response.body, {
+      error: "VALIDATION_ERROR",
+      message: "A valid NFL season year and week are required",
+    });
+  }
+  assert.equal(fetchCalls, 0);
+});
+
 test("NFL odds proxy keeps the API credential behind the server interface", async () => {
   const upstreamBody = [{ id: "game-1", bookmakers: [] }];
   let upstreamUrl;

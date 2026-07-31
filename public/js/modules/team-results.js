@@ -1,4 +1,5 @@
 import { browserLogger } from "../logger.js";
+import { fetchNflSchedule } from "./nfl-data.js";
 
 let c;
 let i;
@@ -113,9 +114,7 @@ async function resetCurrentPicks() {
 
 async function fetchScheduleData(weekNumber) {
   try {
-    const response = await fetch(
-      `https://pacific-anchorage-21728.herokuapp.com/https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2025&week=${weekNumber}`
-    );
+    const response = await fetchNflSchedule(2025, weekNumber);
     const data = await response.json();
 
     let winners = [];
@@ -162,9 +161,7 @@ async function fetchScheduleData(weekNumber) {
 
 async function fetchScheduleOdds(weekNumber) {
   try {
-    const response = await fetch(
-      `https://pacific-anchorage-21728.herokuapp.com/https://cdn.espn.com/core/nfl/schedule?xhr=1&year=2025&week=${weekNumber}`
-    );
+    const response = await fetchNflSchedule(2025, weekNumber);
     const data = await response.json();
 
     let oddsDetails = [];
