@@ -9,7 +9,9 @@ function getTeamNames(names) {
 }
 
 export function formatUserWinHistory(userRecord = []) {
-  const wins = userRecord.filter((record) => record.won);
+  const wins = (Array.isArray(userRecord) ? userRecord : []).filter(
+    (record) => record.won
+  );
   if (wins.length === 0) {
     return "No wins recorded";
   }
