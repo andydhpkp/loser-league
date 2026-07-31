@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const bcrypt = require("bcrypt");
 const { User, Track } = require("../../models/my-index");
+const { requireAdmin } = require("../../server/admin/require-admin");
 const { logger } = require("../../server/lib/logger");
 
 router.get("/", (req, res) => {
@@ -266,7 +267,7 @@ router.post("/reset-password", (req, res) => {
 });
 
 // Add win to user's record
-router.put("/:id/add-win", (req, res) => {
+router.put("/:id/add-win", requireAdmin, (req, res) => {
   const { year, won_with_tie = false } = req.body;
 
   const validYear = Number.isInteger(year) && year >= 1000 && year <= 9999;

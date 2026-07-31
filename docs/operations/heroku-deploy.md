@@ -16,6 +16,18 @@ expiration so an otherwise healthy merge is not blocked at deployment time.
 Pull-request validation cannot access this environment. Only the deploy job for
 a successful push to `main` requests it.
 
+## Application configuration
+
+The Heroku app requires an `ADMIN_PASSWORD` config key for the shared admin
+login. Set or rotate its value through authorized Heroku configuration access
+before merging a release that introduces or changes admin authentication.
+Never place the value in source, a pull request, a command transcript, logs, or
+operations documentation, and never retrieve it during deployment verification.
+
+Verify only that the key name is present. Missing configuration prevents the
+application from starting, which intentionally blocks deployment rather than
+publishing an admin interface with a fallback credential.
+
 ## Deployment sequence
 
 1. A pull request targeting `main` runs unit tests, the coverage gate, browser

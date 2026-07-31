@@ -103,7 +103,12 @@ test("User routes preserve successful CRUD, authentication, and win contracts", 
   assert.equal(user.username, "alicia");
   assert.notEqual(user.password, "new-secret");
 
-  const addWin = await agent
+  const adminAgent = request.agent(app);
+  await adminAgent
+    .post("/api/admin/login")
+    .send({ password: "unit-test-admin-password" })
+    .expect(204);
+  const addWin = await adminAgent
     .put("/api/users/3/add-win")
     .send({ year: 2026, won_with_tie: false });
   assert.equal(addWin.status, 200);
@@ -137,6 +142,11 @@ test("User routes preserve successful CRUD, authentication, and win contracts", 
 
 test("User routes characterize validation, authentication, and not-found responses", async (t) => {
   const app = createRouteApp("/api/users", userRoutes);
+  const adminAgent = request.agent(app);
+  await adminAgent
+    .post("/api/admin/login")
+    .send({ password: "unit-test-admin-password" })
+    .expect(204);
   let found = null;
   t.mock.method(User, "findOne", async () => found);
   t.mock.method(User, "findByPk", async () => found);
@@ -184,7 +194,7 @@ test("User routes characterize validation, authentication, and not-found respons
     404
   );
   assert.equal(
-    (await request(app).put("/api/users/3/add-win").send({})).status,
+    (await adminAgent.put("/api/users/3/add-win").send({})).status,
     400
   );
   assert.equal((await request(app).get("/api/users/999/wins")).status, 404);
@@ -192,9 +202,14 @@ test("User routes characterize validation, authentication, and not-found respons
 
 test("User add-win missing-user response terminates with one 404", async (t) => {
   const app = createRouteApp("/api/users", userRoutes);
+  const adminAgent = request.agent(app);
+  await adminAgent
+    .post("/api/admin/login")
+    .send({ password: "unit-test-admin-password" })
+    .expect(204);
   t.mock.method(User, "findByPk", async () => null);
 
-  const response = await request(app)
+  const response = await adminAgent
     .put("/api/users/999/add-win")
     .send({ year: 2026 });
 
@@ -204,6 +219,11 @@ test("User add-win missing-user response terminates with one 404", async (t) => 
 
 test("User add-win rejects malformed years and tie flags before lookup", async (t) => {
   const app = createRouteApp("/api/users", userRoutes);
+  const adminAgent = request.agent(app);
+  await adminAgent
+    .post("/api/admin/login")
+    .send({ password: "unit-test-admin-password" })
+    .expect(204);
   const calls = [];
   t.mock.method(User, "findByPk", async (id) => {
     calls.push(id);
@@ -218,9 +238,29 @@ test("User add-win rejects malformed years and tie flags before lookup", async (
   ];
 
   for (const body of invalidBodies) {
-    const response = await request(app).put("/api/users/3/add-win").send(body);
+    const response = await adminAgent.put("/api/users/3/add-win").send(body);
     assert.equal(response.status, 400);
   }
+  assert.deepEqual(calls, []);
+});
+
+test("User add-win rejects unauthenticated requests before lookup", async (t) => {
+  const app = createRouteApp("/api/users", userRoutes);
+  const calls = [];
+  t.mock.method(User, "findByPk", async (id) => {
+    calls.push(id);
+    return null;
+  });
+
+  const response = await request(app)
+    .put("/api/users/3/add-win")
+    .send({ year: 2026, won_with_tie: false });
+
+  assert.equal(response.status, 401);
+  assert.deepEqual(response.body, {
+    error: "UNAUTHORIZED",
+    message: "Admin authentication required",
+  });
   assert.deepEqual(calls, []);
 });
 

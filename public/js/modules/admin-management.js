@@ -8,6 +8,105 @@ function getTeamNames(names) {
   return names.teamName;
 }
 
+export function formatUserWinHistory(userRecord = []) {
+  const wins = userRecord.filter((record) => record.won);
+  if (wins.length === 0) {
+    return "No wins recorded";
+  }
+
+  return wins
+    .map(
+      (record) =>
+        `${record.year} ${record.won_with_tie ? "tied" : "solo"}`
+    )
+    .join(", ");
+}
+
+function createWinControls(user) {
+  const section = document.createElement("section");
+  section.className = "admin-win-controls border-top mt-3 pt-3";
+
+  const heading = document.createElement("h6");
+  heading.innerText = "League Season win";
+
+  const history = document.createElement("p");
+  history.innerText = `Win history: ${formatUserWinHistory(user.user_record)}`;
+
+  const crownType = document.createElement("p");
+  crownType.innerText = `Crown type: ${user.crown_type || "none"}`;
+
+  const yearLabel = document.createElement("label");
+  yearLabel.setAttribute("for", `win-year-${user.id}`);
+  yearLabel.className = "form-label";
+  yearLabel.innerText = "League Season year";
+
+  const yearInput = document.createElement("input");
+  yearInput.setAttribute("id", `win-year-${user.id}`);
+  yearInput.setAttribute("type", "number");
+  yearInput.setAttribute("min", "1000");
+  yearInput.setAttribute("max", "9999");
+  yearInput.setAttribute("step", "1");
+  yearInput.setAttribute("required", "");
+  yearInput.className = "form-control mb-2";
+
+  const status = document.createElement("p");
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
+
+  const submitWin = async (wonWithTie) => {
+    status.innerText = "";
+    try {
+      const result = await addUserWin({
+        userId: user.id,
+        displayName: `${user.first_name} ${user.last_name}`,
+        // @ts-ignore
+        year: yearInput.value,
+        wonWithTie,
+      });
+      if (!result) {
+        return;
+      }
+
+      user.user_record = result.user_record;
+      user.crown_type = result.crown_type;
+      history.innerText = `Win history: ${formatUserWinHistory(
+        result.user_record
+      )}`;
+      crownType.innerText = `Crown type: ${result.crown_type || "none"}`;
+      // @ts-ignore
+      yearInput.value = "";
+      status.innerText = "Win recorded";
+    } catch (error) {
+      status.innerText =
+        error.message === "Enter a four-digit League Season year"
+          ? error.message
+          : "Unable to record win. Please try again.";
+    }
+  };
+
+  const soloButton = document.createElement("button");
+  soloButton.setAttribute("type", "button");
+  soloButton.className = "btn btn-primary me-2";
+  soloButton.innerText = "Add solo win";
+  soloButton.addEventListener("click", () => submitWin(false));
+
+  const tiedButton = document.createElement("button");
+  tiedButton.setAttribute("type", "button");
+  tiedButton.className = "btn btn-primary";
+  tiedButton.innerText = "Add tied win";
+  tiedButton.addEventListener("click", () => submitWin(true));
+
+  section.appendChild(heading);
+  section.appendChild(history);
+  section.appendChild(crownType);
+  section.appendChild(yearLabel);
+  section.appendChild(yearInput);
+  section.appendChild(soloButton);
+  section.appendChild(tiedButton);
+  section.appendChild(status);
+  return section;
+}
+
 export async function displayUsers() {
   fetch("/api/users").then(function (response) {
     if (response.ok) {
@@ -143,6 +242,7 @@ export async function displayUsers() {
           userModalBodymb.appendChild(form);
 
           userModalBody.appendChild(userModalBodymb);
+          userModalBody.appendChild(createWinControls(data[i]));
 
           userModalContent.appendChild(userModalBody);
 
@@ -637,16 +737,75 @@ function submitTrackNumberHandler() {
   }
 }
 
-export function adminHandler() {
-  let actualAdminPass = "hi";
+export async function loginAdmin(password, fetchImpl = fetch) {
+  const response = await fetchImpl("/api/admin/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
+  });
+
+  if (!response.ok) {
+    throw new Error("Incorrect admin password");
+  }
+}
+
+export async function logoutAdmin(fetchImpl = fetch) {
+  const response = await fetchImpl("/api/admin/logout", { method: "POST" });
+  if (!response.ok) {
+    throw new Error("Admin logout failed");
+  }
+}
+
+export async function addUserWin(
+  { userId, displayName, year, wonWithTie },
+  { confirmImpl = confirm, fetchImpl = fetch } = {}
+) {
+  const yearText = String(year);
+  const normalizedYear = Number(yearText);
+  if (
+    !/^\d{4}$/.test(yearText) ||
+    !Number.isInteger(normalizedYear) ||
+    normalizedYear < 1000 ||
+    normalizedYear > 9999
+  ) {
+    throw new Error("Enter a four-digit League Season year");
+  }
+
+  const winType = wonWithTie ? "tied" : "solo";
+  const confirmed = confirmImpl(
+    `Add a ${winType} win for ${displayName} for the ${yearText} League Season?`
+  );
+  if (!confirmed) {
+    return null;
+  }
+
+  const response = await fetchImpl(`/api/users/${userId}/add-win`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      year: normalizedYear,
+      won_with_tie: wonWithTie,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error("Unable to add win");
+  }
+  return response.json();
+}
+
+export async function adminHandler() {
   // @ts-ignore
-  let adminPassword = document
-    .getElementById("adminPasswordInput")
-    .value.trim();
-  if (adminPassword === actualAdminPass) {
+  const adminPasswordInput = document.getElementById("adminPasswordInput");
+  // @ts-ignore
+  const adminPassword = adminPasswordInput?.value ?? "";
+
+  try {
+    await loginAdmin(adminPassword);
+    // @ts-ignore
+    adminPasswordInput.value = "";
     location.href = "../admin.html";
-  } else {
-    alert("Sorry, you are not invited to this party");
+  } catch (_error) {
+    alert("Incorrect admin password");
   }
 }
 

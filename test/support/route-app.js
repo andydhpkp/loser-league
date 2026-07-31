@@ -8,6 +8,7 @@ function createRouteApp(prefix, router) {
   return createApp({
     routes,
     sessionSecret: "unit-test-session-secret",
+    adminPassword: "unit-test-admin-password",
     logger: {
       error() {},
       warn() {},

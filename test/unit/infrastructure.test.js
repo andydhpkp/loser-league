@@ -14,6 +14,13 @@ const {
 const { createLogger, redact } = require("../../server/lib/logger");
 const { createApp } = require("../../server/app");
 
+function createTestApp(options = {}) {
+  return createApp({
+    adminPassword: "test-admin-password",
+    ...options,
+  });
+}
+
 test("application requires a session secret", () => {
   assert.throws(
     () => createApp({ routes: express.Router(), sessionSecret: "" }),
@@ -26,7 +33,7 @@ test("request context preserves a supplied request ID", async () => {
   routes.get("/request-id", (req, res) => res.json({ id: req.requestId }));
 
   const response = await request(
-    createApp({ routes, sessionSecret: "test-secret" })
+    createTestApp({ routes, sessionSecret: "test-secret" })
   )
     .get("/request-id")
     .set("x-request-id", "caller-id");
@@ -61,7 +68,7 @@ test("expected application errors use their public contract", async () => {
   );
   const entries = [];
   const response = await request(
-    createApp({
+    createTestApp({
       routes,
       sessionSecret: "test-secret",
       logger: {
@@ -90,7 +97,7 @@ test("schedule proxy maps rejected and thrown upstream calls to safe 502 errors"
     },
   ]) {
     const response = await request(
-      createApp({
+      createTestApp({
         routes: express.Router(),
         sessionSecret: "test-secret",
         fetchImpl,
@@ -107,7 +114,7 @@ test("schedule proxy maps rejected and thrown upstream calls to safe 502 errors"
 
 test("odds proxy handles missing configuration and upstream rejection", async () => {
   const missing = await request(
-    createApp({
+    createTestApp({
       routes: express.Router(),
       sessionSecret: "test-secret",
       oddsApiKey: "",
@@ -117,7 +124,7 @@ test("odds proxy handles missing configuration and upstream rejection", async ()
   assert.equal(missing.body.message, "NFL odds configuration is unavailable");
 
   const rejected = await request(
-    createApp({
+    createTestApp({
       routes: express.Router(),
       sessionSecret: "test-secret",
       oddsApiKey: "key",

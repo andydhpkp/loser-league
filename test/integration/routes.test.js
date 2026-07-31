@@ -7,6 +7,7 @@ if (!databaseUrl) {
 } else {
   process.env.NODE_ENV = "test";
   process.env.SESSION_SECRET ||= "integration-session-secret";
+  process.env.ADMIN_PASSWORD ||= "integration-admin-password";
 
   const assert = require("node:assert/strict");
   const request = require("supertest");
