@@ -3,6 +3,7 @@ const express = require("express");
 const session = require("express-session");
 
 const { createAdminRouter } = require("./admin/routes");
+const { createAdminActionRouter } = require("./admin/action-routes");
 const { UpstreamError } = require("./lib/errors");
 const { createLogger } = require("./lib/logger");
 const { createErrorHandler } = require("./middleware/error-handler");
@@ -55,6 +56,7 @@ function createApp({
   app.use(express.static(path.join(__dirname, "../public")));
   app.use(sessionMiddleware);
   app.use("/api/admin", createAdminRouter({ adminPassword }));
+  app.use("/api/admin/actions", createAdminActionRouter());
 
   app.get("/api/proxy/nfl-2025", async (_req, res, next) => {
     try {

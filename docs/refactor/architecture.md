@@ -41,6 +41,11 @@ binding. The shared HTTP client owns request/error normalization.
   weekly Pick, elimination, schedule-version, and exactly-once lifecycle seams.
   Existing Track Pick fields remain compatibility projections during the
   expand/backfill phase.
+- Shared-admin action routes adapt HTTP to a registry-backed application
+  service. The service persists hashed, expiring previews and commits
+  stale-checked mutations with append-only operation/target audits in one
+  transaction. Admin authority remains a shared session and has no User or
+  actor association.
 - Track routes are grouped into access, pick lifecycle, force-pick,
   maintenance, and repair modules behind the unchanged route entry point.
 - Pure pick-state transitions live behind `makePick` and

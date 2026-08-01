@@ -6,6 +6,9 @@ const LeagueSeason = require('./LeagueSeason')
 const Pick = require('./Pick')
 const ScheduleSnapshot = require('./ScheduleSnapshot')
 const LeagueWeekOperation = require('./LeagueWeekOperation')
+const AdminActionPreview = require('./AdminActionPreview')
+const AdminAuditOperation = require('./AdminAuditOperation')
+const AdminAuditTarget = require('./AdminAuditTarget')
 
 User.hasMany(Track, {
     foreignKey: 'user_id'
@@ -73,6 +76,14 @@ LeagueWeekOperation.belongsTo(LeagueSeason, {
     foreignKey: 'league_season_id'
 })
 
+LeagueSeason.hasMany(AdminActionPreview, { as: 'adminActionPreviews', foreignKey: 'league_season_id' })
+AdminActionPreview.belongsTo(LeagueSeason, { as: 'leagueSeason', foreignKey: 'league_season_id' })
+LeagueSeason.hasMany(AdminAuditOperation, { as: 'adminAuditOperations', foreignKey: 'league_season_id' })
+AdminAuditOperation.belongsTo(LeagueSeason, { as: 'leagueSeason', foreignKey: 'league_season_id' })
+AdminAuditOperation.hasMany(AdminAuditTarget, { as: 'targets', foreignKey: 'admin_audit_operation_id' })
+AdminAuditTarget.belongsTo(AdminAuditOperation, { as: 'operation', foreignKey: 'admin_audit_operation_id' })
+AdminActionPreview.belongsTo(AdminAuditOperation, { as: 'auditOperation', foreignKey: 'audit_operation_id' })
+
 
 module.exports = {
     User,
@@ -81,5 +92,8 @@ module.exports = {
     LeagueSeason,
     Pick,
     ScheduleSnapshot,
-    LeagueWeekOperation
+    LeagueWeekOperation,
+    AdminActionPreview,
+    AdminAuditOperation,
+    AdminAuditTarget
 };

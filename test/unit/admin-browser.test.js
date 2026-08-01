@@ -54,10 +54,8 @@ test("admin logout clears the server-owned admin session", async () => {
 test("admin confirms and records a solo League Season win", async () => {
   const confirmations = [];
   const calls = [];
-  const responseBody = {
-    user_record: [{ year: 2025, won: true, won_with_tie: false }],
-    crown_type: "solo_1",
-  };
+  const responseBody = { targets: [{ target_type: "USER", after_state: { userRecord: [{ year: 2025, won: true, won_with_tie: false }], crownType: "solo_1" } }] };
+  const previewBody = { description: "Record solo win for User 3 in 2025", warnings: [], targets: [{}], confirmationKey: "a".repeat(64) };
   const { addUserWin } = await import(
     "../../public/js/modules/admin-management.js"
   );
@@ -76,25 +74,29 @@ test("admin confirms and records a solo League Season win", async () => {
       },
       async fetchImpl(url, options) {
         calls.push({ url, options });
-        return { ok: true, json: async () => responseBody };
+        return { ok: true, json: async () => calls.length === 1 ? previewBody : responseBody };
       },
     }
   );
 
   assert.deepEqual(confirmations, [
-    "Add a solo win for Example User for the 2025 League Season?",
+    "Record solo win for User 3 in 2025 (Example User)\nAffected records: 1\n",
   ]);
   assert.deepEqual(calls, [
     {
-      url: "/api/users/3/add-win",
+      url: "/api/admin/actions/ADD_USER_WIN/preview",
       options: {
-        method: "PUT",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ year: 2025, won_with_tie: false }),
+        body: JSON.stringify({ userId: 3, year: 2025, wonWithTie: false }),
       },
     },
+    {
+      url: "/api/admin/actions/ADD_USER_WIN/confirm",
+      options: { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirmationKey: "a".repeat(64) }) },
+    },
   ]);
-  assert.deepEqual(result, responseBody);
+  assert.deepEqual(result, { user_record: responseBody.targets[0].after_state.userRecord, crown_type: "solo_1" });
 });
 
 test("admin win workflow rejects an invalid League Season year before confirmation", async () => {
@@ -130,7 +132,7 @@ test("admin win workflow rejects an invalid League Season year before confirmati
   assert.equal(fetchCalls, 0);
 });
 
-test("admin can cancel a tied win before any request is sent", async () => {
+test("admin can cancel a tied win after preview without confirmation", async () => {
   let fetchCalls = 0;
   const { addUserWin } = await import(
     "../../public/js/modules/admin-management.js"
@@ -145,21 +147,18 @@ test("admin can cancel a tied win before any request is sent", async () => {
     },
     {
       confirmImpl(message) {
-        assert.equal(
-          message,
-          "Add a tied win for Example User for the 2025 League Season?"
-        );
+        assert.match(message, /Record tied win/);
         return false;
       },
       async fetchImpl() {
         fetchCalls += 1;
-        return { ok: true, json: async () => ({}) };
+        return { ok: true, json: async () => ({ description: "Record tied win", warnings: [], targets: [{}], confirmationKey: "a".repeat(64) }) };
       },
     }
   );
 
   assert.equal(result, null);
-  assert.equal(fetchCalls, 0);
+  assert.equal(fetchCalls, 1);
 });
 
 test("admin tied win sends the tied flag and maps server failure safely", async () => {
@@ -184,7 +183,7 @@ test("admin tied win sends the tied flag and maps server failure safely", async 
         },
       }
     ),
-    /Unable to add win/
+    /Unable to preview admin action/
   );
-  assert.deepEqual(payloads, [{ year: 2025, won_with_tie: true }]);
+  assert.deepEqual(payloads, [{ userId: 3, year: 2025, wonWithTie: true }]);
 });

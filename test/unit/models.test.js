@@ -240,3 +240,12 @@ test("League week operation validates exactly-once lifecycle phases", async () =
     }).validate()
   );
 });
+
+test("admin action persistence has no User or actor association", () => {
+  const models = require("../../models/my-index");
+
+  assert.equal(models.AdminActionPreview.associations.leagueSeason.target, models.LeagueSeason);
+  assert.equal(models.AdminAuditOperation.associations.targets.target, models.AdminAuditTarget);
+  assert.equal(models.AdminActionPreview.rawAttributes.actor_id, undefined);
+  assert.equal(models.AdminAuditOperation.rawAttributes.actor_id, undefined);
+});

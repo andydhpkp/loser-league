@@ -111,6 +111,18 @@ test("admin login rejects malformed credentials with one generic response", asyn
   }
 });
 
+test("admin action registry requires the shared-admin session and exposes no actor", async () => {
+  const app = createTestApp({ adminPassword: "test-admin-password" });
+  assert.equal((await request(app).get("/api/admin/actions")).status, 401);
+
+  const agent = request.agent(app);
+  await agent.post("/api/admin/login").send({ password: "test-admin-password" });
+  const response = await agent.get("/api/admin/actions");
+  assert.equal(response.status, 200);
+  assert.equal(response.body.actions.length, 4);
+  assert.equal(JSON.stringify(response.body).includes("actor"), false);
+});
+
 test("NFL proxy returns upstream JSON through the application interface", async () => {
   const upstreamBody = [{ id: 1, home: "Denver Broncos" }];
   const app = createTestApp({
