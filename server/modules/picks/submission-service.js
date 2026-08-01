@@ -15,9 +15,10 @@ function normalizedSelections(selections) {
   });
 }
 
-async function submitPicks({ userId, selections, schedule, now = new Date() }) {
+async function submitPicks({ userId, selections, schedule, now = () => new Date() }) {
   const requested = normalizedSelections(selections);
-  if (!schedule || !(schedule.earliestKickoff instanceof Date) || now >= schedule.earliestKickoff) {
+  const clock = typeof now === "function" ? now : () => now;
+  if (!schedule || !(schedule.earliestKickoff instanceof Date) || clock() >= schedule.earliestKickoff) {
     throw new ConflictError("Pick submission is closed");
   }
   return sequelize.transaction({ isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE }, async (transaction) => {
@@ -26,6 +27,8 @@ async function submitPicks({ userId, selections, schedule, now = new Date() }) {
     if (Number(schedule.year) !== season.year || Number(schedule.week) !== season.current_week) {
       throw new ConflictError("League Season changed; reload before submitting");
     }
+    const lockedNow = clock();
+    if (lockedNow >= schedule.earliestKickoff) throw new ConflictError("Pick submission is closed");
     const tracks = await Track.findAll({ where: { user_id: userId, league_season_id: season.id, eliminated_by_pick_id: null }, order: [["id", "ASC"]], transaction, lock: transaction.LOCK.UPDATE });
     const existing = await Pick.findAll({ where: { track_id: { [Op.in]: tracks.map((track) => track.id) }, league_season_id: season.id, week: season.current_week }, transaction, lock: transaction.LOCK.UPDATE });
     const byTrack = new Map(requested.map((selection) => [selection.trackId, selection]));
@@ -43,11 +46,11 @@ async function submitPicks({ userId, selections, schedule, now = new Date() }) {
         throw new ValidationError(`Track ${track.id} has an ineligible Team`);
       }
     }
-    await ScheduleSnapshot.findOrCreate({ where: { league_season_id: season.id, week: season.current_week, provider: schedule.provider, content_hash: schedule.contentHash }, defaults: { normalized_schedule: schedule.normalizedSchedule, fetched_at: schedule.fetchedAt, created_at: now }, transaction });
+    await ScheduleSnapshot.findOrCreate({ where: { league_season_id: season.id, week: season.current_week, provider: schedule.provider, content_hash: schedule.contentHash }, defaults: { normalized_schedule: schedule.normalizedSchedule, fetched_at: schedule.fetchedAt, created_at: lockedNow }, transaction });
     for (const track of tracks) {
       if (existingByTrack.has(track.id)) continue;
       const selection = byTrack.get(track.id);
-      await Pick.create({ track_id: track.id, league_season_id: season.id, week: season.current_week, team_name: selection.teamName, origin: "USER_SUBMISSION", outcome: "PENDING", committed_at: now, schedule_hash: schedule.contentHash, state_version: 0 }, { transaction });
+      await Pick.create({ track_id: track.id, league_season_id: season.id, week: season.current_week, team_name: selection.teamName, origin: "USER_SUBMISSION", outcome: "PENDING", committed_at: lockedNow, schedule_hash: schedule.contentHash, state_version: 0 }, { transaction });
       const used = [...track.used_picks, selection.teamName];
       await track.update({ current_pick: selection.teamName, used_picks: used, available_picks: track.available_picks.filter((team) => team !== selection.teamName), state_version: track.state_version + 1 }, { transaction });
     }

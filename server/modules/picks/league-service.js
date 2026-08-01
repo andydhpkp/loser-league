@@ -1,5 +1,5 @@
 const { Op } = require("sequelize");
-const { User, Track, Pick, LeagueSeason, ScheduleSnapshot } = require("../../../models");
+const { User, Track, Pick, LeagueSeason, LeagueWeekOperation, ScheduleSnapshot } = require("../../../models");
 const { ConflictError } = require("../../lib/errors");
 const { fetchFixtureSchedule } = require("../../nfl/fixture-download-client");
 const { currentPickVisibility, eligibleTeamsForTrack } = require("./submission-policy");
@@ -11,15 +11,32 @@ async function openSeason() {
   return season;
 }
 
-async function getSubmissionState({ userId }) {
+async function getSubmissionState({ userId, now = new Date() }) {
   const season = await openSeason();
   const tracks = await Track.findAll({ where: { user_id: userId, league_season_id: season.id, eliminated_by_pick_id: null }, order: [["id", "ASC"]] });
   const picks = await Pick.findAll({ where: { track_id: { [Op.in]: tracks.map((track) => track.id) }, league_season_id: season.id }, order: [["week", "ASC"]] });
   const latest = season.current_week > 0 ? await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: season.current_week }, order: [["fetched_at", "DESC"]] }) : null;
+  const autoPickOperation = season.current_week > 0 ? await LeagueWeekOperation.findOne({ where: { league_season_id: season.id, week: season.current_week, phase: "AUTO_PICK" } }) : null;
   const scheduledTeams = latest ? [...new Set(latest.normalized_schedule.games.flatMap((game) => [game.homeTeam, game.awayTeam]))].sort() : [];
+  const deadline = latest?.normalized_schedule.games[0]?.kickoff ? new Date(latest.normalized_schedule.games[0].kickoff) : null;
+  const submissionOpen = season.state === "ACTIVE" && deadline instanceof Date && !Number.isNaN(deadline.getTime()) && now < deadline;
+  const autoPickStatus = season.state !== "ACTIVE" || season.current_week === 0
+    ? "NOT_DUE"
+    : autoPickOperation
+      ? "COMPLETED"
+      : !latest
+        ? "BLOCKED"
+        : submissionOpen
+          ? "NOT_DUE"
+          : "PENDING";
   return {
     leagueSeason: { id: season.id, year: season.year, week: season.current_week, state: season.state },
     scheduleAvailable: Boolean(latest),
+    deadline: deadline?.toISOString() || null,
+    submissionOpen,
+    autoPickStatus,
+    ...(autoPickStatus === "PENDING" ? { message: "Automatic Picks are pending" } : {}),
+    ...(autoPickStatus === "BLOCKED" ? { message: "Automatic Picks are temporarily unavailable" } : {}),
     tracks: tracks.map((track) => {
       const history = picks.filter((pick) => pick.track_id === track.id);
       const current = history.find((pick) => pick.week === season.current_week);
@@ -48,10 +65,11 @@ async function getLeagueView({ userId }) {
   return { leagueSeason: { id: season.id, year: season.year, week: season.current_week }, pickVisibility, users: result, pickStatistics: pickVisibility === "HIDDEN" ? null : undefined };
 }
 
-async function submit({ userId, selections, fetchImpl, now = new Date() }) {
+async function submit({ userId, selections, fetchImpl, now = () => new Date() }) {
   const season = await openSeason();
   if (season.state !== "ACTIVE") throw new ConflictError("Pick submission is not open");
-  const schedule = await fetchFixtureSchedule({ year: season.year, week: season.current_week, fetchImpl, now });
+  const fetchedAt = typeof now === "function" ? now() : now;
+  const schedule = await fetchFixtureSchedule({ year: season.year, week: season.current_week, fetchImpl, now: fetchedAt });
   return submitPicks({ userId, selections, schedule, now });
 }
 

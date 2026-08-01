@@ -36,10 +36,11 @@ test("web startup verifies the database without synchronizing schema", async () 
     },
   };
   const logger = { info() {}, error() {} };
+  const lifecycleCoordinator = { start: () => calls.push("lifecycle") };
 
-  await startServer({ app, database, port: 4321, logger });
+  await startServer({ app, database, port: 4321, logger, lifecycleCoordinator });
 
-  assert.deepEqual(calls, ["authenticate", ["listen", 4321]]);
+  assert.deepEqual(calls, ["authenticate", ["listen", 4321], "lifecycle"]);
 });
 
 test("application requires a session secret", () => {

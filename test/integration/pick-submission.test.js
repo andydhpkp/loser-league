@@ -8,7 +8,8 @@ if (!databaseUrl) {
   const assert = require("node:assert/strict");
   const { sequelize, User, Track, LeagueSeason, Pick } = require("../../models");
   const { submitPicks } = require("../../server/modules/picks/submission-service");
-  const { getLeagueView } = require("../../server/modules/picks/league-service");
+  const { executeAutoPick } = require("../../server/modules/picks/auto-pick-service");
+  const { getLeagueView, getSubmissionState } = require("../../server/modules/picks/league-service");
   const { migrateEmptyTestDatabase } = require("../support/migrate-test-database");
 
   test.beforeEach(async () => migrateEmptyTestDatabase(sequelize));
@@ -95,6 +96,21 @@ if (!databaseUrl) {
     assert.equal(await Pick.count(), 1);
   });
 
+  test("submission waiting for the League Season lock rechecks the deadline before commit", async () => {
+    const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 1, state_version: 1, open_slot: 1 });
+    const user = await User.create({ first_name: "Deadline", last_name: "User", username: "deadline", email: "deadline@example.test", password: "safe-test-password" });
+    const track = await Track.create({ user_id: user.id, league_season_id: season.id, available_picks: ["Broncos", "Raiders"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 });
+    const deadline = new Date("2026-09-10T00:00:00Z");
+    const schedule = { year: 2026, week: 1, provider: "FIXTURE_DOWNLOAD", contentHash: "f".repeat(64), teams: ["Broncos", "Raiders"], earliestKickoff: deadline, normalizedSchedule: { week: 1, games: [] }, fetchedAt: new Date("2026-09-01T00:00:00Z") };
+    const times = [new Date(deadline.getTime() - 1), deadline];
+
+    await assert.rejects(
+      submitPicks({ userId: user.id, selections: [{ trackId: track.id, stateVersion: 0, teamName: "Broncos" }], schedule, now: () => times.shift() }),
+      /closed/
+    );
+    assert.equal(await Pick.count(), 0);
+  });
+
   test("league view hides every current Pick until the viewing User is complete", async () => {
     const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 1, state_version: 1, open_slot: 1 });
     const viewer = await User.create({ first_name: "Hidden", last_name: "Viewer", username: "viewer", email: "viewer@example.test", password: "safe-test-password" });
@@ -108,5 +124,76 @@ if (!databaseUrl) {
     assert.equal(JSON.stringify(view).includes("Raiders"), false);
     assert.equal(JSON.stringify(view).includes("password"), false);
     assert.equal(JSON.stringify(view).includes("email"), false);
+  });
+
+  test("auto-pick independently fills missing active Tracks and records one durable completion", async () => {
+    const { LeagueWeekOperation } = require("../../models");
+    const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 1, state_version: 1, open_slot: 1 });
+    const user = await User.create({ first_name: "Automatic", last_name: "User", username: "automatic", email: "automatic@example.test", password: "safe-test-password" });
+    const tracks = await Track.bulkCreate([
+      { user_id: user.id, league_season_id: season.id, available_picks: ["Broncos", "Chargers", "Chiefs", "Raiders"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 },
+      { user_id: user.id, league_season_id: season.id, available_picks: ["Broncos", "Chargers", "Chiefs", "Raiders"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 },
+    ]);
+    const schedule = { year: 2026, week: 1, provider: "FIXTURE_DOWNLOAD", contentHash: "d".repeat(64), teams: ["Broncos", "Chargers", "Chiefs", "Raiders"], earliestKickoff: new Date("2026-09-10T00:00:00Z"), normalizedSchedule: { week: 1, games: [{ kickoff: "2026-09-10T00:00:00.000Z", homeTeam: "Broncos", awayTeam: "Raiders" }, { kickoff: "2026-09-11T00:00:00.000Z", homeTeam: "Chargers", awayTeam: "Chiefs" }] }, fetchedAt: new Date("2026-09-01T00:00:00Z") };
+    const indices = [1, 0];
+
+    const first = await executeAutoPick({ schedule, now: new Date("2026-09-10T00:00:00Z"), randomIndex: () => indices.shift() });
+    const replay = await executeAutoPick({ schedule, now: new Date("2026-09-10T00:00:01Z"), randomIndex: () => { throw new Error("must not draw again"); } });
+
+    assert.equal(first.status, "COMPLETED");
+    assert.equal(replay.status, "ALREADY_COMPLETED");
+    assert.equal(await LeagueWeekOperation.count({ where: { phase: "AUTO_PICK" } }), 1);
+    const picks = await Pick.findAll({ order: [["track_id", "ASC"]] });
+    assert.deepEqual(picks.map((pick) => [pick.track_id, pick.team_name, pick.origin]), [
+      [tracks[0].id, "Chargers", "AUTOMATIC_SELECTION"],
+      [tracks[1].id, "Broncos", "AUTOMATIC_SELECTION"],
+    ]);
+    const state = await getSubmissionState({ userId: user.id, now: new Date("2026-09-10T00:00:01Z") });
+    assert.equal(state.deadline, "2026-09-10T00:00:00.000Z");
+    assert.equal(state.submissionOpen, false);
+    assert.equal(state.autoPickStatus, "COMPLETED");
+  });
+
+  test("concurrent auto-pick evaluators converge on one Pick and one completion", async () => {
+    const { LeagueWeekOperation } = require("../../models");
+    const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 1, state_version: 1, open_slot: 1 });
+    const user = await User.create({ first_name: "Concurrent", last_name: "Automatic", username: "concurrent-auto", email: "concurrent-auto@example.test", password: "safe-test-password" });
+    await Track.create({ user_id: user.id, league_season_id: season.id, available_picks: ["Broncos", "Raiders"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 });
+    const schedule = { year: 2026, week: 1, provider: "FIXTURE_DOWNLOAD", contentHash: "e".repeat(64), teams: ["Broncos", "Raiders"], earliestKickoff: new Date("2026-09-10T00:00:00Z"), normalizedSchedule: { week: 1, games: [] }, fetchedAt: new Date("2026-09-01T00:00:00Z") };
+
+    const results = await Promise.all([
+      executeAutoPick({ schedule, now: new Date("2026-09-10T00:00:00Z"), randomIndex: () => 0 }),
+      executeAutoPick({ schedule, now: new Date("2026-09-10T00:00:00Z"), randomIndex: () => 1 }),
+    ]);
+
+    assert.deepEqual(results.map((result) => result.status).sort(), ["ALREADY_COMPLETED", "COMPLETED"]);
+    assert.equal(await Pick.count(), 1);
+    assert.equal(await LeagueWeekOperation.count({ where: { phase: "AUTO_PICK" } }), 1);
+  });
+
+  test("auto-pick rolls back every Pick, projection, and completion after a mid-write failure", async (t) => {
+    const { LeagueWeekOperation } = require("../../models");
+    const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 1, state_version: 1, open_slot: 1 });
+    const user = await User.create({ first_name: "Rollback", last_name: "Automatic", username: "rollback-auto", email: "rollback-auto@example.test", password: "safe-test-password" });
+    const tracks = await Track.bulkCreate([
+      { user_id: user.id, league_season_id: season.id, available_picks: ["Broncos", "Raiders"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 },
+      { user_id: user.id, league_season_id: season.id, available_picks: ["Broncos", "Raiders"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 },
+    ]);
+    const schedule = { year: 2026, week: 1, provider: "FIXTURE_DOWNLOAD", contentHash: "1".repeat(64), teams: ["Broncos", "Raiders"], earliestKickoff: new Date("2026-09-10T00:00:00Z"), normalizedSchedule: { week: 1, games: [] }, fetchedAt: new Date("2026-09-01T00:00:00Z") };
+    const originalCreate = Pick.create.bind(Pick);
+    let writes = 0;
+    t.mock.method(Pick, "create", async (...args) => {
+      writes += 1;
+      if (writes === 2) throw new Error("injected automatic Pick failure");
+      return originalCreate(...args);
+    });
+
+    await assert.rejects(executeAutoPick({ schedule, now: new Date("2026-09-10T00:00:00Z"), randomIndex: () => 0 }), /injected automatic Pick failure/);
+
+    assert.equal(await Pick.count(), 0);
+    assert.equal(await LeagueWeekOperation.count({ where: { phase: "AUTO_PICK" } }), 0);
+    const refreshed = await Track.findAll({ where: { user_id: user.id }, order: [["id", "ASC"]] });
+    assert.deepEqual(refreshed.map((track) => [track.current_pick, track.used_picks]), [[null, []], [null, []]]);
+    assert.deepEqual(refreshed.map((track) => track.id), tracks.map((track) => track.id));
   });
 }
