@@ -44,6 +44,21 @@
       </div>
     </main>
 
+    <div class="modal fade" id="pickReviewModal" tabindex="-1" aria-labelledby="pickReviewTitle" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title fs-5" id="pickReviewTitle">Review and submit all Picks</h2></div>
+        <div class="modal-body">
+          <ul id="pickReviewList"></ul>
+          <p><strong>Are you sure? You will not be able to change your Picks after submitting.</strong></p>
+          <p id="pickReviewError" class="text-danger" role="alert" hidden></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Go back and edit</button>
+          <button type="button" class="btn btn-primary" id="confirmPickSubmission">Submit and lock Picks</button>
+        </div>
+      </div></div>
+    </div>
+
     <!-- Scripts -->
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"

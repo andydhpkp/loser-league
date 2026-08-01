@@ -71,28 +71,20 @@ function displayVenmoButton() {
 }
 
 export async function getTrackNumber() {
-  let userId = localStorage.getItem("loggedInUserId");
-
-  if (!userId) {
-    userId = await getUserId();
-  }
-
-  if (!userId) {
-    browserLogger.error("Failed to get user ID.");
-    return;
-  }
-
-  let currentWeek = parseInt(localStorage.getItem("thisWeek"));
+  let currentWeek;
   let totalTracks = 0;
   let trackIdArray = [];
   let trackIdToUsedPicksMap = {};
+  let trackStateMap = {};
 
   try {
-    const response = await fetch(`/api/tracks/user/${userId}/alive`);
+    const response = await fetch("/api/user/league/submission");
     if (!response.ok) {
       throw new Error("Network response was not ok");
     }
-    const data = await response.json();
+    const state = await response.json();
+    const data = state.tracks;
+    currentWeek = state.leagueSeason.week;
 
     totalTracks = data.length;
 
@@ -104,14 +96,15 @@ export async function getTrackNumber() {
       trackIdArray.push(data[i].id);
     }
     for (let i = 0; i < totalTracks; i++) {
-      trackIdToUsedPicksMap[data[i].id] = data[i].used_picks;
+      trackIdToUsedPicksMap[data[i].id] = data[i].usedTeamNames;
+      trackStateMap[data[i].id] = data[i];
     }
     currentWeek++;
     let picksCompleteChecker = false;
     if (trackIdArray.length > 0) {
       let picksCompleteHelper = 0;
       for (let r = 0; r < totalTracks; r++) {
-        if (data[r].used_picks.length >= currentWeek) {
+        if (data[r].status === "SUBMITTED") {
           picksCompleteHelper++;
         }
       }
@@ -122,7 +115,7 @@ export async function getTrackNumber() {
     if (picksCompleteChecker) {
       //location.href = "../league-page.html"
     }
-    await matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap); // Assuming matchup is an async function
+    await matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap, trackStateMap);
     if (trackIdArray.length === 0) {
       displayVenmoButton();
     }
@@ -294,7 +287,7 @@ function getCurrentWeekForMatchFetch(matches) {
 }
 
 // Call the async function to fetch matches and get the current week
-async function matchup(totalTracks, trackIds, usedPicksMap) {
+async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap) {
   let nflObj = {};
   try {
     const response = await fetchNflTeams();
@@ -411,6 +404,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
               "track-dropdown trackContainer"
             );
             trackDropdown.setAttribute("id", trackIds[i]);
+            trackDropdown.dataset.stateVersion = trackStateMap[trackIds[i]].stateVersion;
 
             // Create collapsed header
             let trackHeader = document.createElement("div");
@@ -434,6 +428,11 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
             let hiddenInput = document.createElement("input");
             hiddenInput.setAttribute("type", "hidden");
             hiddenInput.setAttribute("class", "tempSelection");
+            const committedTrack = trackStateMap[trackIds[i]]?.status === "SUBMITTED";
+            if (committedTrack) {
+              hiddenInput.value = `${trackIds[i]},${trackStateMap[trackIds[i]].committedTeamName}`;
+              trackLabel.innerText = `TRACK ${i + 1}: ${trackStateMap[trackIds[i]].committedTeamName} (submitted)`;
+            }
 
             // Add click handler to header for expand/collapse
             trackHeader.addEventListener("click", function () {
@@ -473,6 +472,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
               const firstTeamRecordStr = info[logoCounter];
 
               firstTeamButton.setAttribute("class", "teamSelection");
+              firstTeamButton.disabled = committedTrack;
               firstTeamButton.setAttribute(
                 "data-value",
                 `${trackIds[i]},${firstTeamNameStr}`
@@ -521,6 +521,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap) {
               const secondTeamRecordStr = info[logoCounter];
 
               secondTeamButton.setAttribute("class", "teamSelection");
+              secondTeamButton.disabled = committedTrack;
               secondTeamButton.setAttribute(
                 "data-value",
                 `${trackIds[i]},${secondTeamNameStr}`

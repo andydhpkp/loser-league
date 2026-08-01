@@ -163,7 +163,7 @@ The detailed route inventory is maintained below during delivery.
 | Existing capability | Disposition | Replacement PR | Status |
 | --- | --- | --- | --- |
 | Raw repair and maintenance routes | Replace with mapped guided actions | Admin repair | Inventory pending |
-| Browser Track Pick write | Replace with atomic final submission | Final submission | Pending |
+| Browser Track Pick write | Replaced with atomic final submission | Final submission | PR gate passed |
 | Browser force-pick | Replace with server lifecycle auto-pick | Auto-pick | Pending |
 | Browser result and current-Pick reset orchestration | Replace with server week closure | Weekly results | Pending |
 | Admin Track/User create/delete and add-win | Move behind audited admin actions | Admin infrastructure | PR gate passed |
@@ -174,8 +174,8 @@ The detailed route inventory is maintained below during delivery.
 | Order | Scope | GitHub issue | Status |
 | ---: | --- | --- | --- |
 | 1 | League Season and normalized Pick foundation | #27 | Complete; PR #28 plus deployment repair #29 |
-| 2 | Admin authorization boundary, action registry, previews, audit, existing admin mutations | #12A | PR gate passed; publication pending |
-| 3 | Atomic final Pick submission and visibility | #13 | Pending |
+| 2 | Admin authorization boundary, action registry, previews, audit, existing admin mutations | #12A | Complete; PR #30 plus CI fixture repair #31 |
+| 3 | Atomic final Pick submission and visibility | #13 | PR gate passed; publication pending |
 | 4 | Exactly-once independent per-Track auto-pick | #19 | Pending |
 | 5 | Exactly-once results and automatic/manual week closure | #11 | Pending |
 | 6 | Inspector, mapped repairs/resets, buyback, undo, and Admin Guide | #12B and #17 | Pending |
@@ -260,5 +260,40 @@ the forward repair is tracked in
   Existing general-purpose/manual routes remain during the expand phase.
 - Track creation preserves the legacy Week-1 allowance in #12A; #13 will add
   the confirmed schedule-aware pre-kickoff enforcement.
-- Next safe step: publish and merge #12A, verify its Heroku migration and health,
-  then start #13 from fresh `main`.
+- PR #30 merged as `c61e981`. Its first workflow correctly stopped before
+  deployment when a clean-checkout integration fixture exposed a missing
+  required User field.
+- PR #31 merged as `367eb65` with the one-line fixture correction. Workflow
+  30714814887 passed the exact SHA, Heroku release `v259` succeeded, migration
+  `20260801010000-add-admin-action-foundation` completed, and `/` plus
+  `/api/nfl/teams` were healthy.
+- #12A is complete in production. #12 remains open for the #12B guided repair,
+  reset, buyback, undo, inspector, and Admin Guide work.
+
+### PR 3 implementation — 2026-08-01
+
+- Added authenticated `/api/user/league` submission-state, atomic final
+  submission, and eligibility-aware league-view interfaces.
+- Final submission fetches fresh Fixture Download evidence, binds its hash to
+  the locked League Season/week, and commits normalized Picks plus temporary
+  legacy Track projections in one serializable transaction.
+- Exact retries succeed, differing and competing submissions cannot replace a
+  committed Pick set, and injected mid-write failure rolls back every Pick and
+  Track projection.
+- League responses omit every current-Pick identity and Pick-derived value
+  until the viewing User has submitted every active Track. Personalized
+  responses are private and not cacheable.
+- The browser now reviews and submits all active Tracks together and uses the
+  server League Season week. General User/Track paths no longer expose raw Pick
+  identities to ordinary consumers; shared-admin/manual repair paths remain
+  available for the one-engineer operating workflow.
+- Added the nullable `pick.schedule_hash` expand migration. The prior release
+  ignores the new column, so rollout and rollback remain compatible.
+- `npm run test:unit` — passed, 89 tests.
+- `npm run test:unit:coverage` — passed, 83.09% line coverage.
+- `npm run lint:browser` — passed.
+- `npm run test:integration` — passed, 14 tests against disposable MySQL.
+- `npm run test:smoke` — passed, 7 Playwright tests.
+- `git diff --check` — passed.
+- Issue/PR links and production deployment verification will be recorded before
+  this stage is marked complete.

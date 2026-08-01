@@ -60,7 +60,9 @@ test("User routes preserve successful CRUD, authentication, and win contracts", 
     return 1;
   });
 
-  assert.equal((await agent.get("/api/users")).status, 200);
+  const adminListAgent = request.agent(app);
+  await adminListAgent.post("/api/admin/login").send({ password: "unit-test-admin-password" }).expect(204);
+  assert.equal((await adminListAgent.get("/api/users")).status, 200);
   assert.equal((await agent.get("/api/users/3")).status, 200);
   assert.equal((await agent.get("/api/users/username/alice")).status, 200);
 
@@ -132,12 +134,7 @@ test("User routes preserve successful CRUD, authentication, and win contracts", 
   assert.equal((await agent.post("/api/users/logout")).status, 204);
   assert.equal((await agent.post("/api/users/logout")).status, 404);
   assert.ok(calls.some(([name, query]) => name === "findAll" && query.include));
-  assert.ok(
-    calls.some(
-      ([name, query]) =>
-        name === "findOne" && query.include?.[0]?.model === Track
-    )
-  );
+  assert.ok(calls.some(([name, query]) => name === "findOne" && query.attributes));
 });
 
 test("User routes characterize validation, authentication, and not-found responses", async (t) => {
@@ -269,7 +266,9 @@ test("User routes map model failures to safe errors", async (t) => {
   t.mock.method(User, "findAll", async () => {
     throw new Error("database secret");
   });
-  const response = await request(app).get("/api/users");
+  const adminAgent = request.agent(app);
+  await adminAgent.post("/api/admin/login").send({ password: "unit-test-admin-password" }).expect(204);
+  const response = await adminAgent.get("/api/users");
   assert.equal(response.status, 500);
   assert.deepEqual(response.body, {
     error: "INTERNAL_ERROR",

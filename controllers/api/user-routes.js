@@ -4,9 +4,9 @@ const { User, Track } = require("../../models/my-index");
 const { requireAdmin } = require("../../server/admin/require-admin");
 const { logger } = require("../../server/lib/logger");
 
-router.get("/", (req, res) => {
+router.get("/", requireAdmin, (req, res) => {
   User.findAll({
-    //attributes: { exclude: ['password'] }
+    attributes: { exclude: ["password", "email"] },
     include: [
       {
         model: Track,
@@ -51,18 +51,10 @@ router.get("/:id(\\d+)", (req, res) => {
 //get by username
 router.get("/username/:username", (req, res) => {
   User.findOne({
+    attributes: ["id", "username", "first_name", "last_name", "user_record"],
     where: {
       username: req.params.username,
     },
-    include: [
-      {
-        model: Track,
-        where: {
-          wrong_pick: null,
-        },
-        required: false, // This makes the JOIN LEFT OUTER instead of INNER, so that users without matching tracks are still returned.
-      },
-    ],
   })
     .then((dbUser) => {
       if (!dbUser) {
@@ -139,6 +131,7 @@ router.post("/login", (req, res) => {
 //get logged in id
 router.get("/logged", (req, res) => {
   User.findOne({
+    attributes: { exclude: ["password"] },
     where: {
       id: req.session.user_id,
     },

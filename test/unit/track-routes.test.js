@@ -40,15 +40,17 @@ test("Track access routes preserve list, lifecycle, elimination, and deletion co
   const track = createTrack();
   const calls = stubTrackModel(t, { tracks: [track] });
   const app = createRouteApp("/api/tracks", trackRoutes);
+  const adminAgent = request.agent(app);
+  await adminAgent.post("/api/admin/login").send({ password: "unit-test-admin-password" }).expect(204);
 
-  assert.equal((await request(app).get("/api/tracks")).status, 200);
-  assert.equal((await request(app).get("/api/tracks/alive")).status, 200);
+  assert.equal((await adminAgent.get("/api/tracks")).status, 200);
+  assert.equal((await adminAgent.get("/api/tracks/alive")).status, 200);
   assert.equal(
-    (await request(app).get("/api/tracks/wrong-pick-not-null")).status,
+    (await adminAgent.get("/api/tracks/wrong-pick-not-null")).status,
     200
   );
   assert.equal(
-    (await request(app).get("/api/tracks/wrong-pick-not-null/3")).status,
+    (await adminAgent.get("/api/tracks/wrong-pick-not-null/3")).status,
     200
   );
   assert.equal((await request(app).get("/api/tracks/7")).status, 200);
@@ -64,7 +66,7 @@ test("Track access routes preserve list, lifecycle, elimination, and deletion co
     200
   );
 
-  const pick = await request(app)
+  const pick = await adminAgent
     .put("/api/tracks/7")
     .send({ current_pick: "Raiders" });
   assert.equal(pick.status, 200);
@@ -89,7 +91,7 @@ test("Track access routes preserve list, lifecycle, elimination, and deletion co
   );
   assert.equal((await request(app).delete("/api/tracks/7")).status, 200);
   assert.equal(
-    (await request(app).get("/api/tracks/user/3/alive")).status,
+    (await adminAgent.get("/api/tracks/user/3/alive")).status,
     200
   );
 
@@ -101,10 +103,12 @@ test("Track access routes preserve list, lifecycle, elimination, and deletion co
 test("Track access routes preserve not-found and safe failure responses", async (t) => {
   stubTrackModel(t, { tracks: [] });
   const app = createRouteApp("/api/tracks", trackRoutes);
+  const adminAgent = request.agent(app);
+  await adminAgent.post("/api/admin/login").send({ password: "unit-test-admin-password" }).expect(204);
 
   assert.equal((await request(app).get("/api/tracks/999")).status, 404);
   assert.equal(
-    (await request(app).put("/api/tracks/999").send({ current_pick: "X" }))
+    (await adminAgent.put("/api/tracks/999").send({ current_pick: "X" }))
       .status,
     404
   );
@@ -126,7 +130,7 @@ test("Track access routes preserve not-found and safe failure responses", async 
   );
   assert.equal((await request(app).delete("/api/tracks/999")).status, 404);
   assert.equal(
-    (await request(app).get("/api/tracks/user/999/alive")).status,
+    (await adminAgent.get("/api/tracks/user/999/alive")).status,
     404
   );
 });

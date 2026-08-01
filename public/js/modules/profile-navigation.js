@@ -1,10 +1,9 @@
 import { browserLogger } from "../logger.js";
 
-async function getAliveTracksByUserId(userId) {
-  let response = await fetch(`/api/tracks/user/${userId}/alive`);
+async function getAliveTracksByUserId() {
+  let response = await fetch("/api/user/league/submission");
   if (response.ok) {
-    let tracks = await response.json();
-    return tracks;
+    return (await response.json()).tracks;
   } else if (response.status === 404) {
     browserLogger.warn("No tracks available for user.");
     return "No tracks alive";
@@ -18,10 +17,7 @@ async function getAliveTracksByUserId(userId) {
 }
 
 export function pushToLeaguePage() {
-  let userId = localStorage.getItem("loggedInUserId");
-  let currentWeek = parseInt(localStorage.getItem("thisWeek"), 10);
-
-  getAliveTracksByUserId(userId)
+  getAliveTracksByUserId()
     .then((tracks) => {
       if (tracks.length === 0) {
         browserLogger.debug("No tracks available.");
@@ -30,7 +26,7 @@ export function pushToLeaguePage() {
       if (tracks === "No tracks alive") {
         window.location.href = "../league-page.html";
       }
-      if (tracks.every((track) => track.used_picks.length >= currentWeek)) {
+      if (tracks.every((track) => track.status === "SUBMITTED")) {
         window.location.href = "../league-page.html";
       } else {
         browserLogger.debug("Not all tracks meet the current week criteria.");

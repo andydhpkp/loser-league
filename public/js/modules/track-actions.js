@@ -6,28 +6,16 @@ let x;
 
 export async function getUserId() {
   try {
-    const response = await fetch(`/api/users/`);
+    const response = await fetch("/api/users/logged");
     if (response.ok) {
       const data = await response.json();
-      const loggedInUsername = localStorage.getItem("loggedInUser");
-      if (!loggedInUsername) {
-        browserLogger.error("No logged in username found in local storage.");
-        return null;
-      }
-
-      const matchedUser = data.find(
-        (user) => user.username.toLowerCase() === loggedInUsername.toLowerCase()
-      );
-
-      if (matchedUser) {
-        const loggedInUserId = matchedUser.id;
+      if (data?.id) {
+        const loggedInUserId = data.id;
         browserLogger.debug(`User ID found: ${loggedInUserId}`);
         localStorage.setItem("loggedInUserId", loggedInUserId);
         return loggedInUserId;
-      } else {
-        browserLogger.error("No matching user found.");
-        return null;
       }
+      return null;
     } else {
       browserLogger.error("Failed to fetch users.");
       return null;
@@ -39,94 +27,45 @@ export async function getUserId() {
 }
 
 export async function handleSubmitPicks() {
-  let allInputsHaveValue = Array.from(
-    document.querySelectorAll(".tempSelection")
-  ).every((input) => input.value);
-
-  if (allInputsHaveValue) {
-    let updatePromises = []; // Array to hold all the promises
-
-    document.querySelectorAll(".trackContainer").forEach((container) => {
-      let tempInput = container.querySelector(".tempSelection");
-      if (tempInput) {
-        let value = tempInput.value;
-        if (value) {
-          let splitValue = value.split(",");
-          let id = parseInt(splitValue[0], 10);
-          let pick = splitValue[1];
-
-          // Assuming updateTrackPick returns a promise
-          updatePromises.push(submitTrackPick(id, pick));
-        }
-      }
-    });
-
-    // Wait for all updateTrackPick promises to resolve
-    try {
-      await Promise.all(updatePromises);
-      window.location.replace("../league-page.html");
-    } catch (error) {
-      browserLogger.error("Error updating some tracks:", error);
-      alert("There was an error updating your picks. Please try again.");
-    }
-  } else {
+  const selections = collectDraftSelections();
+  if (selections.some((selection) => !selection.teamName)) {
     alert("Please make a selection for each matchup before submitting!");
+    return;
   }
+  const list = document.getElementById("pickReviewList");
+  list.replaceChildren(...selections.map(({ trackId, teamName }) => {
+    const item = document.createElement("li");
+    item.textContent = `Track ${trackId}: ${teamName}`;
+    return item;
+  }));
+  document.getElementById("pickReviewModal").dataset.selections = JSON.stringify(selections);
+  window.bootstrap.Modal.getOrCreateInstance(document.getElementById("pickReviewModal")).show();
 }
 
-function submitTrackPick(trackId, currentPick) {
-  // Create the request payload
-  const payload = {
-    current_pick: currentPick,
-  };
-
-  // Make a PUT request to the server with the track ID and the current pick
-  return fetch(`/api/tracks/${trackId}`, {
-    // Return this fetch promise
-    method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  })
-    .then((response) => response.json())
-    .then((data) => {
-      if (data) {
-        browserLogger.debug("Track updated successfully!", data);
-      } else {
-        browserLogger.error("Error updating track");
-        throw new Error("Error updating track"); // Throw an error to be caught in catch() block
-      }
-    })
-    .catch((error) => {
-      browserLogger.error("There was an error updating the track:", error);
-      throw error; // Propagate the error up so that it can be caught in handleSubmitPicks
-    });
-}
-
-async function makePick(
-  available_picks,
-  used_picks,
-  current_pick,
-  user_id,
-  putTrackId
-) {
-  const response = await fetch(`/api/tracks/${putTrackId}`, {
-    method: "put",
-    body: JSON.stringify({
-      available_picks,
-      used_picks,
-      current_pick,
-      user_id,
-    }),
-    headers: { "Content-Type": "application/json" },
+export function collectDraftSelections() {
+  return Array.from(document.querySelectorAll(".trackContainer")).map((container) => {
+    const [trackId, teamName = ""] = (container.querySelector(".tempSelection")?.value || `${container.id},`).split(",");
+    return { trackId: Number(trackId), stateVersion: Number(container.dataset.stateVersion), teamName };
   });
-  if (response.ok) {
-    browserLogger.debug("updated");
-    location.href = "../league-page.html";
-  } else {
-    alert(response.statusText);
-  }
+}
+
+export function bindPickReview() {
+  document.getElementById("confirmPickSubmission")?.addEventListener("click", async () => {
+    const modal = document.getElementById("pickReviewModal");
+    const button = document.getElementById("confirmPickSubmission");
+    const error = document.getElementById("pickReviewError");
+    button.disabled = true;
+    error.hidden = true;
+    try {
+      const response = await fetch("/api/user/league/submission", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ selections: JSON.parse(modal.dataset.selections) }) });
+      if (!response.ok) throw new Error((await response.json()).message || "Submission failed");
+      window.location.replace("../league-page.html");
+    } catch (submissionError) {
+      error.textContent = submissionError.message;
+      error.hidden = false;
+      button.disabled = false;
+    }
+  });
 }
 
 function revealLoginPassword() {

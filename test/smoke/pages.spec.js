@@ -22,6 +22,13 @@ for (const [name, url, entry] of pages) {
 
       if (requestUrl.includes("/api/users/logged")) {
         body = {};
+      } else if (requestUrl.includes("/api/user/league/view")) {
+        body = { leagueSeason: { id: 1, year: 2026, week: 1 }, pickVisibility: "VISIBLE", users: [] };
+      } else if (requestUrl.includes("/api/user/league/submission")) {
+        body = {
+          leagueSeason: { id: 1, year: 2026, week: 1, state: "ACTIVE" },
+          tracks: [{ id: 1, stateVersion: 0, status: "NOT_SUBMITTED", committedTeamName: null, usedTeamNames: [], eligibleTeams: [] }],
+        };
       } else if (route.request().method() !== "GET") {
         body = {};
       }

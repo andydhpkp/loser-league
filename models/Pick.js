@@ -59,6 +59,11 @@ Pick.init(
       allowNull: false,
       defaultValue: DataTypes.NOW,
     },
+    schedule_hash: {
+      type: DataTypes.STRING(64),
+      allowNull: true,
+      validate: { is: /^[a-f0-9]{64}$/i },
+    },
     state_version: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,
