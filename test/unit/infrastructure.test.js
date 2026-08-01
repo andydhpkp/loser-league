@@ -13,6 +13,7 @@ const {
 } = require("../../server/lib/errors");
 const { createLogger, redact } = require("../../server/lib/logger");
 const { createApp } = require("../../server/app");
+const { startServer } = require("../../server/start");
 
 function createTestApp(options = {}) {
   return createApp({
@@ -20,6 +21,26 @@ function createTestApp(options = {}) {
     ...options,
   });
 }
+
+test("web startup verifies the database without synchronizing schema", async () => {
+  const calls = [];
+  const database = {
+    authenticate: async () => calls.push("authenticate"),
+    sync: async () => calls.push("sync"),
+  };
+  const app = {
+    listen(port, callback) {
+      calls.push(["listen", port]);
+      callback();
+      return { close() {} };
+    },
+  };
+  const logger = { info() {}, error() {} };
+
+  await startServer({ app, database, port: 4321, logger });
+
+  assert.deepEqual(calls, ["authenticate", ["listen", 4321]]);
+});
 
 test("application requires a session secret", () => {
   assert.throws(

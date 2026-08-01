@@ -3,6 +3,10 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    const user = await queryInterface.describeTable("user");
+    if (user.user_record) {
+      return;
+    }
     await queryInterface.addColumn("user", "user_record", {
       type: Sequelize.JSON,
       allowNull: true,
@@ -13,6 +17,6 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.removeColumn("user", "user_record");
+    throw new Error("Migration is forward-only");
   },
 };

@@ -5,6 +5,8 @@ const bcrypt = require("bcrypt");
 const User = require("../../models/User");
 const Track = require("../../models/Track");
 const Team = require("../../models/Team");
+const LeagueSeason = require("../../models/LeagueSeason");
+const Pick = require("../../models/Pick");
 
 test("User checks passwords and reports win totals", () => {
   const user = User.build({
@@ -116,4 +118,125 @@ test("Team serializes records as comma-delimited storage", () => {
 
   assert.equal(team.getDataValue("team_record"), "3,2");
   assert.deepEqual(team.team_record, ["3", "2"]);
+});
+
+test("League Season validates setup and active week boundaries", async () => {
+  await LeagueSeason.build({
+    year: 2026,
+    state: "SETUP",
+    current_week: 0,
+    state_version: 0,
+    open_slot: 1,
+  }).validate();
+  await LeagueSeason.build({
+    year: 2026,
+    state: "ACTIVE",
+    current_week: 1,
+    state_version: 1,
+    open_slot: 1,
+  }).validate();
+
+  await assert.rejects(
+    LeagueSeason.build({
+      year: 2026,
+      state: "SETUP",
+      current_week: 1,
+      state_version: 0,
+      open_slot: 1,
+    }).validate(),
+    /Week 0/
+  );
+  await assert.rejects(
+    LeagueSeason.build({
+      year: 2026,
+      state: "ACTIVE",
+      current_week: 0,
+      state_version: 1,
+      open_slot: 1,
+    }).validate(),
+    /active week/
+  );
+  await assert.rejects(
+    LeagueSeason.build({
+      year: 2026,
+      state: "COMPLETE",
+      current_week: 12,
+      state_version: 2,
+      open_slot: 1,
+    }).validate(),
+    /open slot/
+  );
+});
+
+test("Pick validates explicit week, origin, and outcome", async () => {
+  await Pick.build({
+    track_id: 10,
+    league_season_id: 2,
+    week: 1,
+    team_name: "Broncos",
+    origin: "USER_SUBMISSION",
+    outcome: "PENDING",
+  }).validate();
+
+  await assert.rejects(
+    Pick.build({
+      track_id: 10,
+      league_season_id: 2,
+      week: 0,
+      team_name: "Broncos",
+      origin: "USER_SUBMISSION",
+      outcome: "PENDING",
+    }).validate(),
+    /week/
+  );
+  await assert.rejects(
+    Pick.build({
+      track_id: 10,
+      league_season_id: 2,
+      week: 1,
+      team_name: "Broncos",
+      origin: "BROWSER_GUESS",
+      outcome: "PENDING",
+    }).validate()
+  );
+});
+
+test("model graph exposes League Season, Pick history, and elimination associations", () => {
+  const models = require("../../models/my-index");
+
+  assert.equal(models.Track.associations.leagueSeason.target, models.LeagueSeason);
+  assert.equal(models.Track.associations.picks.target, models.Pick);
+  assert.equal(models.Track.associations.eliminatingPick.target, models.Pick);
+  assert.equal(models.Pick.associations.track.target, models.Track);
+  assert.equal(models.Pick.associations.leagueSeason.target, models.LeagueSeason);
+  assert.equal(
+    models.ScheduleSnapshot.associations.leagueSeason.target,
+    models.LeagueSeason
+  );
+  assert.equal(
+    models.LeagueWeekOperation.associations.leagueSeason.target,
+    models.LeagueSeason
+  );
+});
+
+test("League week operation validates exactly-once lifecycle phases", async () => {
+  const { LeagueWeekOperation } = require("../../models/my-index");
+  await LeagueWeekOperation.build({
+    league_season_id: 2,
+    week: 3,
+    phase: "CLOSE_WEEK",
+    mode: "AUTOMATIC",
+    summary: {},
+    completed_at: new Date(),
+  }).validate();
+  await assert.rejects(
+    LeagueWeekOperation.build({
+      league_season_id: 2,
+      week: 3,
+      phase: "ADVANCE_AGAIN",
+      mode: "AUTOMATIC",
+      summary: {},
+      completed_at: new Date(),
+    }).validate()
+  );
 });

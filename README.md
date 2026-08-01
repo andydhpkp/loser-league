@@ -51,9 +51,15 @@ The application targets Node.js 22 LTS.
 Development and production commands:
 
 ```sh
+npm run db:migrate
 npm run dev
 npm start
 ```
+
+Application startup verifies database connectivity but does not create or alter
+schema. Run the forward migrations before starting a new local database. League
+Season bootstrap is a separate dry-run-first operation documented in
+[`docs/operations/league-season-bootstrap.md`](docs/operations/league-season-bootstrap.md).
 
 ## Verification
 

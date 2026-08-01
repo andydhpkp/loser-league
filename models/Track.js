@@ -47,6 +47,24 @@ Track.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    league_season_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: "league_season",
+        key: "id",
+      },
+    },
+    eliminated_by_pick_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+    },
+    state_version: {
+      type: DataTypes.INTEGER.UNSIGNED,
+      allowNull: false,
+      defaultValue: 0,
+      validate: { min: 0 },
+    },
     user_id: {
       type: DataTypes.INTEGER,
       allowNull: false,

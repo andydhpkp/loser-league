@@ -34,7 +34,13 @@ binding. The shared HTTP client owns request/error normalization.
 ## Server modules
 
 - `server/app.js` creates the Express application; `server/index.js` owns the
-  database synchronization and listener lifecycle.
+  listener lifecycle. The web process verifies database connectivity but never
+  synchronizes shared schema. Heroku's release phase applies reviewed forward
+  migrations first.
+- League Season and normalized Pick models provide durable year/week, ordered
+  weekly Pick, elimination, schedule-version, and exactly-once lifecycle seams.
+  Existing Track Pick fields remain compatibility projections during the
+  expand/backfill phase.
 - Track routes are grouped into access, pick lifecycle, force-pick,
   maintenance, and repair modules behind the unchanged route entry point.
 - Pure pick-state transitions live behind `makePick` and
