@@ -220,7 +220,15 @@ Update this document after each PR with:
 - `NODE_ENV=test npm run db:migrate` — passed against disposable MySQL; an
   immediate repeat executed no migrations.
 
-Production migration and bootstrap have not run. After merge, verify the Heroku
-release-phase migration and application health, then perform only the authorized
-dry-run bootstrap with explicit year/state/week. The later contract migration
-remains blocked until production bootstrap/parity evidence is recorded.
+The first post-merge deployment created Heroku release `v257`, but its release
+command failed because the migration CLI had been pruned as a development
+dependency. The prior production release remained healthy. Workflow run
+30713325529 nevertheless reported success because it checked that prior release;
+the forward repair is tracked in
+[`heroku-release-verification-fix.md`](heroku-release-verification-fix.md).
+
+Production migration and bootstrap have not run. After the repair merges,
+verify the Heroku release-phase migration and application health, then perform
+only the authorized dry-run bootstrap with explicit year/state/week. The later
+contract migration remains blocked until production bootstrap/parity evidence
+is recorded.

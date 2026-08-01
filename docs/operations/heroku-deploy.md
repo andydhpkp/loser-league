@@ -36,19 +36,23 @@ publishing an admin interface with a fallback credential.
    commit.
 3. The serialized deploy job verifies that the tested SHA is still current
    `main`; stale queued runs exit without deploying.
-4. The job pushes that exact SHA to Heroku Git.
+4. The job records the current Heroku release and pushes that exact SHA to
+   Heroku Git.
 5. Heroku runs the `release` command, applying reviewed forward migrations
    before activating the new web release. A migration failure blocks release.
-6. The web process verifies database connectivity without synchronizing schema.
-7. The workflow polls the production homepage and `/api/nfl/teams`.
+6. The workflow verifies that a new Heroku release reached `succeeded`; Git
+   push success and health from the prior release are not sufficient.
+7. The web process verifies database connectivity without synchronizing schema.
+8. The workflow polls the production homepage and `/api/nfl/teams`.
 
 League Season foundation deployments require the separate explicit bootstrap
 documented in [`league-season-bootstrap.md`](league-season-bootstrap.md).
 Migrations intentionally do not infer or populate production lifecycle state.
 
-A failed test prevents deployment. A failed Heroku build leaves the prior
-release active. A failed health check marks the workflow failed but does not
-perform an automatic rollback.
+A failed test prevents deployment. A failed Heroku build or release leaves the
+prior release active and fails the workflow before HTTP health checks. A failed
+health check marks the workflow failed but does not perform an automatic
+rollback.
 
 ## Verification
 
