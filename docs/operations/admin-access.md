@@ -19,7 +19,8 @@ performing lookups and returns HTTP 401 otherwise.
 ## Previewed admin actions
 
 Current admin mutations are registered as add User win, create Track, delete
-Track, and delete User. The admin page first creates a ten-minute persisted
+Track, delete User, official-result override, and manual week closure. The
+admin page first creates a ten-minute persisted
 preview, displays its generated description, affected count, and warnings, and
 then confirms it with a one-use key. The server stores only a hash of that key.
 
@@ -33,6 +34,11 @@ Audit history has no actor field because Admin is not a User and the shared
 password intentionally does not identify an individual. Audits exclude email,
 password, session, request-body, and other unrelated account data. User and
 Track deletion are permanent and non-undoable.
+
+Official-result override requires final scores and an explanation; an HTTP(S)
+source URL is optional. Manual closure requires a note and is offered only when
+every active Track's selected game is authoritative and final. See
+[`week-closure.md`](week-closure.md). Neither workflow uses User login.
 
 ## Record a League Season win
 
@@ -58,6 +64,6 @@ management and distribute it outside the application. Existing admin sessions
 remain valid until logout or their eight-hour expiry.
 
 The shared password is intentionally independent of User accounts. The admin
-browser no longer uses general User/Track mutation routes for its four current
+browser no longer uses general User/Track mutation routes for its registered
 operations. Those legacy routes remain during the expand phase for known User
 and manual-repair consumers and are migrated or removed in later program PRs.

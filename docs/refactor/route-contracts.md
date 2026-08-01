@@ -84,6 +84,22 @@ Static/named paths must be registered before `/:id` so they are reachable.
   `ODDS_API_KEY`.
 - Static files are served from `public/`.
 
+## Shared-admin lifecycle actions
+
+`GET /api/admin/actions`, `POST /api/admin/actions/:action/preview`, and
+`POST /api/admin/actions/:action/confirm` require the shared-admin session.
+The registry includes `OVERRIDE_GAME_RESULT` and `CLOSE_WEEK`.
+
+`OVERRIDE_GAME_RESULT` preview accepts the exact current Fixture home/away
+Teams, non-negative final scores, required explanation, and optional HTTP(S)
+source URL. `CLOSE_WEEK` preview accepts no authoritative result input; the
+server rebuilds it from Fixture, ESPN, stored overrides, `AUTO_PICK`, active
+Tracks, and Picks. Its confirmation requires `note`.
+
+The League-page browser no longer calls `PUT /:id/loser`, Team record writes,
+or `PUT /all-tracks/reset-current-pick`. Those raw routes remain available for
+known manual repair workflows until the mapped-repair program replaces them.
+
 ## Error contract
 
 Newly centralized failures use:

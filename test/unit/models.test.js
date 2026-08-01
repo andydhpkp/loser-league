@@ -217,6 +217,14 @@ test("model graph exposes League Season, Pick history, and elimination associati
     models.LeagueWeekOperation.associations.leagueSeason.target,
     models.LeagueSeason
   );
+  assert.equal(
+    models.OfficialGameResultOverride.associations.leagueSeason.target,
+    models.LeagueSeason
+  );
+  assert.equal(
+    models.OfficialGameResultOverride.associations.auditOperation.target,
+    models.AdminAuditOperation
+  );
 });
 
 test("League week operation validates exactly-once lifecycle phases", async () => {

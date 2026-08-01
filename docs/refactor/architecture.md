@@ -41,6 +41,14 @@ binding. The shared HTTP client owns request/error normalization.
   weekly Pick, elimination, schedule-version, and exactly-once lifecycle seams.
   Existing Track Pick fields remain compatibility projections during the
   expand/backfill phase.
+- A server-owned weekly closure coordinator uses Fixture kickoff times to
+  schedule targeted ESPN checks, with startup catch-up and periodic recovery.
+  Pure reconciliation rules feed one serializable, exactly-once closure
+  service. Automatic and shared-admin closure compete for the same durable
+  `CLOSE_WEEK` marker.
+- Immutable official-result overrides are registered shared-admin actions
+  bound to a schedule hash and actorless audit. Manual closure rebuilds its
+  authoritative result context before preview and confirmation.
 - Shared-admin action routes adapt HTTP to a registry-backed application
   service. The service persists hashed, expiring previews and commits
   stale-checked mutations with append-only operation/target audits in one
@@ -63,6 +71,8 @@ binding. The shared HTTP client owns request/error normalization.
 - Reusable modules own admin management, track actions, league rendering,
   profile navigation, team results, team catalog data, auto-pick scheduling,
   weekly statistics, and browser logging.
+- League result rendering is read-only and receives the server-authoritative
+  League Season year/week. It never owns Track, Pick, Team, or week mutations.
 - `app.js` is a compatibility re-export rather than a shared implementation.
 - Pages import only their entry module. No active behavior depends on global
   function declaration order or inline event attributes.

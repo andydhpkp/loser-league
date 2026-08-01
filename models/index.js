@@ -11,6 +11,7 @@ const {
   AdminActionPreview,
   AdminAuditOperation,
   AdminAuditTarget,
+  OfficialGameResultOverride,
 } = require("./my-index");
 
 module.exports = {
@@ -26,4 +27,5 @@ module.exports = {
   AdminActionPreview,
   AdminAuditOperation,
   AdminAuditTarget,
+  OfficialGameResultOverride,
 };

@@ -187,3 +187,23 @@ test("admin tied win sends the tied flag and maps server failure safely", async 
   );
   assert.deepEqual(payloads, [{ userId: 3, year: 2025, wonWithTie: true }]);
 });
+
+test("admin official-result and manual-close workflows use registered preview and confirmation", async () => {
+  const { overrideGameResult, closeCurrentWeek } = await import("../../public/js/modules/admin-management.js");
+  const calls = [];
+  const fetchImpl = async (url, options) => {
+    calls.push({ url, body: JSON.parse(options.body) });
+    if (url.endsWith("/preview")) return { ok: true, json: async () => ({ description: "Preview", warnings: [], targets: [{}], unfinishedUnselectedGames: [{ homeTeam: "Chiefs", awayTeam: "Chargers" }], confirmationKey: "a".repeat(64) }) };
+    return { ok: true, json: async () => ({ action: "COMMITTED", targets: [] }) };
+  };
+
+  await overrideGameResult({ homeTeam: "Broncos", awayTeam: "Raiders", homeScore: 13, awayScore: 20, explanation: "Official announcement", sourceUrl: "" }, { fetchImpl, confirmImpl: () => true });
+  await closeCurrentWeek("All selected games are official", { fetchImpl, confirmImpl: (message) => message.includes("Chiefs vs Chargers") });
+
+  assert.deepEqual(calls, [
+    { url: "/api/admin/actions/OVERRIDE_GAME_RESULT/preview", body: { homeTeam: "Broncos", awayTeam: "Raiders", homeScore: 13, awayScore: 20, explanation: "Official announcement", sourceUrl: "" } },
+    { url: "/api/admin/actions/OVERRIDE_GAME_RESULT/confirm", body: { confirmationKey: "a".repeat(64) } },
+    { url: "/api/admin/actions/CLOSE_WEEK/preview", body: {} },
+    { url: "/api/admin/actions/CLOSE_WEEK/confirm", body: { confirmationKey: "a".repeat(64), note: "All selected games are official" } },
+  ]);
+});

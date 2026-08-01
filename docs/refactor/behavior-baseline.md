@@ -63,3 +63,14 @@ This baseline was derived from route, model, page, and browser-script inspection
 Executable characterization is added in the next stage. Any conflict between
 this document and observed production behavior must be recorded in
 `known-issues.md` before code is changed.
+
+## Current weekly closure behavior
+
+This section supersedes the historical browser-owned weekly mutation behavior.
+Fixture Download defines the complete schedule and ESPN explicit terminal
+status supplies results. One server transaction settles normalized Picks,
+eliminates Tracks for selected winners or ties, clears current Pick
+projections, records `CLOSE_WEEK`, and advances once. The League page only
+colors terminal results. A shared admin may record an immutable official result
+or manually close after every active Track's selected game is final; both use
+registered preview/confirm actions and actorless audits.
