@@ -30,6 +30,25 @@
 
     <!-- Main Content -->
     <main id="adminView">
+      <section class="container my-4" aria-labelledby="weeklyLifecycleHeading">
+        <h2 id="weeklyLifecycleHeading">Weekly lifecycle</h2>
+        <form id="officialResultForm" class="row g-2 mb-4">
+          <h3 class="h5">Official game result override</h3>
+          <div class="col-md-3"><label class="form-label" for="overrideHomeTeam">Home Team</label><input class="form-control" id="overrideHomeTeam" required /></div>
+          <div class="col-md-3"><label class="form-label" for="overrideAwayTeam">Away Team</label><input class="form-control" id="overrideAwayTeam" required /></div>
+          <div class="col-md-2"><label class="form-label" for="overrideHomeScore">Home score</label><input class="form-control" id="overrideHomeScore" type="number" min="0" required /></div>
+          <div class="col-md-2"><label class="form-label" for="overrideAwayScore">Away score</label><input class="form-control" id="overrideAwayScore" type="number" min="0" required /></div>
+          <div class="col-12"><label class="form-label" for="overrideExplanation">Explanation</label><input class="form-control" id="overrideExplanation" maxlength="500" required /></div>
+          <div class="col-12"><label class="form-label" for="overrideSourceUrl">Source URL (optional)</label><input class="form-control" id="overrideSourceUrl" type="url" maxlength="2048" /></div>
+          <div class="col-12"><button class="btn btn-warning" type="submit">Preview official result</button></div>
+        </form>
+        <form id="manualCloseForm" class="row g-2 mb-3">
+          <h3 class="h5">Manual week advancement</h3>
+          <div class="col-12"><label class="form-label" for="manualCloseNote">Reason for manual closure</label><input class="form-control" id="manualCloseNote" maxlength="500" required /></div>
+          <div class="col-12"><button class="btn btn-danger" type="submit">Preview and close current week</button></div>
+        </form>
+        <p id="weeklyLifecycleStatus" role="status" aria-live="polite"></p>
+      </section>
       <section id="adminUsers"></section>
     </main>
     <button

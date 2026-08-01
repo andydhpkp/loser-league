@@ -229,7 +229,7 @@ export async function leagueUserTableHandler() {
         viewUsersTable.appendChild(mainTable);
         displayTeamLogo();
         // @ts-ignore
-        finalScores();
+        finalScores({ year: leagueView.leagueSeason.year, week: currentWeekNumber });
       });
     } else {
       alert("Sorry, could not connect to database");

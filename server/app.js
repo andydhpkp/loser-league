@@ -11,6 +11,7 @@ const { createLogger } = require("./lib/logger");
 const { createErrorHandler } = require("./middleware/error-handler");
 const { requestContext } = require("./middleware/request-context");
 const { createNflRouter } = require("./nfl/routes");
+const { createDefaultManualClosureContextLoader } = require("./modules/week-closure/manual-closure-context");
 
 function createApp({
   routes,
@@ -20,6 +21,7 @@ function createApp({
   sessionStore,
   fetchImpl = global.fetch,
   logger = createLogger(),
+  requestClosureEvaluation,
 } = {}) {
   if (!sessionSecret) {
     throw new Error("SESSION_SECRET is required");
@@ -58,7 +60,10 @@ function createApp({
   app.use(express.static(path.join(__dirname, "../public")));
   app.use(sessionMiddleware);
   app.use("/api/admin", createAdminRouter({ adminPassword }));
-  app.use("/api/admin/actions", createAdminActionRouter());
+  app.use("/api/admin/actions", createAdminActionRouter({
+    requestClosureEvaluation,
+    loadManualClosureContext: createDefaultManualClosureContextLoader({ fetchImpl }),
+  }));
   app.use("/api/user/league", createPickSubmissionRouter({
     getSubmissionState: pickLeagueService.getSubmissionState,
     getLeagueView: pickLeagueService.getLeagueView,

@@ -775,10 +775,25 @@ export async function addUserWin(
   );
 }
 
+export async function overrideGameResult(
+  { homeTeam, awayTeam, homeScore, awayScore, explanation, sourceUrl = "" },
+  options = {}
+) {
+  if (!homeTeam || !awayTeam || homeTeam === awayTeam) throw new Error("Enter the scheduled home and away Teams");
+  if (!Number.isInteger(homeScore) || homeScore < 0 || !Number.isInteger(awayScore) || awayScore < 0) throw new Error("Enter non-negative final scores");
+  if (typeof explanation !== "string" || !explanation.trim()) throw new Error("Enter an official-result explanation");
+  return runAdminAction("OVERRIDE_GAME_RESULT", { homeTeam, awayTeam, homeScore, awayScore, explanation: explanation.trim(), sourceUrl: sourceUrl.trim() }, options);
+}
+
+export async function closeCurrentWeek(note, options = {}) {
+  if (typeof note !== "string" || !note.trim()) throw new Error("Enter a manual-closure note");
+  return runAdminAction("CLOSE_WEEK", {}, { ...options, note: note.trim() });
+}
+
 export async function runAdminAction(
   action,
   intent,
-  { confirmImpl = confirm, fetchImpl = fetch, displayName = "" } = {}
+  { confirmImpl = confirm, fetchImpl = fetch, displayName = "", note } = {}
 ) {
   const previewResponse = await fetchImpl(`/api/admin/actions/${action}/preview`, {
     method: "POST",
@@ -787,14 +802,17 @@ export async function runAdminAction(
   });
   if (!previewResponse.ok) throw new Error("Unable to preview admin action");
   const preview = await previewResponse.json();
+  const unfinished = (preview.unfinishedUnselectedGames || [])
+    .map((game) => `${game.homeTeam} vs ${game.awayTeam}`)
+    .join("\n");
   const confirmed = confirmImpl(
-    `${preview.description}${displayName ? ` (${displayName})` : ""}\nAffected records: ${preview.targets.length}\n${preview.warnings.join("\n")}`
+    `${preview.description}${displayName ? ` (${displayName})` : ""}\nAffected records: ${preview.targets.length}\n${preview.warnings.join("\n")}${unfinished ? `\nUnfinished unselected games:\n${unfinished}` : ""}`
   );
   if (!confirmed) return null;
   const response = await fetchImpl(`/api/admin/actions/${action}/confirm`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ confirmationKey: preview.confirmationKey }),
+    body: JSON.stringify({ confirmationKey: preview.confirmationKey, ...(note ? { note } : {}) }),
   });
   if (!response.ok) throw new Error("Unable to confirm admin action");
   const operation = await response.json();

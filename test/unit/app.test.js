@@ -115,12 +115,21 @@ test("admin login rejects malformed credentials with one generic response", asyn
 test("admin action registry requires the shared-admin session and exposes no actor", async () => {
   const app = createTestApp({ adminPassword: "test-admin-password" });
   assert.equal((await request(app).get("/api/admin/actions")).status, 401);
+  assert.equal((await request(app).post("/api/admin/actions/OVERRIDE_GAME_RESULT/preview").send({})).status, 401);
+  assert.equal((await request(app).post("/api/admin/actions/CLOSE_WEEK/preview").send({})).status, 401);
 
   const agent = request.agent(app);
   await agent.post("/api/admin/login").send({ password: "test-admin-password" });
   const response = await agent.get("/api/admin/actions");
   assert.equal(response.status, 200);
-  assert.equal(response.body.actions.length, 4);
+  assert.deepEqual(response.body.actions.map((action) => action.name), [
+    "ADD_USER_WIN",
+    "CREATE_TRACK",
+    "DELETE_TRACK",
+    "DELETE_USER",
+    "OVERRIDE_GAME_RESULT",
+    "CLOSE_WEEK",
+  ]);
   assert.equal(JSON.stringify(response.body).includes("actor"), false);
 });
 

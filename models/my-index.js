@@ -9,6 +9,7 @@ const LeagueWeekOperation = require('./LeagueWeekOperation')
 const AdminActionPreview = require('./AdminActionPreview')
 const AdminAuditOperation = require('./AdminAuditOperation')
 const AdminAuditTarget = require('./AdminAuditTarget')
+const OfficialGameResultOverride = require('./OfficialGameResultOverride')
 
 User.hasMany(Track, {
     foreignKey: 'user_id'
@@ -83,6 +84,9 @@ AdminAuditOperation.belongsTo(LeagueSeason, { as: 'leagueSeason', foreignKey: 'l
 AdminAuditOperation.hasMany(AdminAuditTarget, { as: 'targets', foreignKey: 'admin_audit_operation_id' })
 AdminAuditTarget.belongsTo(AdminAuditOperation, { as: 'operation', foreignKey: 'admin_audit_operation_id' })
 AdminActionPreview.belongsTo(AdminAuditOperation, { as: 'auditOperation', foreignKey: 'audit_operation_id' })
+LeagueSeason.hasMany(OfficialGameResultOverride, { as: 'officialResultOverrides', foreignKey: 'league_season_id' })
+OfficialGameResultOverride.belongsTo(LeagueSeason, { as: 'leagueSeason', foreignKey: 'league_season_id' })
+OfficialGameResultOverride.belongsTo(AdminAuditOperation, { as: 'auditOperation', foreignKey: 'admin_audit_operation_id' })
 
 
 module.exports = {
@@ -95,5 +99,6 @@ module.exports = {
     LeagueWeekOperation,
     AdminActionPreview,
     AdminAuditOperation,
-    AdminAuditTarget
+    AdminAuditTarget,
+    OfficialGameResultOverride
 };

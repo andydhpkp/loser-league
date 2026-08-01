@@ -4,7 +4,7 @@ const { listAdminActions } = require("./action-registry");
 const { confirmPreview, createPreview } = require("./action-service");
 const { AdminAuditOperation, AdminAuditTarget } = require("../../models");
 
-function createAdminActionRouter() {
+function createAdminActionRouter({ requestClosureEvaluation = async () => {}, loadManualClosureContext } = {}) {
   const router = express.Router();
   router.use(requireAdmin);
 
@@ -20,11 +20,19 @@ function createAdminActionRouter() {
     } catch (error) { next(error); }
   });
   router.post("/:action/preview", async (req, res, next) => {
-    try { res.status(201).json(await createPreview(req.params.action, req.body)); }
+    try {
+      const manualClosureContext = req.params.action === "CLOSE_WEEK" ? await loadManualClosureContext() : undefined;
+      res.status(201).json(await createPreview(req.params.action, req.body, { manualClosureContext }));
+    }
     catch (error) { next(error); }
   });
   router.post("/:action/confirm", async (req, res, next) => {
-    try { res.json(await confirmPreview(req.params.action, req.body.confirmationKey, req.body.note)); }
+    try {
+      const manualClosureContext = req.params.action === "CLOSE_WEEK" ? await loadManualClosureContext() : undefined;
+      const result = await confirmPreview(req.params.action, req.body.confirmationKey, req.body.note, { manualClosureContext });
+      res.json(result);
+      if (req.params.action === "OVERRIDE_GAME_RESULT") void requestClosureEvaluation();
+    }
     catch (error) { next(error); }
   });
   return router;

@@ -22,8 +22,15 @@ Season weeks 1–18 map to ESPN regular-season weeks; weeks 19–22 map to ESPN
 postseason weeks 1–4.
 
 The existing `GET /api/proxy/nfl-2025` Fixture Download route remains the
-source for the 2025 fixture feed. It is intentionally separate from the ESPN
-routes.
+historical public Fixture proxy. The active League page no longer uses it for
+weekly closure. Server lifecycle modules fetch the Fixture feed for the stored
+League Season year and persist validated schedule snapshots.
+
+Weekly closure matches the complete Fixture schedule to ESPN by both Teams,
+not array position. Only ESPN explicit terminal status supplies a normal
+result. Kickoff times schedule polling near expected finishes but never imply
+completion. Missing or contradictory games fail closed; committed immutable
+shared-admin overrides may supply a terminal result for one exact matchup.
 
 ## Architecture
 

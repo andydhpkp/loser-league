@@ -165,7 +165,7 @@ The detailed route inventory is maintained below during delivery.
 | Raw repair and maintenance routes | Replace with mapped guided actions | Admin repair | Inventory pending |
 | Browser Track Pick write | Replaced with atomic final submission | Final submission | PR gate passed |
 | Browser force-pick | Replaced with server lifecycle auto-pick | Auto-pick | PR gate passed |
-| Browser result and current-Pick reset orchestration | Replace with server week closure | Weekly results | Pending |
+| Browser result and current-Pick reset orchestration | Replaced with server week closure | Weekly results | Implemented; PR gate pending |
 | Admin Track/User create/delete and add-win | Move behind audited admin actions | Admin infrastructure | PR gate passed |
 | Buyback wrong-Pick reset | Replace with guided Week 1 buyback | Admin repair | Pending |
 
@@ -176,8 +176,8 @@ The detailed route inventory is maintained below during delivery.
 | 1 | League Season and normalized Pick foundation | #27 | Complete; PR #28 plus deployment repair #29 |
 | 2 | Admin authorization boundary, action registry, previews, audit, existing admin mutations | #12A | Complete; PR #30 plus CI fixture repair #31 |
 | 3 | Atomic final Pick submission and visibility | #13 | Complete; PR #32, Heroku v260 |
-| 4 | Exactly-once independent per-Track auto-pick | #19 | PR gate passed; publication pending |
-| 5 | Exactly-once results and automatic/manual week closure | #11 | Pending |
+| 4 | Exactly-once independent per-Track auto-pick | #19 | Complete; PR #33, Heroku v261 |
+| 5 | Exactly-once results and automatic/manual week closure | #11 | PR gate passed; publication pending |
 | 6 | Inspector, mapped repairs/resets, buyback, undo, and Admin Guide | #12B and #17 | Pending |
 | 7 | Explicit completion and export-backed rollover | #14 | Pending |
 | 8 | Superseded-route/browser cleanup and full-program verification | Program tracker | Pending |
@@ -258,6 +258,30 @@ the forward repair is tracked in
 - `git diff --check` — passed.
 - The migration is additive and the prior application ignores the new tables.
   Existing general-purpose/manual routes remain during the expand phase.
+
+### PR 5 implementation — 2026-08-01
+
+- Weekly results are server-owned and reconcile the complete Fixture schedule
+  with ESPN explicit terminal results or immutable actorless overrides.
+- Targeted polling begins at each expected finish, collapses overlapping games
+  to one request per minute, and backs delayed games off to five-minute Fixture
+  refreshes. Startup catch-up and recovery use the same evaluator.
+- One serializable `CLOSE_WEEK` transaction settles Picks, eliminates Tracks,
+  clears compatibility current Picks, preserves used/available Picks, and
+  advances at most once. Concurrent automatic/manual attempts converge on one
+  commit. Week 22 remains active at Week 22.
+- Registered `OVERRIDE_GAME_RESULT` and `CLOSE_WEEK` controls use the existing
+  shared-admin preview/confirm/audit foundation. Admin remains separate from
+  User and audits contain no actor.
+- The League page retains terminal result coloring but has no Track or Team
+  mutation path. Raw repair endpoints remain available for later mapped-repair
+  work.
+- `npm run test:unit` — passed, 114 tests.
+- `npm run test:unit:coverage` — passed, 80.26% line coverage.
+- `npm run lint:browser` — passed.
+- `npm run test:integration` — passed, 22 tests against disposable MySQL.
+- `npm run test:smoke` — passed, 7 Playwright tests.
+- `git diff --check` — passed.
 - Track creation preserves the legacy Week-1 allowance in #12A; #13 will add
   the confirmed schedule-aware pre-kickoff enforcement.
 - PR #30 merged as `c61e981`. Its first workflow correctly stopped before
@@ -319,3 +343,5 @@ the forward repair is tracked in
 - `npm run test:integration` — passed, 17 tests against disposable MySQL.
 - `npm run test:smoke` — passed, 7 Playwright tests.
 - `git diff --check` — passed.
+- PR #33 merged as `2175a30`. The complete GitHub Actions gate passed against
+  that exact SHA, Heroku release `v261` succeeded, and issue #19 is closed.
