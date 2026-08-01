@@ -7,6 +7,7 @@ const { createApp } = require("../../server/app");
 
 function createTestApp(options = {}) {
   return createApp({
+    sessionSecret: "test-session-secret",
     adminPassword: "test-admin-password",
     ...options,
   });
