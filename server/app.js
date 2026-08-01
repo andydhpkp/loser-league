@@ -4,6 +4,8 @@ const session = require("express-session");
 
 const { createAdminRouter } = require("./admin/routes");
 const { createAdminActionRouter } = require("./admin/action-routes");
+const { createPickSubmissionRouter } = require("./user/pick-submission-routes");
+const pickLeagueService = require("./modules/picks/league-service");
 const { UpstreamError } = require("./lib/errors");
 const { createLogger } = require("./lib/logger");
 const { createErrorHandler } = require("./middleware/error-handler");
@@ -57,6 +59,11 @@ function createApp({
   app.use(sessionMiddleware);
   app.use("/api/admin", createAdminRouter({ adminPassword }));
   app.use("/api/admin/actions", createAdminActionRouter());
+  app.use("/api/user/league", createPickSubmissionRouter({
+    getSubmissionState: pickLeagueService.getSubmissionState,
+    getLeagueView: pickLeagueService.getLeagueView,
+    submit: (input) => pickLeagueService.submit({ ...input, fetchImpl }),
+  }));
 
   app.get("/api/proxy/nfl-2025", async (_req, res, next) => {
     try {

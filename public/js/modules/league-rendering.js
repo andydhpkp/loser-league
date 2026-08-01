@@ -16,14 +16,28 @@ export async function leagueUserTableHandler() {
   browserLogger.debug(headerHelp);
   let currentWeekDiv = document.createElement("div");
   let currentWeekH1 = document.createElement("h1");
-  let currentWeek = localStorage.getItem("thisWeek");
-  currentWeekH1.innerHTML = `Week ${currentWeek}`;
+  let currentWeek;
   currentWeekDiv.appendChild(currentWeekH1);
   headerHelp.appendChild(currentWeekDiv);
 
-  fetch("/api/users").then(function (response) {
+  fetch("/api/user/league/view").then(function (response) {
     if (response.ok) {
-      response.json().then(function (data) {
+      response.json().then(function (leagueView) {
+        const currentWeekNumber = Number(leagueView.leagueSeason.week);
+        currentWeek = String(currentWeekNumber);
+        currentWeekH1.innerText = `Week ${currentWeek}`;
+        const data = leagueView.users.map((user) => ({
+          id: user.id,
+          first_name: user.firstName,
+          last_name: user.lastName,
+          crown_type: user.crownType,
+          tracks: user.tracks.map((track) => ({
+            id: track.id,
+            wrong_pick: null,
+            current_pick: track.currentPick.status === "VISIBLE" ? track.currentPick.teamName : null,
+            used_picks: user.picksSubmitted ? Array(currentWeekNumber).fill("submitted") : [],
+          })),
+        }));
         browserLogger.debug("Original data:", data);
 
         // Sort users by tracks left using our helper function

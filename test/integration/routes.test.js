@@ -53,7 +53,9 @@ if (!databaseUrl) {
     });
     assert.equal(track.status, 200);
 
-    const pick = await agent
+    const adminAgent = request.agent(app);
+    await adminAgent.post("/api/admin/login").send({ password: process.env.ADMIN_PASSWORD }).expect(204);
+    const pick = await adminAgent
       .put(`/api/tracks/${track.body.id}`)
       .send({ current_pick: "Raiders" });
     assert.equal(pick.status, 200);

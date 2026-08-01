@@ -3,8 +3,9 @@ const { Track, User } = require("../../../models/my-index");
 const { Op, Sequelize } = require("sequelize");
 const { makePick } = require("../../../server/modules/tracks/pick-state");
 const { logger } = require("../../../server/lib/logger");
+const { requireAdmin } = require("../../../server/admin/require-admin");
 
-router.get("/", (req, res) => {
+router.get("/", requireAdmin, (req, res) => {
   Track.findAll({
     include: [
       {
@@ -30,7 +31,7 @@ router.get("/", (req, res) => {
 });
 
 //Get not null tracks wrong_picks
-router.get("/alive", (req, res) => {
+router.get("/alive", requireAdmin, (req, res) => {
   Track.findAll({
     where: {
       wrong_pick: null,
@@ -58,7 +59,7 @@ router.get("/alive", (req, res) => {
     });
 });
 
-router.get("/wrong-pick-not-null", (req, res) => {
+router.get("/wrong-pick-not-null", requireAdmin, (req, res) => {
   Track.findAll({
     where: {
       wrong_pick: {
@@ -88,7 +89,7 @@ router.get("/wrong-pick-not-null", (req, res) => {
     });
 });
 
-router.get("/wrong-pick-not-null/:userId", (req, res) => {
+router.get("/wrong-pick-not-null/:userId", requireAdmin, (req, res) => {
   const userId = req.params.userId;
 
   if (!userId) {
@@ -147,22 +148,10 @@ router.put("/reset-wrong-pick/:trackId", (req, res) => {
 
 router.get("/:id(\\d+)", (req, res) => {
   Track.findOne({
+    attributes: ["id", "wrong_pick"],
     where: {
       id: req.params.id,
     },
-    include: [
-      {
-        model: User,
-        attributes: [
-          "id",
-          "first_name",
-          "last_name",
-          "username",
-          "email",
-          "password",
-        ],
-      },
-    ],
   })
     .then((dbTrack) => {
       if (!dbTrack) {
@@ -197,7 +186,7 @@ router.post("/", (req, res) => {
 });
 
 //Make Pick
-router.put("/:id(\\d+)", (req, res) => {
+router.put("/:id(\\d+)", requireAdmin, (req, res) => {
   // First, fetch the current track
   Track.findOne({
     where: {
@@ -296,7 +285,7 @@ router.delete("/:id(\\d+)", (req, res) => {
 });
 
 // Get all alive tracks for a specific user
-router.get("/user/:userId/alive", (req, res) => {
+router.get("/user/:userId/alive", requireAdmin, (req, res) => {
   Track.findAll({
     where: {
       user_id: req.params.userId,

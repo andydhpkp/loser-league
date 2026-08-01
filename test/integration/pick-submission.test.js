@@ -1,0 +1,112 @@
+const test = require("node:test");
+const databaseUrl = process.env.TEST_DATABASE_URL;
+
+if (!databaseUrl) {
+  test("atomic Pick submission", { skip: "TEST_DATABASE_URL is not set" }, () => {});
+} else {
+  process.env.NODE_ENV = "test";
+  const assert = require("node:assert/strict");
+  const { sequelize, User, Track, LeagueSeason, Pick } = require("../../models");
+  const { submitPicks } = require("../../server/modules/picks/submission-service");
+  const { getLeagueView } = require("../../server/modules/picks/league-service");
+  const { migrateEmptyTestDatabase } = require("../support/migrate-test-database");
+
+  test.beforeEach(async () => migrateEmptyTestDatabase(sequelize));
+  test.after(async () => sequelize.close());
+
+  test("complete submission commits normalized Picks and legacy projections exactly once", async () => {
+    const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 1, state_version: 4, open_slot: 1 });
+    const user = await User.create({ first_name: "Pick", last_name: "User", username: "picker", email: "picker@example.test", password: "safe-test-password" });
+    const tracks = await Track.bulkCreate([
+      { user_id: user.id, league_season_id: season.id, available_picks: ["Broncos", "Raiders"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 },
+      { user_id: user.id, league_season_id: season.id, available_picks: ["Broncos", "Raiders"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 },
+    ]);
+    const schedule = { year: 2026, week: 1, provider: "FIXTURE_DOWNLOAD", contentHash: "a".repeat(64), teams: ["Broncos", "Raiders"], earliestKickoff: new Date("2026-09-10T00:00:00Z"), normalizedSchedule: { teams: ["Broncos", "Raiders"] }, fetchedAt: new Date("2026-09-01T00:00:00Z") };
+    const selections = [{ trackId: tracks[0].id, stateVersion: 0, teamName: "Broncos" }, { trackId: tracks[1].id, stateVersion: 0, teamName: "Raiders" }];
+
+    const first = await submitPicks({ userId: user.id, selections, schedule, now: new Date("2026-09-01T00:00:01Z") });
+    const replay = await submitPicks({ userId: user.id, selections, schedule, now: new Date("2026-09-01T00:00:02Z") });
+
+    assert.equal(first.picks.length, 2);
+    assert.equal(replay.idempotent, true);
+    await assert.rejects(
+      submitPicks({
+        userId: user.id,
+        selections: [{ ...selections[0], teamName: "Raiders" }, selections[1]],
+        schedule,
+        now: new Date("2026-09-01T00:00:03Z"),
+      }),
+      /locked/
+    );
+    assert.equal(await Pick.count(), 2);
+    const refreshed = await Track.findByPk(tracks[0].id);
+    assert.equal(refreshed.current_pick, "Broncos");
+    assert.deepEqual(refreshed.used_picks, ["Broncos"]);
+  });
+
+  test("submission rolls back normalized Picks and projections after a mid-write failure", async (t) => {
+    const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 1, state_version: 1, open_slot: 1 });
+    const user = await User.create({ first_name: "Rollback", last_name: "User", username: "rollback", email: "rollback@example.test", password: "safe-test-password" });
+    const tracks = await Track.bulkCreate([
+      { user_id: user.id, league_season_id: season.id, available_picks: ["Broncos", "Raiders"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 },
+      { user_id: user.id, league_season_id: season.id, available_picks: ["Broncos", "Raiders"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 },
+    ]);
+    const schedule = { year: 2026, week: 1, provider: "FIXTURE_DOWNLOAD", contentHash: "b".repeat(64), teams: ["Broncos", "Raiders"], earliestKickoff: new Date("2026-09-10T00:00:00Z"), normalizedSchedule: { teams: ["Broncos", "Raiders"] }, fetchedAt: new Date("2026-09-01T00:00:00Z") };
+    const originalCreate = Pick.create.bind(Pick);
+    let writes = 0;
+    t.mock.method(Pick, "create", async (...args) => {
+      writes += 1;
+      if (writes === 2) throw new Error("injected Pick failure");
+      return originalCreate(...args);
+    });
+
+    await assert.rejects(
+      submitPicks({
+        userId: user.id,
+        selections: [
+          { trackId: tracks[0].id, stateVersion: 0, teamName: "Broncos" },
+          { trackId: tracks[1].id, stateVersion: 0, teamName: "Raiders" },
+        ],
+        schedule,
+        now: new Date("2026-09-01T00:00:01Z"),
+      }),
+      /injected Pick failure/
+    );
+
+    assert.equal(await Pick.count(), 0);
+    const refreshed = await Track.findAll({ where: { user_id: user.id }, order: [["id", "ASC"]] });
+    assert.deepEqual(refreshed.map((track) => track.current_pick), [null, null]);
+    assert.deepEqual(refreshed.map((track) => track.used_picks), [[], []]);
+  });
+
+  test("competing submissions commit at most one selection set", async () => {
+    const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 1, state_version: 1, open_slot: 1 });
+    const user = await User.create({ first_name: "Concurrent", last_name: "User", username: "concurrent", email: "concurrent@example.test", password: "safe-test-password" });
+    const track = await Track.create({ user_id: user.id, league_season_id: season.id, available_picks: ["Broncos", "Raiders"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 });
+    const schedule = { year: 2026, week: 1, provider: "FIXTURE_DOWNLOAD", contentHash: "c".repeat(64), teams: ["Broncos", "Raiders"], earliestKickoff: new Date("2026-09-10T00:00:00Z"), normalizedSchedule: { teams: ["Broncos", "Raiders"] }, fetchedAt: new Date("2026-09-01T00:00:00Z") };
+
+    const outcomes = await Promise.allSettled([
+      submitPicks({ userId: user.id, selections: [{ trackId: track.id, stateVersion: 0, teamName: "Broncos" }], schedule, now: new Date("2026-09-01T00:00:01Z") }),
+      submitPicks({ userId: user.id, selections: [{ trackId: track.id, stateVersion: 0, teamName: "Raiders" }], schedule, now: new Date("2026-09-01T00:00:01Z") }),
+    ]);
+
+    assert.equal(outcomes.filter((outcome) => outcome.status === "fulfilled").length, 1);
+    assert.equal(outcomes.filter((outcome) => outcome.status === "rejected").length, 1);
+    assert.equal(await Pick.count(), 1);
+  });
+
+  test("league view hides every current Pick until the viewing User is complete", async () => {
+    const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 1, state_version: 1, open_slot: 1 });
+    const viewer = await User.create({ first_name: "Hidden", last_name: "Viewer", username: "viewer", email: "viewer@example.test", password: "safe-test-password" });
+    const other = await User.create({ first_name: "Other", last_name: "User", username: "other", email: "other@example.test", password: "safe-test-password" });
+    await Track.create({ user_id: viewer.id, league_season_id: season.id, available_picks: ["Broncos"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 });
+    const otherTrack = await Track.create({ user_id: other.id, league_season_id: season.id, available_picks: [], used_picks: ["Raiders"], current_pick: "Raiders", wrong_pick: null, state_version: 1 });
+    await Pick.create({ track_id: otherTrack.id, league_season_id: season.id, week: 1, team_name: "Raiders", origin: "USER_SUBMISSION", outcome: "PENDING", committed_at: new Date(), state_version: 0 });
+
+    const view = await getLeagueView({ userId: viewer.id });
+    assert.equal(view.pickVisibility, "HIDDEN");
+    assert.equal(JSON.stringify(view).includes("Raiders"), false);
+    assert.equal(JSON.stringify(view).includes("password"), false);
+    assert.equal(JSON.stringify(view).includes("email"), false);
+  });
+}

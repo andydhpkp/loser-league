@@ -20,10 +20,11 @@ export function getCrownInfo(crownType) {
 
 export async function populateWeekStatsModal() {
   try {
-    const res = await fetch("/api/users");
+    const res = await fetch("/api/user/league/view");
     if (!res.ok) throw new Error("Failed to load users");
 
-    const users = await res.json();
+    const view = await res.json();
+    const users = view.users.map((user) => ({ first_name: user.firstName, last_name: user.lastName, tracks: user.tracks.map((track) => ({ wrong_pick: null, current_pick: track.currentPick.status === "VISIBLE" ? track.currentPick.teamName : null })) }));
     const stats = computeWeekStats(users);
 
     // Inject into the existing modal DOM

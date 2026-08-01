@@ -45,6 +45,8 @@ if (!databaseUrl) {
 
     const audit = await queryInterface.describeTable("admin_audit_operation");
     assert.equal(audit.actor_id, undefined);
+    const pick = await queryInterface.describeTable("pick");
+    assert.ok(pick.schedule_hash);
 
     await queryInterface.bulkInsert("league_season", [
       {
