@@ -1,6 +1,14 @@
 const Sequelize = require("sequelize");
 const sequelize = require("../config/connection");
-const { User, Track, Team } = require("./my-index");
+const {
+  User,
+  Track,
+  Team,
+  LeagueSeason,
+  Pick,
+  ScheduleSnapshot,
+  LeagueWeekOperation,
+} = require("./my-index");
 
 module.exports = {
   sequelize,
@@ -8,4 +16,8 @@ module.exports = {
   User,
   Track,
   Team,
+  LeagueSeason,
+  Pick,
+  ScheduleSnapshot,
+  LeagueWeekOperation,
 };

@@ -1,0 +1,6 @@
+const path = require("node:path");
+
+module.exports = {
+  config: path.resolve("config", "migrations.js"),
+  "migrations-path": path.resolve("migrations"),
+};

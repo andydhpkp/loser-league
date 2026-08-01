@@ -14,9 +14,12 @@ if (!databaseUrl) {
   const sequelize = require("../../config/connection");
   const { User, Track, Team } = require("../../models/my-index");
   const { createApp } = require("../../server/app");
+  const {
+    migrateEmptyTestDatabase,
+  } = require("../support/migrate-test-database");
 
   test.before(async () => {
-    await sequelize.sync({ force: true });
+    await migrateEmptyTestDatabase(sequelize);
   });
 
   test.after(async () => {

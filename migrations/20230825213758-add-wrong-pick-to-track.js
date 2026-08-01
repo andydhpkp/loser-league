@@ -3,6 +3,10 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    const track = await queryInterface.describeTable("track");
+    if (track.wrong_pick) {
+      return;
+    }
     await queryInterface.addColumn("track", "wrong_pick", {
       type: Sequelize.STRING,
       allowNull: true,
@@ -11,6 +15,6 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.removeColumn("track", "wrong_pick");
+    throw new Error("Migration is forward-only");
   },
 };
