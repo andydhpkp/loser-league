@@ -12,8 +12,27 @@ admin session.
 3. Successful authentication opens `/admin.html`.
 4. Use the admin page Logout button to destroy the admin session.
 
-An unauthenticated request for `/admin.html` redirects home. Unauthorized
-requests to record a win return HTTP 401.
+An unauthenticated request for `/admin.html` redirects home. Every route under
+`/api/admin/actions` verifies the shared-admin session before parsing targets or
+performing lookups and returns HTTP 401 otherwise.
+
+## Previewed admin actions
+
+Current admin mutations are registered as add User win, create Track, delete
+Track, and delete User. The admin page first creates a ten-minute persisted
+preview, displays its generated description, affected count, and warnings, and
+then confirms it with a one-use key. The server stores only a hash of that key.
+
+Confirmation locks and reloads the target state. Expired, already-changed, or
+wrong-action previews fail without mutation. A successful confirmation commits
+the mutation and sanitized audit operation/target rows in one transaction.
+Replaying the same successful confirmation returns the existing operation and
+does not repeat the mutation.
+
+Audit history has no actor field because Admin is not a User and the shared
+password intentionally does not identify an individual. Audits exclude email,
+password, session, request-body, and other unrelated account data. User and
+Track deletion are permanent and non-undoable.
 
 ## Record a League Season win
 
@@ -23,7 +42,7 @@ requests to record a win return HTTP 401.
 4. Choose “Add solo win” or “Add tied win.”
 5. Verify the User, year, and win type in the confirmation prompt.
 
-The operation is idempotent for an already-recorded year. A tied submission can
+The previewed operation is idempotent for an already-recorded year. A tied submission can
 upgrade a solo win for that year; it cannot be downgraded through this tool.
 Removing or correcting a win requires a separately approved recovery process.
 
@@ -38,6 +57,7 @@ rotate access, replace the config value through authorized Heroku configuration
 management and distribute it outside the application. Existing admin sessions
 remain valid until logout or their eight-hour expiry.
 
-The shared password is intentionally independent of User accounts. Legacy User
-and Track mutation routes do not yet have comprehensive ownership or admin
-authorization; that remains separate security work.
+The shared password is intentionally independent of User accounts. The admin
+browser no longer uses general User/Track mutation routes for its four current
+operations. Those legacy routes remain during the expand phase for known User
+and manual-repair consumers and are migrated or removed in later program PRs.

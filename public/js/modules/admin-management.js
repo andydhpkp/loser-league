@@ -1,12 +1,7 @@
-import { nflTeams } from "../data/nfl-teams.js";
 import { browserLogger } from "../logger.js";
 
 let i;
 let j;
-
-function getTeamNames(names) {
-  return names.teamName;
-}
 
 export function formatUserWinHistory(userRecord = []) {
   const wins = (Array.isArray(userRecord) ? userRecord : []).filter(
@@ -207,7 +202,7 @@ export async function displayUsers() {
           let nameInput = document.createElement("input");
           nameInput.setAttribute("type", "checkbox");
           // @ts-ignore
-          nameInput.setAttribute("id", `${data[i].username}`);
+          nameInput.setAttribute("id", `${data[i].id}`);
           nameInput.setAttribute("name", "user");
           nameInput.setAttribute("value", "delete");
 
@@ -773,26 +768,44 @@ export async function addUserWin(
     throw new Error("Enter a four-digit League Season year");
   }
 
-  const winType = wonWithTie ? "tied" : "solo";
-  const confirmed = confirmImpl(
-    `Add a ${winType} win for ${displayName} for the ${yearText} League Season?`
+  return runAdminAction(
+    "ADD_USER_WIN",
+    { userId, year: normalizedYear, wonWithTie },
+    { confirmImpl, fetchImpl, displayName }
   );
-  if (!confirmed) {
-    return null;
-  }
+}
 
-  const response = await fetchImpl(`/api/users/${userId}/add-win`, {
-    method: "PUT",
+export async function runAdminAction(
+  action,
+  intent,
+  { confirmImpl = confirm, fetchImpl = fetch, displayName = "" } = {}
+) {
+  const previewResponse = await fetchImpl(`/api/admin/actions/${action}/preview`, {
+    method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      year: normalizedYear,
-      won_with_tie: wonWithTie,
-    }),
+    body: JSON.stringify(intent),
   });
-  if (!response.ok) {
-    throw new Error("Unable to add win");
+  if (!previewResponse.ok) throw new Error("Unable to preview admin action");
+  const preview = await previewResponse.json();
+  const confirmed = confirmImpl(
+    `${preview.description}${displayName ? ` (${displayName})` : ""}\nAffected records: ${preview.targets.length}\n${preview.warnings.join("\n")}`
+  );
+  if (!confirmed) return null;
+  const response = await fetchImpl(`/api/admin/actions/${action}/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ confirmationKey: preview.confirmationKey }),
+  });
+  if (!response.ok) throw new Error("Unable to confirm admin action");
+  const operation = await response.json();
+  if (action === "ADD_USER_WIN") {
+    const target = operation.targets.find((item) => item.target_type === "USER");
+    return {
+      user_record: target.after_state.userRecord,
+      crown_type: target.after_state.crownType,
+    };
   }
-  return response.json();
+  return operation;
 }
 
 export async function adminHandler() {
@@ -823,14 +836,7 @@ async function deleteTracksAdmin() {
       checkedTracks++;
       // @ts-ignore
       let deleteId = parseInt(altFormResults[i].id);
-      let response = await fetch(`api/tracks/${deleteId}`, {
-        method: "delete",
-      });
-      if (response.ok) {
-        browserLogger.debug("it worked");
-      } else {
-        alert(response.statusText);
-      }
+      await runAdminAction("DELETE_TRACK", { trackId: deleteId });
     }
   }
 
@@ -839,15 +845,8 @@ async function deleteTracksAdmin() {
     // @ts-ignore
     if (deleteUserForm[j].checked) {
       // @ts-ignore
-      let deleteUsername = deleteUserForm[j].id;
-      let response = await fetch(`api/users/username/${deleteUsername}`, {
-        method: "delete",
-      });
-      if (response.ok) {
-        browserLogger.debug("it worked");
-      } else {
-        alert(response.statusText);
-      }
+      let deleteUserId = parseInt(deleteUserForm[j].id);
+      await runAdminAction("DELETE_USER", { userId: deleteUserId });
     }
   }
 
@@ -855,24 +854,5 @@ async function deleteTracksAdmin() {
 }
 
 async function createTrack(user_id) {
-  // @ts-ignore
-  let available_picks = nflTeams.map(getTeamNames);
-  let used_picks = [];
-  let current_pick = "";
-
-  const response = await fetch("/api/tracks", {
-    method: "post",
-    body: JSON.stringify({
-      available_picks,
-      used_picks,
-      current_pick,
-      user_id,
-    }),
-    headers: { "Content-Type": "application/json" },
-  });
-  if (response.ok) {
-    browserLogger.debug("CREATED TRACK");
-  } else {
-    alert(response.statusText);
-  }
+  await runAdminAction("CREATE_TRACK", { userId: user_id });
 }

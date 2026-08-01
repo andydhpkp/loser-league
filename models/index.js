@@ -8,6 +8,9 @@ const {
   Pick,
   ScheduleSnapshot,
   LeagueWeekOperation,
+  AdminActionPreview,
+  AdminAuditOperation,
+  AdminAuditTarget,
 } = require("./my-index");
 
 module.exports = {
@@ -20,4 +23,7 @@ module.exports = {
   Pick,
   ScheduleSnapshot,
   LeagueWeekOperation,
+  AdminActionPreview,
+  AdminAuditOperation,
+  AdminAuditTarget,
 };

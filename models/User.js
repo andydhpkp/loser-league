@@ -10,7 +10,7 @@ class User extends Model {
   }
 
   // Helper method to add a win to user's record
-  addWin(year, wasTie = false) {
+  addWin(year, wasTie = false, saveOptions = {}) {
     const currentRecord = this.user_record || [];
     const existingEntryIndex = currentRecord.findIndex(
       (entry) => entry.year === year
@@ -34,7 +34,7 @@ class User extends Model {
     }
 
     this.changed("user_record", true);
-    return this.save();
+    return this.save(saveOptions);
   }
 
   // Helper method to get total wins

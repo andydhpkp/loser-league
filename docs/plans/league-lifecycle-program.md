@@ -166,15 +166,15 @@ The detailed route inventory is maintained below during delivery.
 | Browser Track Pick write | Replace with atomic final submission | Final submission | Pending |
 | Browser force-pick | Replace with server lifecycle auto-pick | Auto-pick | Pending |
 | Browser result and current-Pick reset orchestration | Replace with server week closure | Weekly results | Pending |
-| Admin Track/User create/delete and add-win | Move behind audited admin actions | Admin infrastructure | Pending |
+| Admin Track/User create/delete and add-win | Move behind audited admin actions | Admin infrastructure | PR gate passed |
 | Buyback wrong-Pick reset | Replace with guided Week 1 buyback | Admin repair | Pending |
 
 ## Pull-request sequence
 
 | Order | Scope | GitHub issue | Status |
 | ---: | --- | --- | --- |
-| 1 | League Season and normalized Pick foundation | #27 | PR gate passed |
-| 2 | Admin authorization boundary, action registry, previews, audit, existing admin mutations | #12A | Pending |
+| 1 | League Season and normalized Pick foundation | #27 | Complete; PR #28 plus deployment repair #29 |
+| 2 | Admin authorization boundary, action registry, previews, audit, existing admin mutations | #12A | PR gate passed; publication pending |
 | 3 | Atomic final Pick submission and visibility | #13 | Pending |
 | 4 | Exactly-once independent per-Track auto-pick | #19 | Pending |
 | 5 | Exactly-once results and automatic/manual week closure | #11 | Pending |
@@ -227,8 +227,38 @@ dependency. The prior production release remained healthy. Workflow run
 the forward repair is tracked in
 [`heroku-release-verification-fix.md`](heroku-release-verification-fix.md).
 
-Production migration and bootstrap have not run. After the repair merges,
-verify the Heroku release-phase migration and application health, then perform
-only the authorized dry-run bootstrap with explicit year/state/week. The later
-contract migration remains blocked until production bootstrap/parity evidence
-is recorded.
+### PR 1 production completion — 2026-08-01
+
+- PR #29 merged as `a0295f9`; workflow 30713648912 passed the complete gate
+  against that exact SHA.
+- Heroku release `v258` succeeded. The baseline and League Season foundation
+  migrations completed, the new release-status gate passed, and `/` plus
+  `/api/nfl/teams` were healthy.
+- The first `2026 / SETUP / week 0` preview rejected obsolete 2025 Tracks with
+  used Picks and changed nothing.
+- With explicit approval, one serializable fail-closed cleanup deleted 314
+  obsolete Tracks, verified zero remaining Tracks/Picks, and verified the User
+  count was unchanged. The deletion is permanent.
+- The repeated bootstrap preview reported zero Tracks, Picks, and eliminations.
+  Apply created the open 2026 League Season at Week 0, and exact replay returned
+  `alreadyApplied: true` without further mutation.
+- Foundation production rollout is complete. The next delivery is #12A.
+
+### PR 2 verification — 2026-08-01
+
+- Issue #12 was corrected to preserve the shared-password admin boundary: an
+  admin is never a User and audit rows have no actor attribution.
+- The additive #12A migration, registered preview/confirm actions, browser
+  migration, and append-only operation/target audit passed the full PR gate.
+- `npm run test:unit` — passed, 84 tests.
+- `npm run test:unit:coverage` — passed, 84.98% line coverage.
+- `npm run lint:browser` — passed.
+- `npm run test:integration` — passed, 10 tests against disposable MySQL.
+- `npm run test:smoke` — passed, 7 Playwright tests.
+- `git diff --check` — passed.
+- The migration is additive and the prior application ignores the new tables.
+  Existing general-purpose/manual routes remain during the expand phase.
+- Track creation preserves the legacy Week-1 allowance in #12A; #13 will add
+  the confirmed schedule-aware pre-kickoff enforcement.
+- Next safe step: publish and merge #12A, verify its Heroku migration and health,
+  then start #13 from fresh `main`.

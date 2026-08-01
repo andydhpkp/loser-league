@@ -31,9 +31,20 @@ if (!databaseUrl) {
       "pick",
       "schedule_snapshot",
       "league_week_operation",
+      "admin_action_preview",
+      "admin_audit_operation",
+      "admin_audit_target",
     ]) {
       assert.equal(tables.has(table), true, `missing ${table}`);
     }
+
+    const preview = await queryInterface.describeTable("admin_action_preview");
+    assert.ok(preview.confirmation_key_hash);
+    assert.ok(preview.schedule_hash);
+    assert.equal(preview.actor_id, undefined);
+
+    const audit = await queryInterface.describeTable("admin_audit_operation");
+    assert.equal(audit.actor_id, undefined);
 
     await queryInterface.bulkInsert("league_season", [
       {

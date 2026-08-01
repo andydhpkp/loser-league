@@ -4,22 +4,16 @@ test("admin records a confirmed solo win from the existing User modal", async ({
   page,
 }) => {
   const writes = [];
-  await page.route("**/api/users**", async (route) => {
-    if (route.request().method() === "PUT") {
-      writes.push(route.request().postDataJSON());
-      await route.fulfill({
-        status: 200,
-        contentType: "application/json",
-        body: JSON.stringify({
-          user_record: [
-            { year: 2025, won: true, won_with_tie: false },
-          ],
-          crown_type: "solo_1",
-        }),
-      });
+  await page.route("**/api/admin/actions/ADD_USER_WIN/**", async (route) => {
+    const payload = route.request().postDataJSON();
+    if (route.request().url().endsWith("/preview")) {
+      writes.push(payload);
+      await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ description: "Record solo win for User 3 in 2025", warnings: [], targets: [{}], confirmationKey: "a".repeat(64) }) });
       return;
     }
-
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ targets: [{ target_type: "USER", after_state: { userRecord: [{ year: 2025, won: true, won_with_tie: false }], crownType: "solo_1" } }] }) });
+  });
+  await page.route("**/api/users**", async (route) => {
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -50,5 +44,5 @@ test("admin records a confirmed solo win from the existing User modal", async ({
   await expect(page.getByText("2025 solo")).toBeVisible();
   await expect(page.getByText("Crown type: solo_1")).toBeVisible();
   await expect(page.getByText("Win recorded")).toBeVisible();
-  expect(writes).toEqual([{ year: 2025, won_with_tie: false }]);
+  expect(writes).toEqual([{ userId: 3, year: 2025, wonWithTie: false }]);
 });
