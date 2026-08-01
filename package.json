@@ -10,7 +10,8 @@
     "google-auth-library": "^9.0.0",
     "mysql2": "^2.3.3",
     "nodemailer": "^6.7.3",
-    "sequelize": "^6.17.0"
+    "sequelize": "^6.17.0",
+    "sequelize-cli": "^6.6.1"
   },
   "name": "loser-league",
   "description": "",
@@ -47,7 +48,6 @@
     "@playwright/test": "^1.62.0",
     "eslint": "^10.8.0",
     "nodemon": "^2.0.15",
-    "sequelize-cli": "^6.6.1",
     "supertest": "^7.2.2"
   }
 }

@@ -104,9 +104,42 @@ jobs:
         if: steps.freshness.outputs.deploy == 'true'
         run: heroku git:remote --app "$HEROKU_APP_NAME"
 
+      - name: Capture current Heroku release
+        if: steps.freshness.outputs.deploy == 'true'
+        id: prior_release
+        run: |
+          release_version="$(heroku releases --json --app "$HEROKU_APP_NAME" | jq -r '.[0].version // empty')"
+          if [ -z "$release_version" ]; then
+            echo "Unable to resolve the current Heroku release" >&2
+            exit 1
+          fi
+          echo "version=$release_version" >> "$GITHUB_OUTPUT"
+
       - name: Deploy tested commit
         if: steps.freshness.outputs.deploy == 'true'
         run: git push heroku "$GITHUB_SHA:refs/heads/main"
+
+      - name: Verify Heroku release succeeded
+        if: steps.freshness.outputs.deploy == 'true'
+        run: |
+          release_status="pending"
+          for attempt in {1..12}; do
+            release_json="$(heroku releases --json --app "$HEROKU_APP_NAME")"
+            release_version="$(jq -r '.[0].version // empty' <<< "$release_json")"
+            release_status="$(jq -r '.[0].status // empty' <<< "$release_json")"
+            if [ -n "$release_version" ] && \
+              [ "$release_version" != "${{ steps.prior_release.outputs.version }}" ]; then
+              if [ "$release_status" = "succeeded" ]; then
+                exit 0
+              fi
+              if [ "$release_status" = "failed" ]; then
+                break
+              fi
+            fi
+            sleep 5
+          done
+          echo "Heroku release status is $release_status, expected succeeded" >&2
+          exit 1
 
       - name: Verify production health
         if: steps.freshness.outputs.deploy == 'true'
