@@ -80,44 +80,4 @@ if (!databaseUrl) {
     });
   });
 
-  test("failed force-pick commits do not activate cooldowns", async () => {
-    const user = await User.create({
-      first_name: "Force",
-      last_name: "Pick",
-      username: "force-pick",
-      email: "force-pick@example.test",
-      password: "safe-test-password",
-    });
-    await Track.create({
-      user_id: user.id,
-      available_picks: ["Broncos", "Raiders"],
-      used_picks: [],
-      current_pick: null,
-    });
-
-    const originalTransaction = sequelize.transaction;
-    sequelize.transaction = async (...args) => {
-      const transaction = await originalTransaction.call(sequelize, ...args);
-      transaction.commit = async () => {
-        await transaction.rollback();
-        throw new Error("forced commit failure");
-      };
-      return transaction;
-    };
-
-    try {
-      const failed = await request(createApp()).put(
-        "/api/tracks/force-picks/all-alive"
-      );
-      assert.equal(failed.status, 500);
-    } finally {
-      sequelize.transaction = originalTransaction;
-    }
-
-    const retry = await request(createApp()).put(
-      "/api/tracks/force-picks/all-alive"
-    );
-    assert.equal(retry.status, 200);
-    assert.equal(retry.body.successCount, 1);
-  });
 }

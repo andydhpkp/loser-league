@@ -85,6 +85,13 @@ export async function getTrackNumber() {
     const state = await response.json();
     const data = state.tracks;
     currentWeek = state.leagueSeason.week;
+    if (state.message) {
+      const status = document.createElement("p");
+      status.className = "alert alert-warning";
+      status.setAttribute("role", "status");
+      status.textContent = state.message;
+      document.getElementById("actions")?.prepend(status);
+    }
 
     totalTracks = data.length;
 
@@ -115,7 +122,7 @@ export async function getTrackNumber() {
     if (picksCompleteChecker) {
       //location.href = "../league-page.html"
     }
-    await matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap, trackStateMap);
+    await matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap, trackStateMap, state.submissionOpen);
     if (trackIdArray.length === 0) {
       displayVenmoButton();
     }
@@ -287,7 +294,7 @@ function getCurrentWeekForMatchFetch(matches) {
 }
 
 // Call the async function to fetch matches and get the current week
-async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap) {
+async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submissionOpen) {
   let nflObj = {};
   try {
     const response = await fetchNflTeams();
@@ -591,7 +598,8 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap) {
           const submitBtn = document.createElement("button");
           submitBtn.id = "submitPicksBtn";
           submitBtn.className = "btn btn-primary";
-          submitBtn.innerText = "Submit Picks";
+          submitBtn.innerText = submissionOpen ? "Submit Picks" : "Pick submission is closed";
+          submitBtn.disabled = !submissionOpen;
           submitBtn.addEventListener("click", handleSubmitPicks);
 
           // Insert just above Logout

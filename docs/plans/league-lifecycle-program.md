@@ -102,9 +102,9 @@ change.
   phase. One mode can commit; the other becomes a no-op.
 - Lifecycle phases are unique by League Season, week, and phase. Initial phases
   are `START_SEASON`, `AUTO_PICK`, and `CLOSE_WEEK`.
-- Timers, periodic recovery, startup catch-up, parameterless authenticated page
-  wakeups, and manual admin evaluation all call the same database-locked,
-  idempotent services.
+- Timers, periodic recovery, and startup catch-up call the same database-locked,
+  idempotent services. The confirmed #19 contract omits page wakeups and manual
+  auto-pick evaluation because the 30-second server recovery loop is sufficient.
 
 ### Completion and rollover
 
@@ -164,7 +164,7 @@ The detailed route inventory is maintained below during delivery.
 | --- | --- | --- | --- |
 | Raw repair and maintenance routes | Replace with mapped guided actions | Admin repair | Inventory pending |
 | Browser Track Pick write | Replaced with atomic final submission | Final submission | PR gate passed |
-| Browser force-pick | Replace with server lifecycle auto-pick | Auto-pick | Pending |
+| Browser force-pick | Replaced with server lifecycle auto-pick | Auto-pick | PR gate passed |
 | Browser result and current-Pick reset orchestration | Replace with server week closure | Weekly results | Pending |
 | Admin Track/User create/delete and add-win | Move behind audited admin actions | Admin infrastructure | PR gate passed |
 | Buyback wrong-Pick reset | Replace with guided Week 1 buyback | Admin repair | Pending |
@@ -175,8 +175,8 @@ The detailed route inventory is maintained below during delivery.
 | ---: | --- | --- | --- |
 | 1 | League Season and normalized Pick foundation | #27 | Complete; PR #28 plus deployment repair #29 |
 | 2 | Admin authorization boundary, action registry, previews, audit, existing admin mutations | #12A | Complete; PR #30 plus CI fixture repair #31 |
-| 3 | Atomic final Pick submission and visibility | #13 | PR gate passed; publication pending |
-| 4 | Exactly-once independent per-Track auto-pick | #19 | Pending |
+| 3 | Atomic final Pick submission and visibility | #13 | Complete; PR #32, Heroku v260 |
+| 4 | Exactly-once independent per-Track auto-pick | #19 | PR gate passed; publication pending |
 | 5 | Exactly-once results and automatic/manual week closure | #11 | Pending |
 | 6 | Inspector, mapped repairs/resets, buyback, undo, and Admin Guide | #12B and #17 | Pending |
 | 7 | Explicit completion and export-backed rollover | #14 | Pending |
@@ -295,5 +295,27 @@ the forward repair is tracked in
 - `npm run test:integration` — passed, 14 tests against disposable MySQL.
 - `npm run test:smoke` — passed, 7 Playwright tests.
 - `git diff --check` — passed.
-- Issue/PR links and production deployment verification will be recorded before
-  this stage is marked complete.
+- PR #32 merged as `2be1bd8`. Workflow 30716284808 passed the complete gate
+  against that exact SHA, Heroku release `v260` succeeded, migration
+  `20260801020000-add-pick-schedule-hash` completed, and `/` plus
+  `/api/nfl/teams` were healthy. Issue #13 is closed.
+
+### PR 4 implementation — 2026-08-01
+
+- Replaced browser/localStorage/`Math.random` scheduling with server startup,
+  exact-deadline, schedule-refresh, and 30-second recovery evaluation.
+- Reused the durable unique `AUTO_PICK` phase and normalized Pick rows; no new
+  migration is required.
+- Each missing active Track receives an independent `crypto.randomInt` draw
+  from its own eligible set in one serializable all-or-nothing transaction.
+- Existing submitted Picks and eliminated Tracks remain unchanged. Projection
+  inconsistencies, invalid schedules, exhausted eligibility, and write failures
+  leave the operation uncommitted for automatic retry.
+- Removed the public force-pick endpoint and all browser auto-pick scheduling
+  after replacement tests and reference searches proved them superseded.
+- `npm run test:unit` — passed, 93 tests.
+- `npm run test:unit:coverage` — passed, 82.42% line coverage.
+- `npm run lint:browser` — passed.
+- `npm run test:integration` — passed, 17 tests against disposable MySQL.
+- `npm run test:smoke` — passed, 7 Playwright tests.
+- `git diff --check` — passed.

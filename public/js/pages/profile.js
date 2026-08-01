@@ -1,6 +1,5 @@
 import { pushToLeaguePage } from "../modules/profile-navigation.js";
 import { bindPickReview, getUserId } from "../modules/track-actions.js";
-import { initializeAutoPickCheck } from "../force-picks.js";
 import { logout } from "../logout.js";
 import { getTrackNumber } from "../teams.js";
 
@@ -9,4 +8,3 @@ bindPickReview();
 getTrackNumber();
 getUserId();
 pushToLeaguePage();
-initializeAutoPickCheck();
