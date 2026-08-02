@@ -83,6 +83,27 @@ test("long modal content keeps its heading and actions reachable", async ({ page
   await expectTouchTargets(page, "#buybackModal button, #buybackModal input:not([type=checkbox]):not([type=radio])");
 });
 
+test("every Bootstrap modal stays horizontally centered on desktop", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  for (const url of ["/index.html", "/profile.html", "/league-page.html"]) {
+    await page.goto(url);
+    const dialogs = page.locator(".modal-dialog");
+    expect(await dialogs.count()).toBeGreaterThan(0);
+
+    for (const dialog of await dialogs.all()) {
+      const bounds = await dialog.evaluate((element) => {
+        const modal = element.closest(".modal");
+        modal.classList.add("show");
+        modal.style.display = "block";
+        modal.removeAttribute("aria-hidden");
+        const rect = element.getBoundingClientRect();
+        return { left: rect.left, width: rect.width };
+      });
+      expect(Math.abs(bounds.left + bounds.width / 2 - 640)).toBeLessThanOrEqual(1);
+    }
+  }
+});
+
 test("narrow admin help contains focus and restores it when closed", async ({ page }) => {
   await page.goto("/admin.html");
   const workflow = page.getByRole("button", { name: "Make Changes for a User" });

@@ -55,7 +55,7 @@ select.form-select {
 }
 
 .modal-dialog {
-  margin: 0.5rem;
+  margin: 0.5rem auto;
   min-height: calc(100% - 1rem);
 }
 
