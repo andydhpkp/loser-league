@@ -227,6 +227,28 @@ test("admin official-result and manual-close workflows use registered preview an
   ]);
 });
 
+test("season completion and rollover use exact previews and download export before confirmation", async () => {
+  const { completeLeagueSeason, rolloverLeagueSeason } = await import("../../public/js/modules/admin-management.js");
+  const calls = [];
+  const downloads = [];
+  const fetchImpl = async (url, options) => {
+    calls.push({ url, body: JSON.parse(options.body) });
+    if (url.endsWith("/preview")) return { ok: true, json: async () => ({ description: "Preview", warnings: [], targets: [{}], confirmationKey: "a".repeat(64), rolloverExport: { filename: "loser-league-2026.json", exportDocument: { format: "v1" } } }) };
+    return { ok: true, json: async () => ({ action: "COMMITTED", targets: [] }) };
+  };
+  const options = { fetchImpl, confirmImpl: () => true };
+  await completeLeagueSeason([4, 7], { ...options, note: "Winners verified" });
+  await rolloverLeagueSeason("2027", { ...options, note: "Export retained", downloadImpl: (filename, document) => downloads.push({ filename, document }) });
+
+  assert.deepEqual(downloads, [{ filename: "loser-league-2026.json", document: { format: "v1" } }]);
+  assert.deepEqual(calls, [
+    { url: "/api/admin/actions/COMPLETE_LEAGUE_SEASON/preview", body: { winnerTrackIds: [4, 7] } },
+    { url: "/api/admin/actions/COMPLETE_LEAGUE_SEASON/confirm", body: { confirmationKey: "a".repeat(64), note: "Winners verified" } },
+    { url: "/api/admin/actions/ROLLOVER_LEAGUE_SEASON/preview", body: { targetYear: "2027" } },
+    { url: "/api/admin/actions/ROLLOVER_LEAGUE_SEASON/confirm", body: { confirmationKey: "a".repeat(64), note: "Export retained", confirmationPhrase: "YES" } },
+  ]);
+});
+
 test("guided repairs use registered actions and carry destructive confirmation phrases", async () => {
   const {
     inspectAdminTrack,

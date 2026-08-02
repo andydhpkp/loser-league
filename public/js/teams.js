@@ -252,7 +252,7 @@ export function getCurrentWeek() {
 
 export async function fetchMatchesAndGetCurrentWeek() {
   try {
-    let response = await fetch("/api/proxy/nfl-2025");
+    let response = await fetch("/api/proxy/nfl");
 
     if (!response.ok) {
       throw new Error("Network response was not ok " + response.statusText);
@@ -315,7 +315,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
 
   container.innerHTML = "";
 
-  var nflScoreApi = "/api/proxy/nfl-2025";
+  var nflScoreApi = "/api/proxy/nfl";
   fetch(nflScoreApi)
     .then(function (response) {
       if (response.ok) {

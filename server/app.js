@@ -15,6 +15,8 @@ const { createNflRouter } = require("./nfl/routes");
 const { createDefaultManualClosureContextLoader } = require("./modules/week-closure/manual-closure-context");
 const { inspectTrack } = require("./modules/admin-repairs/inspector-service");
 const { createDefaultHistoricalResultsLoader } = require("./modules/admin-repairs/historical-results-context");
+const { fetchFixtureSchedule } = require("./nfl/fixture-download-client");
+const { LeagueSeason } = require("../models");
 
 function createApp({
   routes,
@@ -26,6 +28,11 @@ function createApp({
   logger = createLogger(),
   requestClosureEvaluation,
   inspectAdminTrack = inspectTrack,
+  loadLeagueSeasonYear = async () => {
+    const season = await LeagueSeason.findOne({ where: { open_slot: 1 }, attributes: ["year"] });
+    if (!season) throw new UpstreamError("League Season configuration is unavailable");
+    return season.year;
+  },
 } = {}) {
   if (!sessionSecret) {
     throw new Error("SESSION_SECRET is required");
@@ -68,6 +75,7 @@ function createApp({
     requestClosureEvaluation,
     loadManualClosureContext: createDefaultManualClosureContextLoader({ fetchImpl }),
     loadHistoricalResults: createDefaultHistoricalResultsLoader({ fetchImpl }),
+    loadRolloverTargetSchedule: ({ year, week }) => fetchFixtureSchedule({ year, week, fetchImpl }),
   }));
   app.use("/api/admin/repairs", createAdminRepairRouter({ inspectTrack: inspectAdminTrack }));
   app.use("/api/user/league", createPickSubmissionRouter({
@@ -100,6 +108,23 @@ function createApp({
           ? error
           : new UpstreamError(undefined, error)
       );
+    }
+  });
+
+  app.get("/api/proxy/nfl", async (_req, res, next) => {
+    try {
+      const year = await loadLeagueSeasonYear();
+      const response = await fetchImpl(`https://fixturedownload.com/feed/json/nfl-${year}`, {
+        headers: {
+          "User-Agent": "Mozilla/5.0 (compatible; LoserLeague/1.0)",
+          Accept: "application/json",
+          Referer: "https://loser-league.herokuapp.com",
+        },
+      });
+      if (!response.ok) throw new UpstreamError();
+      res.json(await response.json());
+    } catch (error) {
+      next(error instanceof UpstreamError ? error : new UpstreamError(undefined, error));
     }
   });
 

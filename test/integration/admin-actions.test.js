@@ -135,4 +135,46 @@ if (!databaseUrl) {
     assert.equal((await LeagueSeason.findByPk(season.id)).current_week, 2);
     assert.equal(await AdminAuditOperation.count({ where: { action: "CLOSE_WEEK" } }), 1);
   });
+
+  test("completion derives tied wins from unique winning Users and is replay safe", async () => {
+    const season = await LeagueSeason.findOne();
+    await season.update({ state: "ACTIVE", current_week: 2, state_version: 3 });
+    await LeagueWeekOperation.create({ league_season_id: season.id, week: 1, phase: "CLOSE_WEEK", mode: "AUTOMATIC", schedule_hash: "a".repeat(64), summary: {}, completed_at: new Date() });
+    const users = await Promise.all([
+      User.create({ first_name: "One", last_name: "Winner", username: "winner-one", email: "winner-one@example.test", password: "safe-test-password" }),
+      User.create({ first_name: "Two", last_name: "Winner", username: "winner-two", email: "winner-two@example.test", password: "safe-test-password" }),
+    ]);
+    const tracks = await Promise.all(users.map((user) => Track.create({ user_id: user.id, league_season_id: season.id, available_picks: ["Broncos"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 })));
+
+    const preview = await createPreview("COMPLETE_LEAGUE_SEASON", { winnerTrackIds: tracks.map((track) => track.id) });
+    const operation = await confirmPreview("COMPLETE_LEAGUE_SEASON", preview.confirmationKey, "Final winners verified");
+    assert.equal(operation.action, "COMPLETE_LEAGUE_SEASON");
+    assert.equal((await LeagueSeason.findByPk(season.id)).state, "COMPLETE");
+    for (const user of users) assert.deepEqual((await User.findByPk(user.id)).user_record, [{ year: 2026, won: true, won_with_tie: true }]);
+    assert.equal((await confirmPreview("COMPLETE_LEAGUE_SEASON", preview.confirmationKey)).id, operation.id);
+    assert.equal(await AdminAuditOperation.count({ where: { action: "COMPLETE_LEAGUE_SEASON" } }), 1);
+  });
+
+  test("rollover requires validated explicit year, deletes outgoing Tracks and Picks, and creates Week 0", async () => {
+    const season = await LeagueSeason.findOne();
+    await season.update({ state: "COMPLETE", current_week: 22, state_version: 9, open_slot: null });
+    const user = await User.create({ first_name: "Preserved", last_name: "User", username: "preserved", email: "preserved@example.test", password: "safe-test-password", user_record: [{ year: 2026, won: true, won_with_tie: false }] });
+    const track = await Track.create({ user_id: user.id, league_season_id: season.id, available_picks: [], used_picks: ["Broncos"], current_pick: "Broncos", wrong_pick: null, state_version: 2 });
+    await Pick.create({ track_id: track.id, league_season_id: season.id, week: 22, pick_cycle: 2, team_name: "Broncos", origin: "USER_SUBMISSION", outcome: "PREDICTION_CORRECT", committed_at: new Date(), state_version: 1 });
+    const loader = async ({ year, week }) => ({ year, week, contentHash: "b".repeat(64) });
+
+    const preview = await createPreview("ROLLOVER_LEAGUE_SEASON", { targetYear: "2027" }, { loadRolloverTargetSchedule: loader });
+    assert.equal(preview.rolloverExport.exportDocument.tracks[0].userId, user.id);
+    assert.match(preview.rolloverExport.exportChecksum, /^[a-f0-9]{64}$/);
+    await assert.rejects(confirmPreview("ROLLOVER_LEAGUE_SEASON", preview.confirmationKey, null, { loadRolloverTargetSchedule: loader }), /Confirm Yes/);
+    const operation = await confirmPreview("ROLLOVER_LEAGUE_SEASON", preview.confirmationKey, "Export retained", { loadRolloverTargetSchedule: loader, confirmationPhrase: "YES" });
+
+    assert.equal(operation.summary.exportChecksum, preview.rolloverExport.exportChecksum);
+    assert.equal(await Track.count({ where: { league_season_id: season.id } }), 0);
+    assert.equal(await Pick.count({ where: { league_season_id: season.id } }), 0);
+    assert.equal((await LeagueSeason.findByPk(season.id)).state, "ROLLED_OVER");
+    const successor = await LeagueSeason.findOne({ where: { year: 2027 } });
+    assert.deepEqual({ state: successor.state, week: successor.current_week, cycle: successor.pick_cycle, open: successor.open_slot }, { state: "SETUP", week: 0, cycle: 1, open: 1 });
+    assert.equal((await User.findByPk(user.id)).user_record[0].year, 2026);
+  });
 }

@@ -129,6 +129,8 @@ test("admin action registry requires the shared-admin session and exposes no act
     "DELETE_USER",
     "OVERRIDE_GAME_RESULT",
     "CLOSE_WEEK",
+    "COMPLETE_LEAGUE_SEASON",
+    "ROLLOVER_LEAGUE_SEASON",
     "RESET_CURRENT_PICKS",
     "ASSIGN_CURRENT_PICK",
     "REPLACE_CURRENT_PICK",
@@ -177,6 +179,20 @@ test("NFL proxy returns upstream JSON through the application interface", async 
 
   assert.equal(response.status, 200);
   assert.deepEqual(response.body, upstreamBody);
+});
+
+test("active Fixture proxy resolves its year from the stored League Season", async () => {
+  let upstreamUrl;
+  const app = createTestApp({
+    routes: express.Router(),
+    loadLeagueSeasonYear: async () => 2027,
+    fetchImpl: async (url) => {
+      upstreamUrl = url;
+      return { ok: true, json: async () => [] };
+    },
+  });
+  assert.equal((await request(app).get("/api/proxy/nfl")).status, 200);
+  assert.equal(upstreamUrl, "https://fixturedownload.com/feed/json/nfl-2027");
 });
 
 test("NFL Teams route passes through the approved ESPN response", async () => {

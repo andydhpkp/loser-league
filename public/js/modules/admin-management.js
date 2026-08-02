@@ -827,6 +827,27 @@ export async function closeCurrentWeek(note, options = {}) {
   return runAdminAction("CLOSE_WEEK", {}, { ...options, note: note.trim() });
 }
 
+export const completeLeagueSeason = (winnerTrackIds, options = {}) =>
+  runAdminAction("COMPLETE_LEAGUE_SEASON", { winnerTrackIds }, options);
+
+export async function rolloverLeagueSeason(targetYear, { downloadImpl = downloadJson, ...options } = {}) {
+  return runAdminAction("ROLLOVER_LEAGUE_SEASON", { targetYear: String(targetYear) }, {
+    ...options,
+    confirmationPhrase: "YES",
+    onPreview(preview) {
+      downloadImpl(preview.rolloverExport.filename, preview.rolloverExport.exportDocument);
+    },
+  });
+}
+
+function downloadJson(filename, document) {
+  const anchor = globalThis.document.createElement("a");
+  anchor.href = globalThis.URL.createObjectURL(new globalThis.Blob([JSON.stringify(document, null, 2)], { type: "application/json" }));
+  anchor.download = filename;
+  anchor.click();
+  globalThis.URL.revokeObjectURL(anchor.href);
+}
+
 export async function inspectAdminTrack(trackId, fetchImpl = fetch) {
   const response = await fetchImpl(`/api/admin/repairs/tracks/${Number(trackId)}`);
   if (!response.ok) throw new Error("Unable to inspect Track");
@@ -863,7 +884,7 @@ export const undoAdminAction = (operationId, options = {}) =>
 export async function runAdminAction(
   action,
   intent,
-  { confirmImpl = confirm, fetchImpl = fetch, displayName = "", note, confirmationPhrase } = {}
+  { confirmImpl = confirm, fetchImpl = fetch, displayName = "", note, confirmationPhrase, onPreview } = {}
 ) {
   const previewResponse = await fetchImpl(`/api/admin/actions/${action}/preview`, {
     method: "POST",
@@ -872,6 +893,7 @@ export async function runAdminAction(
   });
   if (!previewResponse.ok) throw new Error("Unable to preview admin action");
   const preview = await previewResponse.json();
+  if (onPreview) onPreview(preview);
   const unfinished = (preview.unfinishedUnselectedGames || [])
     .map((game) => `${game.homeTeam} vs ${game.awayTeam}`)
     .join("\n");
