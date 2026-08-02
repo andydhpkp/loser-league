@@ -34,6 +34,12 @@ the mutation and sanitized audit operation/target rows in one transaction.
 Replaying the same successful confirmation returns the existing operation and
 does not repeat the mutation.
 
+Track creation is allowed in Week 0 and in Week 1 before the first known
+kickoff. A missing Week 1 schedule intentionally leaves enrollment open. Both
+preview and confirmation use the same server policy as zero-Track onboarding,
+and confirmation rechecks the deadline while holding the League Season lock.
+See [`zero-track-onboarding.md`](zero-track-onboarding.md).
+
 Audit history has no actor field because Admin is not a User and the shared
 password intentionally does not identify an individual. Audits exclude email,
 password, session, request-body, and other unrelated account data. User and

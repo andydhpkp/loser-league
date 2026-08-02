@@ -21,6 +21,7 @@ const { getAdminAction } = require("./action-registry");
 const { closeWeek } = require("../modules/week-closure/week-closure-service");
 const { planAssignCurrentPick, planBuybackReactivation, planHistoricalPickCorrection, planOutcomeReconciliation, planPlayoffPoolReset, planReplaceCurrentPick, planResetCurrentPick, planTrackProjection } = require("../modules/admin-repairs/repair-policy");
 const { buildRolloverExport, deriveWinningUsers, normalizeTargetYear, normalizeWinnerTrackIds } = require("../modules/league-season/completion-rollover-policy");
+const { earliestScheduleKickoff, isTrackEnrollmentOpen } = require("../modules/league-season/enrollment-policy");
 
 const PREVIEW_TTL_MS = 10 * 60 * 1000;
 const hashKey = (key) => crypto.createHash("sha256").update(key).digest("hex");
@@ -154,7 +155,9 @@ async function buildActionPreview(action, input, transaction, lock = false, opti
     const user = await User.findByPk(userId, { attributes: ["id"], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
     if (!user) throw new NotFoundError("User not found");
     const season = await openSeason(transaction, lock);
-    if (season.state !== "SETUP" && !(season.state === "ACTIVE" && season.current_week === 1)) throw new ConflictError("Track enrollment is closed");
+    const schedule = season.current_week === 1 ? await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: 1 }, order: [["fetched_at", "DESC"]], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) }) : null;
+    const now = typeof options.now === "function" ? options.now() : options.now || new Date();
+    if (!isTrackEnrollmentOpen({ season, earliestKickoff: earliestScheduleKickoff(schedule), now })) throw new ConflictError("Track enrollment is closed");
     return { normalizedIntent: { userId }, description: `Create Track for User ${userId}`, warnings: [], leagueSeason: season, targets: [{ targetType: "USER", targetId: userId, beforeState: { exists: true }, afterState: { trackCreated: true } }] };
   }
 

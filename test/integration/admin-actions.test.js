@@ -38,6 +38,27 @@ if (!databaseUrl) {
     assert.equal(await AdminAuditOperation.count(), 1);
   });
 
+  test("Track creation defaults open without a Week 1 schedule and closes at a known kickoff", async () => {
+    const user = await User.create({ first_name: "Deadline", last_name: "Target", username: "enrollment-deadline", email: "enrollment-deadline@example.test", password: "safe-test-password" });
+    const season = await LeagueSeason.findOne();
+    await season.update({ state: "ACTIVE", current_week: 1, state_version: 1 });
+    const withoutSchedule = await createPreview("CREATE_TRACK", { userId: user.id }, { now: new Date("2026-09-10T00:00:00Z") });
+    assert.equal(withoutSchedule.action, "CREATE_TRACK");
+
+    await ScheduleSnapshot.create({ league_season_id: season.id, week: 1, provider: "FIXTURE_DOWNLOAD", content_hash: "8".repeat(64), normalized_schedule: { week: 1, games: [{ kickoff: "2026-09-10T00:00:00.000Z", homeTeam: "Broncos", awayTeam: "Raiders" }] }, fetched_at: new Date(), created_at: new Date() });
+    await assert.rejects(createPreview("CREATE_TRACK", { userId: user.id }, { now: new Date("2026-09-10T00:00:00Z") }), /enrollment is closed/);
+  });
+
+  test("Track creation confirmation rechecks a known kickoff", async () => {
+    const user = await User.create({ first_name: "Stale", last_name: "Enrollment", username: "stale-enrollment", email: "stale-enrollment@example.test", password: "safe-test-password" });
+    const season = await LeagueSeason.findOne();
+    await season.update({ state: "ACTIVE", current_week: 1, state_version: 1 });
+    await ScheduleSnapshot.create({ league_season_id: season.id, week: 1, provider: "FIXTURE_DOWNLOAD", content_hash: "9".repeat(64), normalized_schedule: { week: 1, games: [{ kickoff: "2026-09-10T00:00:00.000Z", homeTeam: "Broncos", awayTeam: "Raiders" }] }, fetched_at: new Date(), created_at: new Date() });
+    const preview = await createPreview("CREATE_TRACK", { userId: user.id }, { now: new Date("2026-09-09T23:59:59Z") });
+    await assert.rejects(confirmPreview("CREATE_TRACK", preview.confirmationKey, null, { now: new Date("2026-09-10T00:00:00Z") }), /enrollment is closed/);
+    assert.equal(await Track.count(), 0);
+  });
+
   test("stale Track delete preview is rejected without audit or deletion", async () => {
     const user = await User.create({ first_name: "Stale", last_name: "Target", username: "stale", email: "stale@example.test", password: "safe-test-password" });
     const season = await LeagueSeason.findOne();
