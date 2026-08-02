@@ -14,6 +14,8 @@ test("registry documents every existing browser admin mutation without actor att
       "DELETE_USER",
       "OVERRIDE_GAME_RESULT",
       "CLOSE_WEEK",
+      "COMPLETE_LEAGUE_SEASON",
+      "ROLLOVER_LEAGUE_SEASON",
       "RESET_CURRENT_PICKS",
       "ASSIGN_CURRENT_PICK",
       "REPLACE_CURRENT_PICK",

@@ -44,6 +44,29 @@ source URL is optional. Manual closure requires a note and is offered only when
 every active Track's selected game is authoritative and final. See
 [`week-closure.md`](week-closure.md). Neither workflow uses User login.
 
+## Complete and roll over a League Season
+
+After a durable week closure and before the next week has any Pick or auto-pick
+work, Admin enters every winning Track ID. The server verifies those Tracks,
+deduplicates their owners, records one solo win for one unique winning User or
+tied wins for multiple unique winning Users, and moves the season to
+`COMPLETE` atomically. Multiple winning Tracks owned by one User still produce
+one solo win.
+
+Rollover then requires an explicitly typed four-digit target year; there is no
+clock-derived default or automatic `+1`. Preview validates Week 1 with Fixture
+Download and downloads a checksum-bound JSON file containing numeric ownership
+and Track/Pick facts but no names, email, credentials, sessions, or secrets.
+Only after that download does the normal Yes/No confirmation run.
+
+Confirmation permanently deletes the outgoing season's Track-owned
+reactivation rows, normalized Picks, and Tracks, preserves Users and wins plus
+schedule, week-operation, official-result, and audit evidence, marks the old
+season `ROLLED_OVER`, and creates the entered year in `SETUP`, Week 0, Pick
+cycle 1. The transaction and one-use preview make replay safe. Recovery after
+a successful rollover must use a forward application fix and the downloaded
+export; old code must not be rolled back across this boundary.
+
 ## Guided Track repairs
 
 The admin page inspector accepts a numeric Track ID and returns the owning

@@ -49,6 +49,20 @@
         </form>
         <p id="weeklyLifecycleStatus" role="status" aria-live="polite"></p>
       </section>
+      <section class="container my-4" aria-labelledby="seasonLifecycleHeading">
+        <h2 id="seasonLifecycleHeading">Season completion and rollover</h2>
+        <form id="completeSeasonForm" class="row g-2 mb-4">
+          <div class="col-12"><label class="form-label" for="winningTrackIds">Winning Track IDs (comma-separated)</label><input class="form-control" id="winningTrackIds" required /></div>
+          <div class="col-12"><label class="form-label" for="completeSeasonNote">Completion note (optional)</label><input class="form-control" id="completeSeasonNote" maxlength="500" /></div>
+          <div class="col-12"><button class="btn btn-warning" type="submit">Preview season completion</button></div>
+        </form>
+        <form id="rolloverSeasonForm" class="row g-2 mb-3">
+          <div class="col-md-4"><label class="form-label" for="rolloverTargetYear">Successor year</label><input class="form-control" id="rolloverTargetYear" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required /></div>
+          <div class="col-12"><label class="form-label" for="rolloverNote">Rollover note (optional)</label><input class="form-control" id="rolloverNote" maxlength="500" /></div>
+          <div class="col-12"><button class="btn btn-danger" type="submit">Preview, export, and roll over</button></div>
+        </form>
+        <p id="seasonLifecycleStatus" role="status" aria-live="polite"></p>
+      </section>
       <section class="container my-4" aria-labelledby="guidedRepairsHeading">
         <h2 id="guidedRepairsHeading">Guided Track repairs</h2>
         <p>Inspect a Track before changing it. Repairs are previewed and audited.</p>

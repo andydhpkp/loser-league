@@ -180,8 +180,8 @@ The detailed route inventory is maintained below during delivery.
 | 5 | Exactly-once results and automatic/manual week closure | #11 | Complete; PR #34, Heroku v262 |
 | 6A | Repair schema/inspector, current-week tools, buyback, playoff Pick reset | #12B and #17 | Complete; PR #35, Heroku v263 |
 | 6B | Historical repair, reconciliation, projection rebuild, conditional undo | #12B | Complete; PR #36, Heroku v264 |
-| 6C | Raw emergency hardening/audit, complete Admin Guide and mapping | #12B | PR #37; gate passed |
-| 7 | Explicit completion and export-backed rollover | #14 | Pending |
+| 6C | Raw emergency hardening/audit, complete Admin Guide and mapping | #12B | Complete; PR #37, Heroku v265 |
+| 7 | Explicit completion and export-backed rollover | #14 | PR gate passed |
 | 8 | Superseded-route/browser cleanup and full-program verification | Program tracker | Pending |
 
 Issue #12 remains open until both #12A and #12B are complete.
@@ -407,3 +407,26 @@ the forward repair is tracked in
 - `git diff --check` — passed.
 - PR #33 merged as `2175a30`. The complete GitHub Actions gate passed against
   that exact SHA, Heroku release `v261` succeeded, and issue #19 is closed.
+
+### PR 7 implementation — 2026-08-02
+
+- Added registered, actorless `COMPLETE_LEAGUE_SEASON` and
+  `ROLLOVER_LEAGUE_SEASON` admin actions with persisted previews, season locks,
+  stale-state checks, serializable transactions, and replay-safe audits.
+- Completion derives solo/tied User wins from unique owners of the selected
+  winning Tracks and requires a closed-week boundary with no next-week work.
+- Rollover validates the explicitly entered target year against Fixture
+  Download, downloads a checksum-bound sanitized JSON export, deletes outgoing
+  Track-owned data/Picks/Tracks, and creates the successor in Week 0.
+- Users, win histories, schedule snapshots, week operations, official-result
+  overrides, and append-only audit evidence survive. No schema migration is
+  required.
+- The live browser Fixture proxy now resolves the stored open League Season
+  year; the year-named 2025 route remains for historical compatibility only.
+- `npm run test:unit` — passed, 135 tests.
+- `npm run test:unit:coverage` — passed, 83.33% line coverage.
+- `npm run lint:browser` — passed.
+- `npm run test:integration` — passed, 38 tests against the guarded disposable
+  MySQL schema.
+- `npm run test:smoke` — passed, 7 Playwright tests.
+- `git diff --check` — passed.

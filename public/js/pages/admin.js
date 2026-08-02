@@ -15,6 +15,8 @@ import {
   undoAdminAction,
   loadAdminGuide,
   renderAdminGuide,
+  completeLeagueSeason,
+  rolloverLeagueSeason,
 } from "../modules/admin-management.js";
 
 const lifecycleStatus = document.getElementById("weeklyLifecycleStatus");
@@ -48,6 +50,27 @@ document.getElementById("manualCloseForm")?.addEventListener("submit", async (ev
   } catch (error) {
     lifecycleStatus.textContent = error.message || "Unable to close the current week.";
   }
+});
+
+const seasonStatus = document.getElementById("seasonLifecycleStatus");
+document.getElementById("completeSeasonForm")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    const winnerTrackIds = String(document.getElementById("winningTrackIds")?.value || "").split(",").map((value) => Number(value.trim())).filter((value) => Number.isInteger(value) && value > 0);
+    const note = document.getElementById("completeSeasonNote")?.value.trim();
+    const result = await completeLeagueSeason(winnerTrackIds, { note });
+    if (result) { seasonStatus.textContent = "League Season completed and wins recorded."; event.target.reset(); }
+  } catch (error) { seasonStatus.textContent = error.message || "Unable to complete the League Season."; }
+});
+
+document.getElementById("rolloverSeasonForm")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  try {
+    const targetYear = document.getElementById("rolloverTargetYear")?.value;
+    const note = document.getElementById("rolloverNote")?.value.trim();
+    const result = await rolloverLeagueSeason(targetYear, { note });
+    if (result) { seasonStatus.textContent = `Rollover complete. ${targetYear} is ready at Week 0.`; event.target.reset(); }
+  } catch (error) { seasonStatus.textContent = error.message || "Unable to roll over the League Season."; }
 });
 
 const repairStatus = document.getElementById("guidedRepairStatus");
