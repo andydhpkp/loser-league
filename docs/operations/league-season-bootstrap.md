@@ -3,6 +3,12 @@
 The League Season foundation uses reviewed forward migrations and an explicit
 bootstrap. Application startup never creates or changes shared database schema.
 
+For a genuinely empty installation with no legacy Tracks, prefer the Admin
+page's **Manage Week and League Season** workflow: enter the explicit year to
+create SETUP Week 0, enroll Users and Tracks, then use **Start Week 1**. The CLI
+workflow below remains required when existing unassigned legacy Tracks must be
+adopted or reconciled.
+
 ## Deployment migration
 
 Heroku runs the `release` command from `Procfile` before starting the new web

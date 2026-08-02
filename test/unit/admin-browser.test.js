@@ -271,7 +271,7 @@ test("guided repairs use registered actions and carry destructive confirmation p
   await resetCurrentPicks({ scope: "ALL" }, { ...options, confirmationPhrase: "RESET EVERY TRACK" });
   await assignCurrentPick({ trackId: 9, teamName: "Broncos" }, options);
   await replaceCurrentPick({ trackId: 9, teamName: "Raiders" }, options);
-  await reactivateTrack({ trackId: 9, paymentConfirmed: true }, options);
+  await reactivateTrack({ trackId: 9, paymentConfirmed: true, correctionNote: "Correct an incorrectly recorded decision" }, options);
   await resetPlayoffPickPools({ ...options, confirmationPhrase: "RESET PICKS FOR PLAYOFFS" });
 
   assert.deepEqual(calls, [
@@ -282,7 +282,7 @@ test("guided repairs use registered actions and carry destructive confirmation p
     { url: "/api/admin/actions/ASSIGN_CURRENT_PICK/confirm", body: { confirmationKey: "a".repeat(64) } },
     { url: "/api/admin/actions/REPLACE_CURRENT_PICK/preview", body: { trackId: 9, teamName: "Raiders" } },
     { url: "/api/admin/actions/REPLACE_CURRENT_PICK/confirm", body: { confirmationKey: "a".repeat(64) } },
-    { url: "/api/admin/actions/REACTIVATE_TRACK/preview", body: { trackId: 9, paymentConfirmed: true } },
+    { url: "/api/admin/actions/REACTIVATE_TRACK/preview", body: { trackId: 9, paymentConfirmed: true, correctionNote: "Correct an incorrectly recorded decision" } },
     { url: "/api/admin/actions/REACTIVATE_TRACK/confirm", body: { confirmationKey: "a".repeat(64) } },
     { url: "/api/admin/actions/RESET_PLAYOFF_PICK_POOLS/preview", body: {} },
     { url: "/api/admin/actions/RESET_PLAYOFF_PICK_POOLS/confirm", body: { confirmationKey: "a".repeat(64), confirmationPhrase: "RESET PICKS FOR PLAYOFFS" } },

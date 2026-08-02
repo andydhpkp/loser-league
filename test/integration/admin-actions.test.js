@@ -38,6 +38,35 @@ if (!databaseUrl) {
     assert.equal(await AdminAuditOperation.count(), 1);
   });
 
+  test("admin creates an explicit League Season at SETUP Week 0 through one-use preview", async () => {
+    await LeagueSeason.destroy({ where: {} });
+    const preview = await createPreview("CREATE_LEAGUE_SEASON", { year: 2027 });
+    assert.match(preview.description, /2027.*Week 0/);
+    const operation = await confirmPreview("CREATE_LEAGUE_SEASON", preview.confirmationKey);
+    const season = await LeagueSeason.findOne({ where: { year: 2027 } });
+    assert.deepEqual({ state: season.state, week: season.current_week, open: season.open_slot }, { state: "SETUP", week: 0, open: 1 });
+    assert.equal(operation.league_season_id, season.id);
+    assert.equal((await confirmPreview("CREATE_LEAGUE_SEASON", preview.confirmationKey)).id, operation.id);
+    assert.equal(await LeagueSeason.count(), 1);
+  });
+
+  test("admin starts Week 1 only with current future schedule evidence", async () => {
+    const season = await LeagueSeason.findOne();
+    const loader = async ({ year, week }) => ({ year, week, provider: "FIXTURE_DOWNLOAD", contentHash: "c".repeat(64), earliestKickoff: "2026-09-10T00:00:00.000Z", normalizedSchedule: { week: 1, games: [{ kickoff: "2026-09-10T00:00:00.000Z", homeTeam: "Broncos", awayTeam: "Raiders" }] }, fetchedAt: new Date("2026-08-01T00:00:00.000Z") });
+    const options = { loadRolloverTargetSchedule: loader, now: new Date("2026-09-09T00:00:00.000Z") };
+    const preview = await createPreview("START_LEAGUE_SEASON", { year: 2026 }, options);
+    assert.match(preview.description, /0 Users and 0 Tracks/);
+    await confirmPreview("START_LEAGUE_SEASON", preview.confirmationKey, null, options);
+    await season.reload();
+    assert.deepEqual({ state: season.state, week: season.current_week, version: season.state_version }, { state: "ACTIVE", week: 1, version: 1 });
+    assert.equal(await ScheduleSnapshot.count({ where: { league_season_id: season.id, week: 1 } }), 1);
+  });
+
+  test("admin cannot start Week 1 once its earliest kickoff has arrived", async () => {
+    const loader = async ({ year, week }) => ({ year, week, contentHash: "d".repeat(64), earliestKickoff: "2026-09-10T00:00:00.000Z", normalizedSchedule: { week: 1, games: [{ kickoff: "2026-09-10T00:00:00.000Z", homeTeam: "Broncos", awayTeam: "Raiders" }] } });
+    await assert.rejects(createPreview("START_LEAGUE_SEASON", { year: 2026 }, { loadRolloverTargetSchedule: loader, now: new Date("2026-09-10T00:00:00.000Z") }), /earliest kickoff/);
+  });
+
   test("Track creation defaults open without a Week 1 schedule and closes at a known kickoff", async () => {
     const user = await User.create({ first_name: "Deadline", last_name: "Target", username: "enrollment-deadline", email: "enrollment-deadline@example.test", password: "safe-test-password" });
     const season = await LeagueSeason.findOne();

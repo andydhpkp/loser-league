@@ -88,6 +88,15 @@ Static/named paths must be registered before `/:id` so they are reachable.
 
 `GET /api/admin/actions`, `POST /api/admin/actions/:action/preview`, and
 `POST /api/admin/actions/:action/confirm` require the shared-admin session.
+`CREATE_LEAGUE_SEASON` creates an explicitly entered year as SETUP Week 0 only
+when no open season or unassigned legacy Tracks exist. `START_LEAGUE_SEASON`
+requires that same year at SETUP Week 0 plus revalidated future Week 1 Fixture
+evidence, persists its schedule, and activates Week 1 transactionally.
+
+`GET /api/admin/league-season` requires the shared-admin session and returns
+the current open League Season, or the latest completed season awaiting
+rollover, plus the count of unassigned legacy Tracks. It does not fetch an
+external schedule.
 Registered guided repairs use the same preview/confirm protocol. Confirmation
 accepts the one-use `confirmationKey` and, where required, an exact
 `confirmationPhrase`. `GET /api/admin/repairs/tracks/:trackId` is an
@@ -129,6 +138,26 @@ The mapping describes the authoritative outcome, not a promise that arbitrary
 legacy array corruption remains valid domain state. Raw routes are retained in
 PR 6C; deletion decisions belong to final cleanup after reference and
 replacement verification.
+
+## Week 2 buyback
+
+All User responses are authenticated and `private, no-store`:
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/api/user/league/buyback/request` | Create or exactly replay one immutable selected-Track request using the server state version. |
+| POST | `/api/user/league/buyback/decline` | Durably decline or exactly replay the season offer. |
+
+`GET /api/user/league/submission` includes a sanitized `buyback` view when a
+decision applies and may wake the shared deadline evaluator before returning.
+The submission route returns `409` while buyback state blocks Picks.
+
+Shared-admin routes under `/api/admin/buybacks` require authorization before
+lookup: `GET /` lists pending, eligible, or history views;
+`POST /:decisionId/complete` completes an exact paid subset;
+`POST /:decisionId/cancel` closes without fulfillment; and
+`POST /direct/complete` performs direct eligible-Track completion. Responses
+omit email, sessions, configuration values, and payment details.
 
 ## Error contract
 

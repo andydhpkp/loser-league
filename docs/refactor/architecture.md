@@ -64,6 +64,11 @@ binding. The shared HTTP client owns request/error normalization.
   state. Projection derivation is pure; conditional undo restores recorded
   business state only when every target still matches, while advancing state
   versions to prevent stale-state ABA.
+- Week 2 buyback uses one season/User decision aggregate with immutable Track
+  membership rows. Its application service owns eligibility, User/admin
+  transitions, reactivation/audit writes, versions, and locks. Final submission
+  calls its gate inside the League Season transaction; auto-pick expires
+  unanswered and pending decisions before selecting newly active Tracks.
 - Retained raw Track mutation adapters share an early admin boundary and a
   transaction wrapper. A successful legacy mutation is not returned until its
   sanitized actorless `LEGACY_EMERGENCY_REPAIR` operation and changed-Track
@@ -84,6 +89,9 @@ binding. The shared HTTP client owns request/error normalization.
 ## Browser modules
 
 - Page entries exist for home, registration, profile, league, and admin.
+- The profile entry renders an accessible buyback modal from sanitized
+  submission state. Browser dismissal and disabled controls are presentation;
+  server identity, eligibility, price, deadline, and Pick gating are authority.
 - Reusable modules own admin management, track actions, league rendering,
   profile navigation, team results, team catalog data, auto-pick scheduling,
   weekly statistics, and browser logging.

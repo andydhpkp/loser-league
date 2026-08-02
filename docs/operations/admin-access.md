@@ -16,9 +16,10 @@ An unauthenticated request for `/admin.html` redirects home. Every route under
 `/api/admin/actions` verifies the shared-admin session before parsing targets or
 performing lookups and returns HTTP 401 otherwise.
 
-The Admin Guide on `/admin.html` is loaded from the authenticated action
-registry. It lists every registered action's purpose, instructions, warnings,
-and undo status; it does not advertise retained low-level emergency routes.
+The admin page opens on five focused workflows: per-User changes, bulk Track
+creation, Week and League Season management, buybacks, and statistics. Only one
+workflow is shown at a time. Each workflow has contextual Help; the page does
+not expose one long action guide or require an admin to know database IDs.
 
 ## Previewed admin actions
 
@@ -34,11 +35,40 @@ the mutation and sanitized audit operation/target rows in one transaction.
 Replaying the same successful confirmation returns the existing operation and
 does not repeat the mutation.
 
+### Create and start a League Season
+
+On an empty database, **Manage Week and League Season** shows an explicit
+four-digit year field and no schedule-dependent controls. Preview and confirm
+creates that year as `SETUP`, Week 0. It does not infer a year from the clock
+and it does not start Picks. An existing open season, an already-used year, or
+legacy Tracks with no League Season blocks creation without mutation; legacy
+adoption remains the guarded CLI bootstrap workflow.
+
+At `SETUP`, Week 0, Admin can add Users and Tracks. **Start Week 1** then loads
+and validates the selected year's Week 1 Fixture schedule, shows current User
+and Track counts, and requires the earliest kickoff to be in the future.
+Confirmation stores the validated schedule and atomically moves the League
+Season to `ACTIVE`, Week 1. Preview confirmation reloads the schedule and
+season lock, so changed schedule evidence, changed lifecycle state, or elapsed
+kickoff fails without starting the season.
+
+The admin browser does not request the NFL feed while no League Season exists
+or during SETUP Week 0. ACTIVE-only controls appear only after Week 1 starts;
+after completion, only rollover remains available.
+
 Track creation is allowed in Week 0 and in Week 1 before the first known
 kickoff. A missing Week 1 schedule intentionally leaves enrollment open. Both
 preview and confirmation use the same server policy as zero-Track onboarding,
 and confirmation rechecks the deadline while holding the League Season lock.
 See [`zero-track-onboarding.md`](zero-track-onboarding.md).
+
+Per-User Track creation accepts one quantity and confirms the named User and
+quantity. **Add Tracks in Bulk** accepts quantities from 1 through 100 for any
+number of visible Users, previews the named additions and total, then sends one
+authenticated request to `POST /api/admin/tracks/bulk`. The server reloads and
+locks the open League Season and every selected User, rechecks enrollment, and
+creates the entire batch in one transaction. Invalid or stale input creates no
+Tracks.
 
 Audit history has no actor field because Admin is not a User and the shared
 password intentionally does not identify an individual. Audits exclude email,
@@ -53,7 +83,8 @@ every active Track's selected game is authoritative and final. See
 ## Complete and roll over a League Season
 
 After a durable week closure and before the next week has any Pick or auto-pick
-work, Admin enters every winning Track ID. The server verifies those Tracks,
+work, Admin selects every winning Track by User name and User-facing Track
+number. The browser retains internal identifiers only in the request payload. The server verifies those Tracks,
 deduplicates their owners, records one solo win for one unique winning User or
 tied wins for multiple unique winning Users, and moves the season to
 `COMPLETE` atomically. Multiple winning Tracks owned by one User still produce
@@ -75,14 +106,18 @@ export; old code must not be rolled back across this boundary.
 
 ## Guided Track repairs
 
-The admin page inspector accepts a numeric Track ID and returns the owning
-User's display name and username (never email), normalized Pick history and
-Pick cycles, current projections, current scheduled eligibility,
-inconsistencies, buyback reactivations, and recent audit operations.
+The per-User workflow searches names and usernames, then presents current-season
+Tracks as selectable cards. Cards show status, current Pick, and used Teams.
+Selecting a card loads normalized Pick history, current scheduled eligibility,
+inconsistencies, buyback reactivations, and recent audit operations without
+showing or asking for a Track or Pick ID.
 
-The guided operations can reset, assign, or replace a current-week Pick and
-reactivate an eliminated Track after external Week 1 buyback payment is
-confirmed. Buyback preserves the factual Wrong Pick and its used Team. A reset
+The guided operations can reset, assign, or replace a current-week Pick. Normal
+Week 2 buybacks use the dedicated pending/eligible queue and exact paid-subset
+completion described in [`week-2-buyback.md`](week-2-buyback.md). Standalone
+Track reactivation is a note-required exceptional correction that does not
+rewrite buyback decision history. Both paths preserve the factual Wrong Pick
+and its used Team. A reset
 of every active Track requires the exact phrase `RESET EVERY TRACK`.
 
 At Week 19, before any Week 19 Pick or auto-pick operation exists, Admin can

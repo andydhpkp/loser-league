@@ -136,6 +136,8 @@ test("admin action registry requires the shared-admin session and exposes no act
   const response = await agent.get("/api/admin/actions");
   assert.equal(response.status, 200);
   assert.deepEqual(response.body.actions.map((action) => action.name), [
+    "CREATE_LEAGUE_SEASON",
+    "START_LEAGUE_SEASON",
     "ADD_USER_WIN",
     "CREATE_TRACK",
     "DELETE_TRACK",

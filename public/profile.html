@@ -31,6 +31,7 @@
     <!-- Main Content -->
     <main id="games">
       <h1 id="loading">Please Wait for Teams to Load</h1>
+      <div id="buybackGateBanner" class="alert alert-warning" role="status" hidden>Resolve your Week 2 buyback decision before making Picks. <button id="reopenBuyback" class="btn btn-sm btn-primary" type="button">Resolve buyback decision</button></div>
       <section id="gameMatchups"></section>
 
       <div id="trackActions" class="track-actions">
@@ -56,6 +57,21 @@
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Go back and edit</button>
           <button type="button" class="btn btn-primary" id="confirmPickSubmission">Submit and lock Picks</button>
         </div>
+      </div></div>
+    </div>
+
+    <div class="modal fade" id="buybackModal" tabindex="-1" aria-labelledby="buybackTitle" aria-hidden="true" data-bs-backdrop="static">
+      <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title fs-5" id="buybackTitle">Week 2 Track buyback</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Dismiss"></button></div>
+        <div class="modal-body">
+          <p>Eligible Tracks eliminated by their Week 1 Pick may be bought back for $10 each. Payment is verified manually, so admins need time to restore selected Tracks.</p>
+          <p><strong>You cannot make Week 2 Picks until this decision or request is resolved.</strong></p>
+          <form id="buybackSelectionForm"></form>
+          <p id="buybackTotal" class="fw-bold"></p><div id="buybackContactActions"></div>
+          <p id="buybackError" class="text-danger" role="alert" hidden></p>
+          <div id="buybackConfirmation" class="border rounded p-3 mt-3" hidden><h3 class="h6">Are you sure?</h3><p id="buybackConfirmationSummary"></p><button id="confirmBuybackRequest" class="btn btn-danger" type="button">Confirm final decision</button></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Decide later</button><button id="declineBuyback" type="button" class="btn btn-outline-danger">No, continue without buying back</button><button id="requestBuyback" type="button" class="btn btn-primary">Request selected buybacks</button></div>
       </div></div>
     </div>
 

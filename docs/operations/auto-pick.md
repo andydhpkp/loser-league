@@ -17,6 +17,9 @@ target Tracks, or Teams.
 - One successful transaction writes every missing normalized Pick, matching
   legacy Track projections, schedule evidence, and the completion operation.
   Existing Picks and eliminated Tracks are unchanged.
+- In Week 2, the transaction first expires every pending or unanswered eligible
+  buyback decision. Only surviving active Tracks are then eligible for an
+  automatic Pick; unfulfilled eliminated Tracks remain excluded.
 
 ## Blocked evaluation
 
@@ -29,8 +32,8 @@ changes. They contain no User names, Track selections, request bodies,
 credentials, sessions, or personal data. Users see only a generic pending or
 temporarily unavailable message.
 
-Do not attempt to wake auto-pick through an HTTP route; none exists. Do not
-change the server clock or schedule evidence. Repair inconsistent Track state
+Authenticated submission-state loads may wake the evaluator but cannot supply
+lifecycle input. Do not change the server clock or schedule evidence. Repair inconsistent Track state
 through the guided shared-admin workflow. After repair, normal recovery retries
 the operation automatically.
 

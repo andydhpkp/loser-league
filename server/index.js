@@ -34,6 +34,7 @@ const app = createApp({
   sessionStore,
   logger,
   requestClosureEvaluation: () => weekClosureCoordinator.evaluate(),
+  requestAutoPickEvaluation: () => autoPickCoordinator.evaluate(),
 });
 
 startServer({ app, database: sequelize, port: PORT, logger, lifecycleCoordinator })

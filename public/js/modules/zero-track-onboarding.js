@@ -19,7 +19,7 @@ export function buildOnboardingView(onboarding) {
     ? {
       heading: "Ready to play?",
       explanation: `In order to pick your teams, you need to pay to play. Tracks are ${onboarding.price} each.`,
-      notice: "After paying, please give us some time to add your Tracks. Track creation is a manual admin step.",
+      notice: "After paying, please give us some time to add your Tracks.",
       contacts,
       payment,
       fallback: false,
@@ -73,6 +73,33 @@ export function renderOnboardingPanel(container, onboarding, { onRefresh } = {})
     notice.textContent = view.notice;
     panel.append(notice);
   }
+  const refresh = document.createElement("button");
+  refresh.type = "button";
+  refresh.className = "btn btn-outline-primary";
+  refresh.textContent = "Refresh Tracks";
+  refresh.addEventListener("click", () => onRefresh?.());
+  panel.append(refresh);
+  container.append(panel);
+}
+
+export function renderTrackLoadError(container, contacts = [], { onRefresh } = {}) {
+  container.replaceChildren();
+  const panel = document.createElement("section");
+  panel.className = "zero-track-panel";
+  const message = document.createElement("p");
+  message.textContent = "Unable to load your Tracks. Please refresh and try again.";
+  panel.append(message);
+  const actions = document.createElement("div");
+  actions.className = "zero-track-actions";
+  for (const contact of contacts) {
+    const wrapper = document.createElement("p");
+    const link = document.createElement("a");
+    link.href = contact.smsUrl;
+    link.textContent = `Text ${contact.name} for help`;
+    wrapper.append(link, document.createTextNode(` — ${contact.formattedPhone}`));
+    actions.append(wrapper);
+  }
+  panel.append(actions);
   const refresh = document.createElement("button");
   refresh.type = "button";
   refresh.className = "btn btn-outline-primary";

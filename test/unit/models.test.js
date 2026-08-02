@@ -249,6 +249,10 @@ test("model graph exposes League Season, Pick history, and elimination associati
   assert.equal(models.Track.associations.reactivations.target, models.TrackReactivation);
   assert.equal(models.TrackReactivation.associations.waivedPick.target, models.Pick);
   assert.equal(models.TrackReactivation.associations.auditOperation.target, models.AdminAuditOperation);
+  assert.equal(models.User.associations.buybackDecisions.target, models.BuybackDecision);
+  assert.equal(models.BuybackDecision.associations.tracks.target, models.BuybackDecisionTrack);
+  assert.equal(models.BuybackDecisionTrack.associations.weekOnePick.target, models.Pick);
+  assert.equal(models.BuybackDecisionTrack.associations.reactivation.target, models.TrackReactivation);
 });
 
 test("League week operation validates exactly-once lifecycle phases", async () => {

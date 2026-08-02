@@ -26,11 +26,15 @@ rerun auto-pick; repair the missing Pick explicitly before closure.
 
 ## Week 1 buyback
 
-Confirm payment outside Loser League and reactivate the eliminated Track. The
-server preserves its factual `WRONG_PICK`, including the used Team, but clears
-the active elimination and records a durable reactivation linked to the
-eliminating Pick and audit operation. Week 1 timing remains league-owner
-guidance rather than a server restriction.
+Ordinary Week 2 buybacks use the dedicated queue documented in
+[`week-2-buyback.md`](week-2-buyback.md). It records the User's terminal season
+decision and exact requested/fulfilled membership.
+
+Standalone reactivation is an exceptional correction. Confirm payment outside
+Loser League, provide the required audit note, and correct only an incorrectly
+recorded Track. The server preserves its factual `WRONG_PICK` and used Team,
+records reactivation evidence, and intentionally leaves buyback decision state
+unchanged.
 
 ## NFL playoff Pick reset
 

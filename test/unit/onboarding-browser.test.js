@@ -12,7 +12,7 @@ test("zero-Track presentation distinguishes open, closed, and total fallback sta
   const open = buildOnboardingView({ ...base, enrollmentOpen: true });
   assert.equal(open.heading, "Ready to play?");
   assert.match(open.explanation, /Tracks are \$5 each/);
-  assert.match(open.notice, /manual admin step/);
+  assert.equal(open.notice, "After paying, please give us some time to add your Tracks.");
   assert.equal(open.payment.label, "Pay Tate on Venmo (@TateBenson28)");
   assert.equal(open.contacts[0].label, "Text Tate for help");
 
