@@ -19,7 +19,7 @@ npx playwright install webkit
 npm run test:smoke:webkit
 ```
 
-The macOS 14 arm64 WebKit runtime frozen by Playwright 1.62 cannot currently start because its protocol does not support the `PushAPIEnabled` setting sent by that Playwright version. Run the WebKit gate on a current supported macOS or Linux CI host. This is an unavailable check, not a pass, and blocks a pull request under the repository rules until it runs successfully.
+The macOS 14 arm64 WebKit runtime frozen by Playwright 1.62 cannot currently start because its protocol does not support the `PushAPIEnabled` setting sent by that Playwright version. Run the WebKit gate on a current supported macOS or Linux host. The official Playwright Linux container is an acceptable fallback when it receives only an isolated disposable source copy and installs locked dependencies with lifecycle scripts disabled.
 
 ## Fixture strategy
 

@@ -99,8 +99,7 @@ test("narrow admin help contains focus and restores it when closed", async ({ pa
   await expect(help).toBeFocused();
 });
 
-test("short landscape keeps a focused input and continuation action reachable", async ({ page, browserName }) => {
-  test.skip(browserName === "webkit", "Representative WebKit coverage uses its configured portrait device.");
+test("short landscape keeps a focused input and continuation action reachable", async ({ page }) => {
   await page.setViewportSize({ width: 667, height: 320 });
   await page.goto("/index.html");
   await page.locator("#exampleModal").evaluate((modal) => {

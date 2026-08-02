@@ -89,6 +89,6 @@ Confirmed: 2026-08-02
   - `npm run test:smoke` — 114 Chromium tests passed across the four portrait widths, representative behavioral viewport, and desktop layout regression project;
   - focused `chromium-320` mobile contract — 15 passed;
   - `git diff --check` — passed before the final documentation/test expansion and must be rerun before handoff;
-  - `npm run test:smoke:webkit` — blocked on this macOS 14 arm64 host because Playwright 1.62's frozen WebKit runtime rejects the `PushAPIEnabled` protocol setting; it must pass on a supported host before a pull request;
+  - WebKit iPhone-sized project — 15 passed without skips in the official Playwright 1.62 Linux container using an isolated disposable source copy; the macOS 14 arm64 runtime itself remains incompatible;
   - `npm test` — aggregate unit, disposable-database integration, and Chromium smoke suite passed;
-- Next safe step: run the WebKit project on a supported host and complete the real-device record before a pull request or issue closure.
+- Next safe step: complete the real-device record before issue closure.
