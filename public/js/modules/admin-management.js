@@ -811,6 +811,18 @@ export const reactivateTrack = (intent, options = {}) =>
 export const resetPlayoffPickPools = (options = {}) =>
   runAdminAction("RESET_PLAYOFF_PICK_POOLS", {}, options);
 
+export const correctHistoricalPick = (intent, options = {}) =>
+  runAdminAction("CORRECT_HISTORICAL_PICK", intent, options);
+
+export const reconcilePickOutcomes = (intent, options = {}) =>
+  runAdminAction("RECONCILE_PICK_OUTCOME", intent, options);
+
+export const rebuildTrackProjections = (intent, options = {}) =>
+  runAdminAction("REBUILD_TRACK_PROJECTIONS", intent, options);
+
+export const undoAdminAction = (operationId, options = {}) =>
+  runAdminAction("UNDO_ADMIN_ACTION", { operationId: Number(operationId) }, options);
+
 export async function runAdminAction(
   action,
   intent,

@@ -39,6 +39,37 @@ This operation is league-wide and non-undoable. Once cycle 2 exists, do not
 roll production back to code that is unaware of Pick cycles; deploy a forward
 fix.
 
+## Historical correction and reconciliation
+
+Correct one settled historical Pick by entering its Pick ID and actual Team.
+The server reloads the stored Fixture schedule and current ESPN/official-result
+evidence for that closed week, recomputes the outcome, and rebuilds the owning
+Track projections in the same transaction. It rejects a correction that would
+create an elimination before already-recorded later Picks.
+
+Outcome reconciliation leaves Team selections unchanged. It can target
+specific Pick IDs in one closed week or every Pick in that week. The all scope
+requires `RECONCILE EVERY PICK`. Only outcomes that differ from authoritative
+results are changed; one unsafe target blocks the batch.
+
+Projection rebuild derives current Pick, current-cycle used/available Teams,
+and active elimination from normalized Picks, the Team catalog, Pick cycle,
+and durable reactivations. It can target the inspected Track or every Track;
+the all scope requires `REBUILD EVERY TRACK`. It never changes normalized Pick
+history, and an already-consistent selection produces no mutation audit.
+
+## Conditional undo
+
+Enter the audit operation ID shown by the inspector. Reset, assign, replace,
+buyback, historical correction, reconciliation, and projection rebuild can be
+undone once only while every affected target still exactly matches the
+operation's recorded after-state. Undo restores business fields while
+advancing state versions, records its own non-undoable audit, and links the
+original operation as `UNDONE`. There is no redo or undo-of-undo.
+
+Deletion, official-result override, manual closure, season transition, win,
+and playoff reset operations are never undoable.
+
 ## Failure and recovery
 
 Preview does not mutate data. Confirmation reloads and locks state; stale,

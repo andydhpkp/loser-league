@@ -59,6 +59,9 @@ cycle 2, and is non-undoable. Once cycle 2 exists, cycle-unaware application
 code is rollback-unsafe; recover with a forward fix.
 
 See [`guided-admin-repairs.md`](guided-admin-repairs.md) for the runbook.
+Historical correction, closed-week outcome reconciliation, deterministic Track
+projection rebuild, and one-level conditional undo use the same preview,
+stale-check, transactional audit, and shared-admin authorization boundary.
 
 ## Record a League Season win
 

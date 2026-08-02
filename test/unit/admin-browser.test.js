@@ -247,3 +247,26 @@ test("guided repairs use registered actions and carry destructive confirmation p
     { url: "/api/admin/actions/RESET_PLAYOFF_PICK_POOLS/confirm", body: { confirmationKey: "a".repeat(64), confirmationPhrase: "RESET PICKS FOR PLAYOFFS" } },
   ]);
 });
+
+test("historical repairs, projection rebuild, and undo use registered action intents", async () => {
+  const { correctHistoricalPick, reconcilePickOutcomes, rebuildTrackProjections, undoAdminAction } = await import("../../public/js/modules/admin-management.js");
+  const calls = [];
+  const fetchImpl = async (url, options) => {
+    calls.push({ url, body: JSON.parse(options.body) });
+    if (url.endsWith("/preview")) return { ok: true, json: async () => ({ description: "Preview", warnings: [], targets: [{}], confirmationKey: "a".repeat(64) }) };
+    return { ok: true, json: async () => ({ action: "COMMITTED", targets: [] }) };
+  };
+  const options = { fetchImpl, confirmImpl: () => true };
+  await correctHistoricalPick({ pickId: 4, teamName: "Raiders" }, options);
+  await reconcilePickOutcomes({ scope: "ALL", week: 2 }, { ...options, confirmationPhrase: "RECONCILE EVERY PICK" });
+  await rebuildTrackProjections({ scope: "ALL" }, { ...options, confirmationPhrase: "REBUILD EVERY TRACK" });
+  await undoAdminAction(18, options);
+  assert.deepEqual(calls.filter(({ url }) => url.endsWith("/preview")).map(({ url, body }) => [url, body]), [
+    ["/api/admin/actions/CORRECT_HISTORICAL_PICK/preview", { pickId: 4, teamName: "Raiders" }],
+    ["/api/admin/actions/RECONCILE_PICK_OUTCOME/preview", { scope: "ALL", week: 2 }],
+    ["/api/admin/actions/REBUILD_TRACK_PROJECTIONS/preview", { scope: "ALL" }],
+    ["/api/admin/actions/UNDO_ADMIN_ACTION/preview", { operationId: 18 }],
+  ]);
+  assert.equal(calls[3].body.confirmationPhrase, "RECONCILE EVERY PICK");
+  assert.equal(calls[5].body.confirmationPhrase, "REBUILD EVERY TRACK");
+});

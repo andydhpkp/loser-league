@@ -14,6 +14,7 @@ const { requestContext } = require("./middleware/request-context");
 const { createNflRouter } = require("./nfl/routes");
 const { createDefaultManualClosureContextLoader } = require("./modules/week-closure/manual-closure-context");
 const { inspectTrack } = require("./modules/admin-repairs/inspector-service");
+const { createDefaultHistoricalResultsLoader } = require("./modules/admin-repairs/historical-results-context");
 
 function createApp({
   routes,
@@ -66,6 +67,7 @@ function createApp({
   app.use("/api/admin/actions", createAdminActionRouter({
     requestClosureEvaluation,
     loadManualClosureContext: createDefaultManualClosureContextLoader({ fetchImpl }),
+    loadHistoricalResults: createDefaultHistoricalResultsLoader({ fetchImpl }),
   }));
   app.use("/api/admin/repairs", createAdminRepairRouter({ inspectTrack: inspectAdminTrack }));
   app.use("/api/user/league", createPickSubmissionRouter({
