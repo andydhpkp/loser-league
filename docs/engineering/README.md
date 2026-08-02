@@ -247,6 +247,10 @@ domain modules, browser calculations, or API controllers:
 npm run test:unit:coverage
 ```
 
+The gate enforces at least 90% line coverage across its configured application
+and model scope. A lower result fails the command and blocks pull request
+creation.
+
 Run MySQL integration tests for route, model, transaction, migration, session,
 or database behavior:
 
