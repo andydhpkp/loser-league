@@ -9,6 +9,10 @@ import {
   replaceCurrentPick,
   reactivateTrack,
   resetPlayoffPickPools,
+  correctHistoricalPick,
+  reconcilePickOutcomes,
+  rebuildTrackProjections,
+  undoAdminAction,
 } from "../modules/admin-management.js";
 
 const lifecycleStatus = document.getElementById("weeklyLifecycleStatus");
@@ -93,6 +97,35 @@ document.getElementById("playoffResetForm")?.addEventListener("submit", async (e
   event.preventDefault();
   const confirmationPhrase = document.getElementById("playoffResetPhrase")?.value;
   await runRepair(() => resetPlayoffPickPools({ confirmationPhrase }), "Playoff Pick cycle started for every Track.");
+});
+
+document.getElementById("historicalPickForm")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const pickId = Number(document.getElementById("historicalPickId")?.value);
+  const teamName = document.getElementById("historicalTeamName")?.value.trim();
+  await runRepair(() => correctHistoricalPick({ pickId, teamName }), "Historical Pick and Track projections corrected.");
+});
+
+document.getElementById("reconcileWeekForm")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const week = Number(document.getElementById("reconcileWeek")?.value);
+  const pickIds = String(document.getElementById("reconcilePickIds")?.value || "").split(",").map((value) => Number(value.trim())).filter((value) => Number.isInteger(value) && value > 0);
+  const scope = pickIds.length ? "SELECTED" : "ALL";
+  const confirmationPhrase = document.getElementById("reconcilePhrase")?.value;
+  await runRepair(() => reconcilePickOutcomes({ scope, week, ...(pickIds.length ? { pickIds } : {}) }, { confirmationPhrase }), "Closed-week Pick outcomes reconciled.");
+});
+
+document.getElementById("rebuildTracksForm")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const selected = document.getElementById("rebuildSelectedTrack")?.checked === true;
+  const confirmationPhrase = document.getElementById("rebuildPhrase")?.value;
+  await runRepair(() => rebuildTrackProjections(selected ? { scope: "SELECTED", trackIds: [repairTrackId()] } : { scope: "ALL" }, { confirmationPhrase }), "Inconsistent Track projections rebuilt.");
+});
+
+document.getElementById("undoRepairForm")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const operationId = Number(document.getElementById("undoOperationId")?.value);
+  await runRepair(() => undoAdminAction(operationId), "Eligible repair operation undone.");
 });
 
 document.getElementById("logoutBtn")?.addEventListener("click", async () => {

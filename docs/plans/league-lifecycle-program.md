@@ -178,8 +178,8 @@ The detailed route inventory is maintained below during delivery.
 | 3 | Atomic final Pick submission and visibility | #13 | Complete; PR #32, Heroku v260 |
 | 4 | Exactly-once independent per-Track auto-pick | #19 | Complete; PR #33, Heroku v261 |
 | 5 | Exactly-once results and automatic/manual week closure | #11 | Complete; PR #34, Heroku v262 |
-| 6A | Repair schema/inspector, current-week tools, buyback, playoff Pick reset | #12B and #17 | PR gate passed; draft PR pending |
-| 6B | Historical repair, reconciliation, projection rebuild, conditional undo | #12B | Pending |
+| 6A | Repair schema/inspector, current-week tools, buyback, playoff Pick reset | #12B and #17 | Complete; PR #35, Heroku v263 |
+| 6B | Historical repair, reconciliation, projection rebuild, conditional undo | #12B | PR gate passed; draft PR pending |
 | 6C | Raw emergency hardening/audit, complete Admin Guide and mapping | #12B | Pending |
 | 7 | Explicit completion and export-backed rollover | #14 | Pending |
 | 8 | Superseded-route/browser cleanup and full-program verification | Program tracker | Pending |
@@ -237,6 +237,21 @@ PR 6A is forward-compatible before the manual Week 19 reset. After an Admin
 starts Pick cycle 2, rollback to cycle-unaware code is unsafe and recovery must
 be a forward fix. Retained raw emergency routes are unchanged in this PR and
 remain scheduled for PR 6C authorization/audit and mapping.
+
+PR #35 merged as `96547ef`. Workflow 30730865917 passed the complete gate
+against that exact SHA, Heroku release `v263` succeeded, migration
+`20260801040000-add-pick-cycles-and-track-reactivations` completed, and `/`
+plus `/api/nfl/teams` were healthy.
+
+### PR 6B verification — 2026-08-02
+
+- `npm run test:unit` — passed, 126 tests.
+- `npm run test:unit:coverage` — passed, 82.83% line coverage.
+- `npm run lint:browser` — passed.
+- `npm run test:integration` — passed, 35 tests against the guarded disposable
+  MySQL schema.
+- `npm run test:smoke` — passed, 7 Playwright tests.
+- No schema migration is included in PR 6B.
 
 The first post-merge deployment created Heroku release `v257`, but its release
 command failed because the migration CLI had been pruned as a development

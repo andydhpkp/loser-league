@@ -1,6 +1,6 @@
 const crypto = require("node:crypto");
 const { isDeepStrictEqual } = require("node:util");
-const { Transaction } = require("sequelize");
+const { Op, Transaction } = require("sequelize");
 const {
   sequelize,
   User,
@@ -19,7 +19,7 @@ const {
 const { ConflictError, NotFoundError, ValidationError } = require("../lib/errors");
 const { getAdminAction } = require("./action-registry");
 const { closeWeek } = require("../modules/week-closure/week-closure-service");
-const { planAssignCurrentPick, planBuybackReactivation, planPlayoffPoolReset, planReplaceCurrentPick, planResetCurrentPick } = require("../modules/admin-repairs/repair-policy");
+const { planAssignCurrentPick, planBuybackReactivation, planHistoricalPickCorrection, planOutcomeReconciliation, planPlayoffPoolReset, planReplaceCurrentPick, planResetCurrentPick, planTrackProjection } = require("../modules/admin-repairs/repair-policy");
 
 const PREVIEW_TTL_MS = 10 * 60 * 1000;
 const hashKey = (key) => crypto.createHash("sha256").update(key).digest("hex");
@@ -54,6 +54,7 @@ const repairPickState = (pick) => ({
   outcome: pick.outcome,
   scheduleHash: pick.schedule_hash,
   stateVersion: pick.state_version,
+  committedAt: pick.committed_at?.toISOString?.() || pick.committed_at,
 });
 const cleanText = (value, label, maxLength, required = true) => {
   if (typeof value !== "string" || (required && !value.trim()) || value.trim().length > maxLength) throw new ValidationError(`${label} is invalid`);
@@ -80,7 +81,50 @@ async function openSeason(transaction, lock = false) {
   return season;
 }
 
-async function buildActionPreview(action, input, transaction, lock = false, { manualClosureContext } = {}) {
+const historicalActions = new Set(["CORRECT_HISTORICAL_PICK", "RECONCILE_PICK_OUTCOME"]);
+async function prepareActionOptions(action, input, options) {
+  if (!historicalActions.has(action)) return options;
+  if (typeof options.loadHistoricalResults !== "function") throw new ConflictError("Authoritative historical results are required");
+  const season = await LeagueSeason.findOne({ where: { open_slot: 1 } });
+  if (!season) throw new ConflictError("No open League Season exists");
+  let week = Number(input.week);
+  if (action === "CORRECT_HISTORICAL_PICK") {
+    const pick = await Pick.findByPk(positiveId(input.pickId, "Pick ID"), { attributes: ["week", "league_season_id"] });
+    if (!pick || pick.league_season_id !== season.id) throw new NotFoundError("Pick not found");
+    week = pick.week;
+  }
+  if (!Number.isInteger(week) || week < 1 || week >= season.current_week) throw new ValidationError("A closed historical week is required");
+  const historicalResultsContext = await options.loadHistoricalResults({ leagueSeasonId: season.id, year: season.year, week });
+  return { ...options, historicalResultsContext };
+}
+
+async function projectionPlan({ season, track, picks, transaction }) {
+  const [teams, reactivations] = await Promise.all([
+    Team.findAll({ attributes: ["team_name"], order: [["id", "ASC"]], transaction }),
+    TrackReactivation.findAll({ where: { track_id: track.id }, attributes: ["waived_pick_id"], transaction }),
+  ]);
+  return planTrackProjection({
+    season: { state: season.state, currentWeek: season.current_week, pickCycle: season.pick_cycle },
+    picks: picks.map((pick) => ({ id: pick.id, week: pick.week, pickCycle: pick.pick_cycle, teamName: pick.team_name, outcome: pick.outcome })),
+    waivedPickIds: reactivations.map((item) => item.waived_pick_id),
+    teamNames: teams.map((team) => team.team_name),
+  });
+}
+
+function matchesRecordedState(current, recorded) {
+  if (current === null || recorded === null) return current === recorded;
+  return Object.entries(recorded).every(([key, value]) => isDeepStrictEqual(current[key], value));
+}
+
+function trackWriteState(state) {
+  return { current_pick: state.currentPick, used_picks: state.usedPicks, available_picks: state.availablePicks, wrong_pick: state.wrongPick, eliminated_by_pick_id: state.eliminatedByPickId, state_version: state.stateVersion };
+}
+
+function pickWriteState(state) {
+  return { track_id: state.trackId, league_season_id: state.leagueSeasonId, week: state.week, pick_cycle: state.pickCycle, team_name: state.teamName, origin: state.origin, outcome: state.outcome, schedule_hash: state.scheduleHash, state_version: state.stateVersion, committed_at: state.committedAt ? new Date(state.committedAt) : new Date() };
+}
+
+async function buildActionPreview(action, input, transaction, lock = false, { manualClosureContext, historicalResultsContext } = {}) {
   if (!getAdminAction(action)) throw new NotFoundError("Admin action not found");
   if (action === "ADD_USER_WIN") {
     const userId = positiveId(input.userId, "User ID");
@@ -167,6 +211,38 @@ async function buildActionPreview(action, input, transaction, lock = false, { ma
       scheduleHash: context.scheduleHash,
       targets: [{ targetType: "LEAGUE_SEASON", targetId: season.id, beforeState: { week: season.current_week, stateVersion: season.state_version }, afterState: { week: nextWeek, stateVersion: season.state_version + 1 } }],
     };
+  }
+
+  if (action === "UNDO_ADMIN_ACTION") {
+    const operationId = positiveId(input.operationId, "Operation ID");
+    const operation = await AdminAuditOperation.findByPk(operationId, { include: [{ model: AdminAuditTarget, as: "targets" }], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+    if (!operation) throw new NotFoundError("Admin operation not found");
+    if (!operation.undoable) throw new ConflictError("This admin operation is not undoable");
+    if (operation.status !== "COMMITTED" || operation.undone_by_operation_id) throw new ConflictError("This admin operation was already undone");
+    const loadedTargets = [];
+    for (const target of operation.targets) {
+      let model = null;
+      let current = null;
+      if (target.target_type === "TRACK") {
+        model = await Track.findByPk(target.target_id, { transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+        current = model ? repairTrackState(model) : null;
+      } else if (target.target_type === "PICK") {
+        model = await Pick.findByPk(target.target_id, { transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+        current = model ? repairPickState(model) : null;
+      } else throw new ConflictError("This admin operation has an unsupported undo target");
+      if (!matchesRecordedState(current, target.after_state)) throw new ConflictError("Admin operation target state changed after commit");
+      const restored = target.before_state === null ? null : {
+        ...target.before_state,
+        stateVersion: (current?.stateVersion ?? target.before_state.stateVersion ?? 0) + 1,
+      };
+      loadedTargets.push({ target, model, current, restored });
+    }
+    if (operation.action === "REACTIVATE_TRACK") {
+      const event = await TrackReactivation.findOne({ where: { admin_audit_operation_id: operation.id }, transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+      if (!event) throw new ConflictError("Admin operation target state changed after commit");
+    }
+    const season = operation.league_season_id ? await LeagueSeason.findByPk(operation.league_season_id, { transaction }) : null;
+    return { normalizedIntent: { operationId }, description: `Undo ${operation.action} operation ${operation.id}`, warnings: ["Undo is one-level and cannot be redone."], leagueSeason: season, targets: loadedTargets.map(({ target, current, restored }) => ({ targetType: target.target_type, targetId: target.target_id, beforeState: current, afterState: restored, stateVersion: restored?.stateVersion ?? null })), plan: { operation, loadedTargets }, undoable: false };
   }
 
   if (action === "RESET_CURRENT_PICKS") {
@@ -339,6 +415,115 @@ async function buildActionPreview(action, input, transaction, lock = false, { ma
     };
   }
 
+  if (action === "CORRECT_HISTORICAL_PICK") {
+    const season = await openSeason(transaction, lock);
+    const pickId = positiveId(input.pickId, "Pick ID");
+    const teamName = cleanText(input.teamName, "Team", 255);
+    const pick = await Pick.findOne({ where: { id: pickId, league_season_id: season.id }, transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+    if (!pick || pick.week >= season.current_week || pick.outcome === "PENDING") throw new ConflictError("A settled historical Pick is required");
+    const track = await Track.findByPk(pick.track_id, { transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+    const picks = await Pick.findAll({ where: { track_id: track.id, league_season_id: season.id }, order: [["pick_cycle", "ASC"], ["week", "ASC"], ["id", "ASC"]], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+    if (picks.some((item) => item.id !== pick.id && item.pick_cycle === pick.pick_cycle && item.team_name === teamName)) throw new ConflictError("Team was already used in this Pick cycle");
+    const historicalContext = historicalResultsContext;
+    if (!historicalContext || historicalContext.week !== pick.week) throw new ConflictError("Authoritative historical results are required");
+    let correction;
+    try {
+      correction = planHistoricalPickCorrection({
+        pick: { id: pick.id, week: pick.week, teamName: pick.team_name, outcome: pick.outcome },
+        teamName,
+        games: historicalContext.games,
+        laterPicks: picks.filter((item) => item.pick_cycle > pick.pick_cycle || (item.pick_cycle === pick.pick_cycle && item.week > pick.week)),
+      });
+    } catch (error) { throw new ConflictError(error.message); }
+    const projectedPicks = picks.map((item) => item.id === pick.id ? { ...item.toJSON(), team_name: correction.teamName, outcome: correction.outcome } : item);
+    const projection = await projectionPlan({ season, track, picks: projectedPicks, transaction });
+    const beforePick = repairPickState(pick);
+    const afterPick = { ...beforePick, teamName: correction.teamName, outcome: correction.outcome, origin: correction.origin, stateVersion: pick.state_version + 1 };
+    const beforeTrack = repairTrackState(track);
+    const afterTrack = { ...beforeTrack, ...projection, stateVersion: track.state_version + 1 };
+    return { normalizedIntent: { pickId, teamName }, description: `Correct Pick ${pickId} to ${teamName} for Week ${pick.week}`, warnings: [], leagueSeason: season, scheduleHash: historicalContext.scheduleHash, targets: [
+      { targetType: "PICK", targetId: pick.id, beforeState: beforePick, afterState: afterPick, stateVersion: afterPick.stateVersion },
+      { targetType: "TRACK", targetId: track.id, beforeState: beforeTrack, afterState: afterTrack, stateVersion: afterTrack.stateVersion },
+    ], plan: { pick, track, correction, projection }, undoable: true };
+  }
+
+  if (action === "RECONCILE_PICK_OUTCOME") {
+    const season = await openSeason(transaction, lock);
+    const week = Number(input.week);
+    const scope = input.scope;
+    if (!Number.isInteger(week) || week < 1 || week >= season.current_week || !["SELECTED", "ALL"].includes(scope)) throw new ValidationError("A closed week and selected/all scope are required");
+    let pickIds;
+    if (scope === "SELECTED") {
+      if (!Array.isArray(input.pickIds) || !input.pickIds.length) throw new ValidationError("At least one Pick is required");
+      pickIds = [...new Set(input.pickIds.map((value) => positiveId(value, "Pick ID")))];
+    }
+    const picks = await Pick.findAll({ where: { league_season_id: season.id, week, ...(pickIds ? { id: { [Op.in]: pickIds } } : {}) }, order: [["id", "ASC"]], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+    if ((pickIds && picks.length !== pickIds.length) || !picks.length) throw new ConflictError("Every requested Pick must exist in the closed week");
+    const historicalContext = historicalResultsContext;
+    if (!historicalContext || historicalContext.week !== week) throw new ConflictError("Authoritative historical results are required");
+    let outcomes;
+    try { outcomes = planOutcomeReconciliation({ picks: picks.map((pick) => ({ id: pick.id, trackId: pick.track_id, teamName: pick.team_name, outcome: pick.outcome })), games: historicalContext.games }); }
+    catch (error) { throw new ConflictError(error.message); }
+    const changed = picks.filter((pick) => outcomes.find((item) => item.pickId === pick.id).outcome !== pick.outcome);
+    if (!changed.length) throw new ConflictError("Every requested Pick already matches authoritative results");
+    const trackIds = [...new Set(changed.map((pick) => pick.track_id))];
+    const tracks = await Track.findAll({ where: { id: { [Op.in]: trackIds } }, transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+    const targets = [];
+    const trackPlans = [];
+    for (const track of tracks) {
+      const allPicks = await Pick.findAll({ where: { track_id: track.id, league_season_id: season.id }, order: [["pick_cycle", "ASC"], ["week", "ASC"], ["id", "ASC"]], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+      const projected = allPicks.map((item) => {
+        const change = outcomes.find((candidate) => candidate.pickId === item.id);
+        return change ? { ...item.toJSON(), outcome: change.outcome } : item;
+      });
+      for (const original of allPicks) {
+        const change = outcomes.find((candidate) => candidate.pickId === original.id);
+        if (change?.outcome === "WRONG_PICK" && original.outcome !== "WRONG_PICK"
+          && allPicks.some((later) => later.pick_cycle > original.pick_cycle || (later.pick_cycle === original.pick_cycle && later.week > original.week))) {
+          throw new ConflictError("A newly eliminating Pick cannot precede later Picks");
+        }
+      }
+      const projection = await projectionPlan({ season, track, picks: projected, transaction });
+      const beforeTrack = repairTrackState(track);
+      targets.push({ targetType: "TRACK", targetId: track.id, beforeState: beforeTrack, afterState: { ...beforeTrack, ...projection, stateVersion: track.state_version + 1 }, stateVersion: track.state_version + 1 });
+      trackPlans.push({ track, projection });
+    }
+    for (const pick of changed) {
+      const outcome = outcomes.find((item) => item.pickId === pick.id).outcome;
+      targets.push({ targetType: "PICK", targetId: pick.id, beforeState: repairPickState(pick), afterState: { ...repairPickState(pick), outcome, stateVersion: pick.state_version + 1 }, stateVersion: pick.state_version + 1 });
+    }
+    return { normalizedIntent: { scope, week, pickIds: picks.map((pick) => pick.id) }, description: `Reconcile ${changed.length} Pick outcome${changed.length === 1 ? "" : "s"} for Week ${week}`, warnings: [], leagueSeason: season, scheduleHash: historicalContext.scheduleHash, targets, plan: { changed, outcomes, trackPlans }, undoable: true };
+  }
+
+  if (action === "REBUILD_TRACK_PROJECTIONS") {
+    const season = await openSeason(transaction, lock);
+    const scope = input.scope;
+    if (!["SELECTED", "ALL"].includes(scope)) throw new ValidationError("Rebuild scope must be SELECTED or ALL");
+    let trackIds;
+    if (scope === "SELECTED") {
+      if (!Array.isArray(input.trackIds) || !input.trackIds.length) throw new ValidationError("At least one Track is required");
+      trackIds = [...new Set(input.trackIds.map((value) => positiveId(value, "Track ID")))];
+    }
+    const tracks = await Track.findAll({ where: { league_season_id: season.id, ...(trackIds ? { id: { [Op.in]: trackIds } } : {}) }, order: [["id", "ASC"]], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+    if ((trackIds && tracks.length !== trackIds.length) || !tracks.length) throw new ConflictError("Every requested Track must exist in the open League Season");
+    const plans = [];
+    const targets = [];
+    for (const track of tracks) {
+      const picks = await Pick.findAll({ where: { track_id: track.id, league_season_id: season.id }, order: [["pick_cycle", "ASC"], ["week", "ASC"], ["id", "ASC"]], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+      let projection;
+      try { projection = await projectionPlan({ season, track, picks, transaction }); }
+      catch (error) { throw new ConflictError(error.message); }
+      const before = repairTrackState(track);
+      const comparable = { currentPick: before.currentPick, usedPicks: before.usedPicks, availablePicks: before.availablePicks, wrongPick: before.wrongPick, eliminatedByPickId: before.eliminatedByPickId };
+      if (isDeepStrictEqual(comparable, projection)) continue;
+      const after = { ...before, ...projection, stateVersion: track.state_version + 1 };
+      plans.push({ track, projection });
+      targets.push({ targetType: "TRACK", targetId: track.id, beforeState: before, afterState: after, stateVersion: after.stateVersion });
+    }
+    if (!plans.length) throw new ConflictError("Every requested Track projection is already consistent");
+    return { normalizedIntent: { scope, trackIds: tracks.map((track) => track.id) }, description: `Rebuild ${plans.length} inconsistent Track projection${plans.length === 1 ? "" : "s"}`, warnings: [], leagueSeason: season, targets, plan: { plans }, undoable: true };
+  }
+
   if (action === "RESET_PLAYOFF_PICK_POOLS") {
     const season = await openSeason(transaction, lock);
     const [tracks, teams, weekPick, autoPick] = await Promise.all([
@@ -392,8 +577,9 @@ function publicPreview(action, built, expiresAt, confirmationKey) {
 }
 
 async function createPreview(action, input, options = {}) {
+  const preparedOptions = await prepareActionOptions(action, input || {}, options);
   return sequelize.transaction(async (transaction) => {
-    const built = await buildActionPreview(action, input || {}, transaction, false, options);
+    const built = await buildActionPreview(action, input || {}, transaction, false, preparedOptions);
     const confirmationKey = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + PREVIEW_TTL_MS);
     const preview = publicPreview(action, built, expiresAt, confirmationKey);
@@ -406,12 +592,16 @@ async function createPreview(action, input, options = {}) {
 
 async function confirmPreview(action, confirmationKey, note, options = {}) {
   if (typeof confirmationKey !== "string" || !/^[a-f0-9]{64}$/.test(confirmationKey)) throw new ValidationError("A valid confirmation key is required");
+  const previewForContext = await AdminActionPreview.findOne({ where: { confirmation_key_hash: hashKey(confirmationKey) }, attributes: ["action", "normalized_intent", "audit_operation_id"] });
+  const preparedOptions = previewForContext?.action === action && !previewForContext.audit_operation_id
+    ? await prepareActionOptions(action, previewForContext.normalized_intent, options)
+    : options;
   return sequelize.transaction({ isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE }, async (transaction) => {
     const stored = await AdminActionPreview.findOne({ where: { confirmation_key_hash: hashKey(confirmationKey) }, transaction, lock: transaction.LOCK.UPDATE });
     if (!stored || stored.action !== action) throw new NotFoundError("Admin action preview not found");
     if (stored.audit_operation_id) return AdminAuditOperation.findByPk(stored.audit_operation_id, { include: [{ model: AdminAuditTarget, as: "targets" }], transaction });
     if (stored.expires_at <= new Date()) throw new ConflictError("Admin action preview expired");
-    const built = await buildActionPreview(action, stored.normalized_intent, transaction, true, options);
+    const built = await buildActionPreview(action, stored.normalized_intent, transaction, true, preparedOptions);
     const expected = stored.preview.targets.map(({ targetType, targetId, beforeState }) => ({ targetType, targetId, beforeState }));
     const actual = built.targets.map(({ targetType, targetId, beforeState }) => ({ targetType, targetId, beforeState }));
     if (!isDeepStrictEqual(actual, expected) || (stored.league_season_state_version ?? null) !== (built.leagueSeason?.state_version ?? null)) throw new ConflictError("Admin action preview is stale");
@@ -425,6 +615,8 @@ async function confirmPreview(action, confirmationKey, note, options = {}) {
     if (action === "RESET_PLAYOFF_PICK_POOLS" && options.confirmationPhrase !== "RESET PICKS FOR PLAYOFFS") {
       throw new ValidationError("Type RESET PICKS FOR PLAYOFFS to confirm the playoff Pick reset");
     }
+    if (action === "RECONCILE_PICK_OUTCOME" && built.normalizedIntent.scope === "ALL" && options.confirmationPhrase !== "RECONCILE EVERY PICK") throw new ValidationError("Type RECONCILE EVERY PICK to confirm the all-Pick reconciliation");
+    if (action === "REBUILD_TRACK_PROJECTIONS" && built.normalizedIntent.scope === "ALL" && options.confirmationPhrase !== "REBUILD EVERY TRACK") throw new ValidationError("Type REBUILD EVERY TRACK to confirm the all-Track rebuild");
 
     if (built.existingAuditOperationId) {
       await stored.update({ consumed_at: new Date(), audit_operation_id: built.existingAuditOperationId }, { transaction });
@@ -485,10 +677,35 @@ async function confirmPreview(action, confirmationKey, note, options = {}) {
         const change = built.plan.trackChanges.find((candidate) => candidate.trackId === track.id);
         await track.update({ used_picks: change.usedPicks, available_picks: change.availablePicks, state_version: track.state_version + 1 }, { transaction });
       }
+    } else if (action === "CORRECT_HISTORICAL_PICK") {
+      await built.plan.pick.update({ team_name: built.plan.correction.teamName, outcome: built.plan.correction.outcome, origin: built.plan.correction.origin, state_version: built.plan.pick.state_version + 1 }, { transaction });
+      const projection = built.plan.projection;
+      await built.plan.track.update({ current_pick: projection.currentPick, used_picks: projection.usedPicks, available_picks: projection.availablePicks, wrong_pick: projection.wrongPick, eliminated_by_pick_id: projection.eliminatedByPickId, state_version: built.plan.track.state_version + 1 }, { transaction });
+    } else if (action === "RECONCILE_PICK_OUTCOME") {
+      for (const pick of built.plan.changed) {
+        const outcome = built.plan.outcomes.find((item) => item.pickId === pick.id).outcome;
+        await pick.update({ outcome, state_version: pick.state_version + 1 }, { transaction });
+      }
+      for (const { track, projection } of built.plan.trackPlans) await track.update({ current_pick: projection.currentPick, used_picks: projection.usedPicks, available_picks: projection.availablePicks, wrong_pick: projection.wrongPick, eliminated_by_pick_id: projection.eliminatedByPickId, state_version: track.state_version + 1 }, { transaction });
+    } else if (action === "REBUILD_TRACK_PROJECTIONS") {
+      for (const { track, projection } of built.plan.plans) await track.update({ current_pick: projection.currentPick, used_picks: projection.usedPicks, available_picks: projection.availablePicks, wrong_pick: projection.wrongPick, eliminated_by_pick_id: projection.eliminatedByPickId, state_version: track.state_version + 1 }, { transaction });
+    } else if (action === "UNDO_ADMIN_ACTION") {
+      for (const { target, model, restored: desired } of built.plan.loadedTargets) {
+        if (target.target_type === "TRACK") {
+          if (!model || !desired) throw new ConflictError("Undo cannot recreate or delete a Track");
+          await model.update(trackWriteState(desired), { transaction });
+        } else if (target.target_type === "PICK") {
+          if (model && desired === null) await model.destroy({ transaction });
+          else if (!model && desired) await Pick.create({ id: target.target_id, ...pickWriteState(desired) }, { transaction });
+          else if (model && desired) await model.update(pickWriteState(desired), { transaction });
+        }
+      }
+      if (built.plan.operation.action === "REACTIVATE_TRACK") await TrackReactivation.destroy({ where: { admin_audit_operation_id: built.plan.operation.id }, transaction });
     }
 
     const auditNote = action === "OVERRIDE_GAME_RESULT" ? built.normalizedIntent.explanation : normalizeNote(note);
     const operation = await AdminAuditOperation.create({ action, description: built.description, note: auditNote, status: "COMMITTED", league_season_id: built.leagueSeason?.id || null, week: built.leagueSeason?.current_week ?? null, summary: { affectedCount: targets.length }, undoable: Boolean(built.undoable) }, { transaction });
+    if (action === "UNDO_ADMIN_ACTION") await built.plan.operation.update({ status: "UNDONE", undone_by_operation_id: operation.id }, { transaction });
     if (action === "OVERRIDE_GAME_RESULT") {
       const intent = built.normalizedIntent;
       await OfficialGameResultOverride.create({ league_season_id: built.leagueSeason.id, week: built.leagueSeason.current_week, matchup_key: matchupKey(intent.homeTeam, intent.awayTeam), home_team: intent.homeTeam, away_team: intent.awayTeam, home_score: intent.homeScore, away_score: intent.awayScore, winner_team: intent.winnerTeam, loser_team: intent.loserTeam, tied: intent.tied, schedule_hash: intent.scheduleHash, explanation: intent.explanation, source_url: intent.sourceUrl, admin_audit_operation_id: operation.id, created_at: new Date() }, { transaction });

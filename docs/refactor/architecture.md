@@ -59,6 +59,11 @@ binding. The shared HTTP client owns request/error normalization.
   identity belongs to League Season/Pick persistence; normal submission and
   auto-pick services consume the active cycle, while Track arrays remain
   current-cycle compatibility projections.
+- Historical admin repairs obtain final result evidence before opening their
+  mutation transaction, then revalidate schedule hashes and locked target
+  state. Projection derivation is pure; conditional undo restores recorded
+  business state only when every target still matches, while advancing state
+  versions to prevent stale-state ABA.
 - Track routes are grouped into access, pick lifecycle, force-pick,
   maintenance, and repair modules behind the unchanged route entry point.
 - Pure pick-state transitions live behind `makePick` and

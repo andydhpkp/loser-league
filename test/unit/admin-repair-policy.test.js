@@ -7,6 +7,9 @@ const {
   planPlayoffPoolReset,
   planReplaceCurrentPick,
   planResetCurrentPick,
+  planHistoricalPickCorrection,
+  planOutcomeReconciliation,
+  planTrackProjection,
 } = require("../../server/modules/admin-repairs/repair-policy");
 
 const season = { id: 4, state: "ACTIVE", currentWeek: 3, pickCycle: 1 };
@@ -64,4 +67,51 @@ test("manual Week 19 reset moves every Track to an empty playoff eligibility poo
   });
   assert.throws(() => planPlayoffPoolReset({ season, tracks, teamNames: ["Broncos"], hasWeekPick: false, hasAutoPick: false }), /Week 19/);
   assert.throws(() => planPlayoffPoolReset({ season: { ...season, currentWeek: 19 }, tracks, teamNames: ["Broncos"], hasWeekPick: true, hasAutoPick: false }), /before/i);
+});
+
+test("historical correction recomputes outcome and blocks newly eliminating Picks before later history", () => {
+  const games = [{ homeTeam: "Broncos", awayTeam: "Raiders", status: "FINAL", winnerTeam: "Broncos", loserTeam: "Raiders", tied: false }];
+  assert.deepEqual(planHistoricalPickCorrection({
+    pick: { id: 8, week: 2, teamName: "Broncos", outcome: "WRONG_PICK" },
+    teamName: "Raiders",
+    games,
+    laterPicks: [],
+  }), { teamName: "Raiders", outcome: "PREDICTION_CORRECT", origin: "SHARED_ADMIN_REPAIR" });
+  assert.throws(() => planHistoricalPickCorrection({
+    pick: { id: 8, week: 2, teamName: "Raiders", outcome: "PREDICTION_CORRECT" },
+    teamName: "Broncos",
+    games,
+    laterPicks: [{ id: 9, week: 3 }],
+  }), /later Picks/);
+});
+
+test("outcome reconciliation changes outcomes only from authoritative final games", () => {
+  const games = [{ homeTeam: "Broncos", awayTeam: "Raiders", status: "FINAL", winnerTeam: "Broncos", loserTeam: "Raiders", tied: false }];
+  assert.deepEqual(planOutcomeReconciliation({ picks: [
+    { id: 1, trackId: 4, teamName: "Broncos", outcome: "PREDICTION_CORRECT" },
+    { id: 2, trackId: 5, teamName: "Raiders", outcome: "PREDICTION_CORRECT" },
+  ], games }), [
+    { pickId: 1, outcome: "WRONG_PICK" },
+    { pickId: 2, outcome: "PREDICTION_CORRECT" },
+  ]);
+});
+
+test("projection rebuild derives current-cycle pools and honors durable reactivations", () => {
+  const result = planTrackProjection({
+    season: { state: "ACTIVE", currentWeek: 3, pickCycle: 1 },
+    picks: [
+      { id: 1, week: 1, pickCycle: 1, teamName: "Broncos", outcome: "WRONG_PICK" },
+      { id: 2, week: 2, pickCycle: 1, teamName: "Raiders", outcome: "PREDICTION_CORRECT" },
+      { id: 3, week: 3, pickCycle: 1, teamName: "Chiefs", outcome: "PENDING" },
+    ],
+    waivedPickIds: [1],
+    teamNames: ["Broncos", "Raiders", "Chiefs", "Chargers"],
+  });
+  assert.deepEqual(result, {
+    currentPick: "Chiefs",
+    usedPicks: ["Broncos", "Raiders", "Chiefs"],
+    availablePicks: ["Chargers"],
+    wrongPick: null,
+    eliminatedByPickId: null,
+  });
 });

@@ -86,6 +86,30 @@
             <input class="form-control mb-2" id="playoffResetPhrase" required />
             <button class="btn btn-danger" type="submit">Preview playoff reset</button>
           </form>
+          <form id="historicalPickForm" class="col-lg-6">
+            <h3 class="h5">Correct historical Pick</h3>
+            <label class="form-label" for="historicalPickId">Pick ID</label><input class="form-control mb-2" id="historicalPickId" type="number" min="1" required />
+            <label class="form-label" for="historicalTeamName">Actual Team</label><input class="form-control mb-2" id="historicalTeamName" required />
+            <button class="btn btn-warning" type="submit">Preview historical correction</button>
+          </form>
+          <form id="reconcileWeekForm" class="col-lg-6">
+            <h3 class="h5">Reconcile Pick outcomes in a closed week</h3>
+            <label class="form-label" for="reconcileWeek">Week</label><input class="form-control mb-2" id="reconcileWeek" type="number" min="1" max="22" required />
+            <label class="form-label" for="reconcilePickIds">Pick IDs (comma-separated), or leave empty for every Pick</label><input class="form-control mb-2" id="reconcilePickIds" />
+            <label class="form-label" for="reconcilePhrase">For every Pick, type RECONCILE EVERY PICK</label><input class="form-control mb-2" id="reconcilePhrase" />
+            <button class="btn btn-danger" type="submit">Preview week reconciliation</button>
+          </form>
+          <form id="rebuildTracksForm" class="col-lg-6">
+            <h3 class="h5">Rebuild Track projections</h3>
+            <div class="form-check"><input class="form-check-input" id="rebuildSelectedTrack" type="checkbox" /><label class="form-check-label" for="rebuildSelectedTrack">Only the inspected Track ID</label></div>
+            <label class="form-label" for="rebuildPhrase">For every Track, type REBUILD EVERY TRACK</label><input class="form-control mb-2" id="rebuildPhrase" />
+            <button class="btn btn-danger" type="submit">Preview projection rebuild</button>
+          </form>
+          <form id="undoRepairForm" class="col-lg-6">
+            <h3 class="h5">Undo eligible repair</h3>
+            <label class="form-label" for="undoOperationId">Audit operation ID</label><input class="form-control mb-2" id="undoOperationId" type="number" min="1" required />
+            <button class="btn btn-warning" type="submit">Preview conditional undo</button>
+          </form>
         </div>
         <p id="guidedRepairStatus" role="status" aria-live="polite"></p>
       </section>

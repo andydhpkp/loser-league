@@ -134,6 +134,10 @@ test("admin action registry requires the shared-admin session and exposes no act
     "REPLACE_CURRENT_PICK",
     "REACTIVATE_TRACK",
     "RESET_PLAYOFF_PICK_POOLS",
+    "CORRECT_HISTORICAL_PICK",
+    "RECONCILE_PICK_OUTCOME",
+    "REBUILD_TRACK_PROJECTIONS",
+    "UNDO_ADMIN_ACTION",
   ]);
   assert.equal(JSON.stringify(response.body).includes("actor"), false);
 });

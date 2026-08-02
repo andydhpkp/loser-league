@@ -94,10 +94,52 @@ function planPlayoffPoolReset({ season, tracks, teamNames, hasWeekPick, hasAutoP
   };
 }
 
+function outcomeForTeam(teamName, games) {
+  const game = games?.find((candidate) => candidate.status === "FINAL"
+    && (candidate.homeTeam === teamName || candidate.awayTeam === teamName));
+  if (!game) throw new Error("Team must have an authoritative final result");
+  return game.tied || game.winnerTeam === teamName ? "WRONG_PICK" : "PREDICTION_CORRECT";
+}
+
+function planHistoricalPickCorrection({ pick, teamName, games, laterPicks }) {
+  if (!pick || !Number.isInteger(pick.week) || pick.outcome === "PENDING") throw new Error("A settled historical Pick is required");
+  if (typeof teamName !== "string" || !teamName || teamName === pick.teamName) throw new Error("Choose a different historical Team");
+  const outcome = outcomeForTeam(teamName, games);
+  if (outcome === "WRONG_PICK" && laterPicks?.length) throw new Error("A newly eliminating Pick cannot precede later Picks");
+  return { teamName, outcome, origin: "SHARED_ADMIN_REPAIR" };
+}
+
+function planOutcomeReconciliation({ picks, games }) {
+  if (!Array.isArray(picks) || !picks.length) throw new Error("At least one historical Pick is required");
+  return picks.map((pick) => ({ pickId: pick.id, outcome: outcomeForTeam(pick.teamName, games) }));
+}
+
+function planTrackProjection({ season, picks, waivedPickIds = [], teamNames }) {
+  requireOpenSeason(season);
+  if (!Array.isArray(picks) || !Array.isArray(teamNames) || !teamNames.length) throw new Error("Normalized Picks and Team catalog are required");
+  const ordered = [...picks].sort((left, right) => left.week - right.week || left.id - right.id);
+  const currentCycle = ordered.filter((pick) => pick.pickCycle === season.pickCycle);
+  const usedPicks = currentCycle.map((pick) => pick.teamName);
+  if (new Set(usedPicks).size !== usedPicks.length) throw new Error("Current Pick cycle contains a reused Team");
+  const current = currentCycle.find((pick) => pick.week === season.currentWeek && pick.outcome === "PENDING") || null;
+  const waived = new Set(waivedPickIds);
+  const eliminating = ordered.find((pick) => pick.outcome === "WRONG_PICK" && !waived.has(pick.id)) || null;
+  return {
+    currentPick: current?.teamName || null,
+    usedPicks,
+    availablePicks: teamNames.filter((teamName) => !usedPicks.includes(teamName)),
+    wrongPick: eliminating?.teamName || null,
+    eliminatedByPickId: eliminating?.id || null,
+  };
+}
+
 module.exports = {
   planAssignCurrentPick,
   planBuybackReactivation,
   planPlayoffPoolReset,
   planReplaceCurrentPick,
   planResetCurrentPick,
+  planHistoricalPickCorrection,
+  planOutcomeReconciliation,
+  planTrackProjection,
 };

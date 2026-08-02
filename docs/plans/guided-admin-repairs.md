@@ -201,5 +201,9 @@ Confirmed: 2026-08-01
   authenticated inspector and admin-page entry, current reset/assign/replace,
   durable buyback, manual playoff reset, and cycle-aware ordinary submission
   and auto-pick paths. The complete repository PR gate passed on 2026-08-01.
-- Next safe step: publish PR 6A for review and merge, verify its deployment,
-  then begin PR 6B from fresh `main`.
+- Next safe step: finish PR 6B review/documentation and run the complete PR
+  gate.
+- PR 6A merged as PR #35 and deployed in Heroku v263. PR 6B implements
+  historical correction, authoritative outcome reconciliation, deterministic
+  projection rebuild, and exact one-level conditional undo; its final review
+  and complete repository gate passed on 2026-08-02.

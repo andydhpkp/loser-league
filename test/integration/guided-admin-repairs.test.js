@@ -183,4 +183,87 @@ if (!databaseUrl) {
     assert.equal(JSON.stringify(result).includes("@example.test"), false);
     assert.equal(Object.hasOwn(result.user, "email"), false);
   });
+
+  test("historical Pick correction recomputes outcome and projections from authoritative results", async () => {
+    const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 3, pick_cycle: 1, state_version: 1, open_slot: 1 });
+    const user = await User.create({ first_name: "History", last_name: "Fix", username: "history-fix", email: "history-fix@example.test", password: "safe-test-password" });
+    await Team.bulkCreate(["Broncos", "Raiders", "Chiefs"].map((team_name) => ({ team_name, team_record: [0, 0] })));
+    const track = await Track.create({ user_id: user.id, league_season_id: season.id, available_picks: ["Raiders"], used_picks: ["Broncos", "Chiefs"], current_pick: null, wrong_pick: "Broncos", state_version: 2 });
+    const pick = await Pick.create({ track_id: track.id, league_season_id: season.id, week: 1, pick_cycle: 1, team_name: "Broncos", origin: "USER_SUBMISSION", outcome: "WRONG_PICK", committed_at: new Date(), schedule_hash: "c".repeat(64), state_version: 0 });
+    await Pick.create({ track_id: track.id, league_season_id: season.id, week: 2, pick_cycle: 1, team_name: "Chiefs", origin: "USER_SUBMISSION", outcome: "PREDICTION_CORRECT", committed_at: new Date(), schedule_hash: "d".repeat(64), state_version: 0 });
+    await track.update({ eliminated_by_pick_id: pick.id });
+    const loadHistoricalResults = async () => ({ week: 1, scheduleHash: "c".repeat(64), games: [{ homeTeam: "Broncos", awayTeam: "Raiders", status: "FINAL", winnerTeam: "Broncos", loserTeam: "Raiders", tied: false }] });
+
+    const preview = await createPreview("CORRECT_HISTORICAL_PICK", { pickId: pick.id, teamName: "Raiders" }, { loadHistoricalResults });
+    await confirmPreview("CORRECT_HISTORICAL_PICK", preview.confirmationKey, null, { loadHistoricalResults });
+    await Promise.all([pick.reload(), track.reload()]);
+    assert.equal(pick.team_name, "Raiders");
+    assert.equal(pick.outcome, "PREDICTION_CORRECT");
+    assert.equal(pick.origin, "SHARED_ADMIN_REPAIR");
+    assert.equal(track.eliminated_by_pick_id, null);
+    assert.equal(track.wrong_pick, null);
+    assert.deepEqual(track.used_picks, ["Raiders", "Chiefs"]);
+  });
+
+  test("all-week outcome reconciliation is atomic and requires its exact phrase", async () => {
+    const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 2, pick_cycle: 1, state_version: 1, open_slot: 1 });
+    const user = await User.create({ first_name: "Outcome", last_name: "Fix", username: "outcome-fix", email: "outcome-fix@example.test", password: "safe-test-password" });
+    await Team.bulkCreate(["Broncos", "Raiders"].map((team_name) => ({ team_name, team_record: [0, 0] })));
+    const track = await Track.create({ user_id: user.id, league_season_id: season.id, available_picks: ["Raiders"], used_picks: ["Broncos"], current_pick: null, wrong_pick: null, state_version: 1 });
+    const pick = await Pick.create({ track_id: track.id, league_season_id: season.id, week: 1, pick_cycle: 1, team_name: "Broncos", origin: "USER_SUBMISSION", outcome: "PREDICTION_CORRECT", committed_at: new Date(), schedule_hash: "e".repeat(64), state_version: 0 });
+    const loadHistoricalResults = async () => ({ week: 1, scheduleHash: "e".repeat(64), games: [{ homeTeam: "Broncos", awayTeam: "Raiders", status: "FINAL", winnerTeam: "Broncos", loserTeam: "Raiders", tied: false }] });
+
+    const preview = await createPreview("RECONCILE_PICK_OUTCOME", { scope: "ALL", week: 1 }, { loadHistoricalResults });
+    await assert.rejects(confirmPreview("RECONCILE_PICK_OUTCOME", preview.confirmationKey, null, { loadHistoricalResults, confirmationPhrase: "RECONCILE" }), /RECONCILE EVERY PICK/);
+    await confirmPreview("RECONCILE_PICK_OUTCOME", preview.confirmationKey, null, { loadHistoricalResults, confirmationPhrase: "RECONCILE EVERY PICK" });
+    await Promise.all([pick.reload(), track.reload()]);
+    assert.equal(pick.outcome, "WRONG_PICK");
+    assert.equal(track.eliminated_by_pick_id, pick.id);
+    assert.equal(track.wrong_pick, "Broncos");
+  });
+
+  test("projection rebuild changes only compatibility fields and requires all-scope phrase", async () => {
+    const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 2, pick_cycle: 1, state_version: 1, open_slot: 1 });
+    const user = await User.create({ first_name: "Projection", last_name: "Fix", username: "projection-fix", email: "projection-fix@example.test", password: "safe-test-password" });
+    await Team.bulkCreate(["Broncos", "Raiders"].map((team_name) => ({ team_name, team_record: [0, 0] })));
+    const track = await Track.create({ user_id: user.id, league_season_id: season.id, available_picks: ["Broncos", "Raiders"], used_picks: [], current_pick: "Raiders", wrong_pick: "Raiders", state_version: 1 });
+    const pick = await Pick.create({ track_id: track.id, league_season_id: season.id, week: 1, pick_cycle: 1, team_name: "Broncos", origin: "USER_SUBMISSION", outcome: "PREDICTION_CORRECT", committed_at: new Date(), schedule_hash: "f".repeat(64), state_version: 0 });
+
+    const preview = await createPreview("REBUILD_TRACK_PROJECTIONS", { scope: "ALL" });
+    await assert.rejects(confirmPreview("REBUILD_TRACK_PROJECTIONS", preview.confirmationKey, null, { confirmationPhrase: "REBUILD" }), /REBUILD EVERY TRACK/);
+    await confirmPreview("REBUILD_TRACK_PROJECTIONS", preview.confirmationKey, null, { confirmationPhrase: "REBUILD EVERY TRACK" });
+    await track.reload();
+    assert.equal(await Pick.count(), 1);
+    assert.equal((await Pick.findByPk(pick.id)).team_name, "Broncos");
+    assert.deepEqual(track.used_picks, ["Broncos"]);
+    assert.deepEqual(track.available_picks, ["Raiders"]);
+    assert.equal(track.current_pick, null);
+    assert.equal(track.wrong_pick, null);
+  });
+
+  test("conditional undo recreates a reset Pick once and rejects changed after-state", async () => {
+    const { track, pick } = await currentTrack();
+    const resetPreview = await createPreview("RESET_CURRENT_PICKS", { scope: "SELECTED", trackIds: [track.id] });
+    const resetOperation = await confirmPreview("RESET_CURRENT_PICKS", resetPreview.confirmationKey);
+    const undoPreview = await createPreview("UNDO_ADMIN_ACTION", { operationId: resetOperation.id });
+    const undoOperation = await confirmPreview("UNDO_ADMIN_ACTION", undoPreview.confirmationKey);
+
+    await track.reload();
+    const restored = await Pick.findByPk(pick.id);
+    await resetOperation.reload();
+    assert.equal(restored.team_name, "Broncos");
+    assert.equal(restored.outcome, "PENDING");
+    assert.equal(track.current_pick, "Broncos");
+    assert.equal(track.state_version, 4);
+    assert.equal(restored.state_version, 1);
+    assert.equal(resetOperation.status, "UNDONE");
+    assert.equal(resetOperation.undone_by_operation_id, undoOperation.id);
+    assert.equal(undoOperation.undoable, false);
+    await assert.rejects(createPreview("UNDO_ADMIN_ACTION", { operationId: resetOperation.id }), /already undone/);
+
+    const replacePreview = await createPreview("REPLACE_CURRENT_PICK", { trackId: track.id, teamName: "Chargers" });
+    const replaceOperation = await confirmPreview("REPLACE_CURRENT_PICK", replacePreview.confirmationKey);
+    await track.update({ current_pick: "tampered" });
+    await assert.rejects(createPreview("UNDO_ADMIN_ACTION", { operationId: replaceOperation.id }), /state changed/);
+  });
 }

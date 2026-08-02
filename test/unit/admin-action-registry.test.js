@@ -19,6 +19,10 @@ test("registry documents every existing browser admin mutation without actor att
       "REPLACE_CURRENT_PICK",
       "REACTIVATE_TRACK",
       "RESET_PLAYOFF_PICK_POOLS",
+      "CORRECT_HISTORICAL_PICK",
+      "RECONCILE_PICK_OUTCOME",
+      "REBUILD_TRACK_PROJECTIONS",
+      "UNDO_ADMIN_ACTION",
     ]
   );
   for (const action of actions) {
