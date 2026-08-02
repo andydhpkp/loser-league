@@ -114,3 +114,15 @@ test("browser NFL data requests use only same-origin application routes", async 
   );
   assert.equal(getLeagueSeasonYear([]), null);
 });
+
+test("Fixture matchups use the exact stored League Season week", async () => {
+  const { filterFixtureWeek } = await import("../../public/js/modules/nfl-data.js");
+  const games = [
+    { RoundNumber: 11, HomeTeam: "Broncos" },
+    { RoundNumber: 12, HomeTeam: "Raiders" },
+    { RoundNumber: "12", HomeTeam: "Chiefs" },
+    { RoundNumber: 13, HomeTeam: "Chargers" },
+  ];
+  assert.deepEqual(filterFixtureWeek(games, 12).map((game) => game.HomeTeam), ["Raiders", "Chiefs"]);
+  assert.throws(() => filterFixtureWeek(games, 0), /valid League Season week/);
+});

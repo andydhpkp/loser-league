@@ -6,6 +6,7 @@ import { browserLogger } from "./logger.js";
 import {
   fetchNflSchedule,
   fetchNflTeams,
+  filterFixtureWeek,
   getLeagueSeasonYear,
 } from "./modules/nfl-data.js";
 
@@ -15,7 +16,6 @@ let l;
 let m;
 let p;
 let r;
-let w;
 let x;
 
 //add logic so logged in users who have made their picks go straight to league view
@@ -106,7 +106,6 @@ export async function getTrackNumber() {
       trackIdToUsedPicksMap[data[i].id] = data[i].usedTeamNames;
       trackStateMap[data[i].id] = data[i];
     }
-    currentWeek++;
     let picksCompleteChecker = false;
     if (trackIdArray.length > 0) {
       let picksCompleteHelper = 0;
@@ -122,7 +121,7 @@ export async function getTrackNumber() {
     if (picksCompleteChecker) {
       //location.href = "../league-page.html"
     }
-    await matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap, trackStateMap, state.submissionOpen);
+    await matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap, trackStateMap, state.submissionOpen, currentWeek);
     if (trackIdArray.length === 0) {
       displayVenmoButton();
     }
@@ -135,27 +134,6 @@ export async function getTrackNumber() {
 function goToLeaguePage() {
   location.href = "../league-page.html";
 }
-
-export function getEndOfGameTime() {
-  let currentMoment = new Date();
-
-  let checkMatchupDay = currentMoment.getUTCDay();
-
-  let checkMatchupHour = currentMoment.getUTCHours();
-
-  browserLogger.debug("check day, then hour");
-
-  browserLogger.debug(checkMatchupDay);
-  browserLogger.debug(checkMatchupHour);
-
-  //Utah is -7 or -6 UTC depending on daylight savings FYI
-
-  if (checkMatchupDay === 2 && checkMatchupHour >= 7) {
-    //matchupResult()
-  }
-}
-//3600000
-setInterval(getEndOfGameTime, 3600000);
 
 async function getRecords(seasonYear, currentWeek) {
   try {
@@ -246,55 +224,7 @@ async function deleteAllTeams() {
   }
 }
 
-export function getCurrentWeek() {
-  localStorage.setItem("thisWeek", "12");
-}
-
-export async function fetchMatchesAndGetCurrentWeek() {
-  try {
-    let response = await fetch("/api/proxy/nfl");
-
-    if (!response.ok) {
-      throw new Error("Network response was not ok " + response.statusText);
-    }
-
-    let matches = await response.json();
-  } catch (error) {
-    browserLogger.error("There was a problem with the fetch operation:", error);
-  }
-}
-
-function getCurrentWeekForMatchFetch(matches) {
-  // Group matches by RoundNumber
-  let rounds = {};
-  matches.forEach((match) => {
-    if (!rounds[match.RoundNumber]) {
-      rounds[match.RoundNumber] = [];
-    }
-    rounds[match.RoundNumber].push(match);
-  });
-
-  // Find the current week
-  for (let [roundNumber, roundMatches] of Object.entries(rounds)) {
-    if (
-      roundMatches.every(
-        (match) => match.HomeTeamScore !== null && match.AwayTeamScore !== null
-      )
-    ) {
-      // This round is complete, so continue to the next round
-      continue;
-    } else {
-      // This round is not complete, so it is the current week
-      return roundNumber;
-    }
-  }
-
-  // If all rounds are complete, return the last round number
-  return Object.keys(rounds).pop();
-}
-
-// Call the async function to fetch matches and get the current week
-async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submissionOpen) {
+async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submissionOpen, currentWeek) {
   let nflObj = {};
   try {
     const response = await fetchNflTeams();
@@ -320,8 +250,6 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
     .then(function (response) {
       if (response.ok) {
         response.json().then(function (data) {
-          let currentWeek = parseInt(localStorage.getItem("thisWeek"));
-
           let headerHelp = document.getElementsByTagName("header")[0];
           let currentWeekDiv = document.createElement("div");
           let currentWeekH1 = document.createElement("h1");
@@ -329,13 +257,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
           currentWeekDiv.appendChild(currentWeekH1);
           headerHelp.appendChild(currentWeekDiv);
 
-          let thisWeeksGames = [];
-
-          for (w = 0; w < data.length; w++) {
-            if (data[w].RoundNumber === currentWeek) {
-              thisWeeksGames.push(data[w]);
-            }
-          }
+          const thisWeeksGames = filterFixtureWeek(data, currentWeek);
 
           let thisWeeksMatchups = [];
 

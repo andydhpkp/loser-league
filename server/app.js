@@ -84,33 +84,6 @@ function createApp({
     submit: (input) => pickLeagueService.submit({ ...input, fetchImpl }),
   }));
 
-  app.get("/api/proxy/nfl-2025", async (_req, res, next) => {
-    try {
-      const response = await fetchImpl(
-        "https://fixturedownload.com/feed/json/nfl-2025",
-        {
-          headers: {
-            "User-Agent": "Mozilla/5.0 (compatible; LoserLeague/1.0)",
-            Accept: "application/json",
-            Referer: "https://loser-league.herokuapp.com",
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new UpstreamError();
-      }
-
-      res.json(await response.json());
-    } catch (error) {
-      next(
-        error instanceof UpstreamError
-          ? error
-          : new UpstreamError(undefined, error)
-      );
-    }
-  });
-
   app.get("/api/proxy/nfl", async (_req, res, next) => {
     try {
       const year = await loadLeagueSeasonYear();
