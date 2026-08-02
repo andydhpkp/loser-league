@@ -25,6 +25,19 @@ test("application requires an admin password", () => {
   );
 });
 
+test("invalid onboarding configuration logs setting names only and does not block startup", () => {
+  const warnings = [];
+  const app = createTestApp({
+    logger: { warn: (event, context) => warnings.push({ event, context }), error() {}, info() {}, debug() {} },
+    onboardingConfiguration: {
+      presentation: { price: "$5", contacts: [], payment: null },
+      invalidSettings: ["ONBOARDING_TATE_PHONE"],
+    },
+  });
+  assert.ok(app);
+  assert.deepEqual(warnings, [{ event: "onboarding_configuration_invalid", context: { invalidSettings: ["ONBOARDING_TATE_PHONE"] } }]);
+});
+
 test("admin login creates a server-owned session only for the configured password", async () => {
   const agent = request.agent(
     createTestApp({

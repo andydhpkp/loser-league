@@ -9,6 +9,7 @@ import {
   filterFixtureWeek,
   getLeagueSeasonYear,
 } from "./modules/nfl-data.js";
+import { renderOnboardingPanel } from "./modules/zero-track-onboarding.js";
 
 let c;
 let i;
@@ -24,51 +25,6 @@ let x;
 //add button to manually check matchup
 
 export { finalScores } from "./modules/team-results.js";
-
-function displayVenmoButton() {
-  let sectionHelp = document.getElementById("games");
-
-  let nothingDiv = document.createElement("div");
-
-  nothingDiv.style.display = "flex";
-  nothingDiv.style.flexDirection = "column"; // Stack the items vertically
-  nothingDiv.style.alignItems = "center"; // Horizontal centering
-  nothingDiv.style.justifyContent = "center";
-  nothingDiv.style.marginBottom = "20px";
-
-  let nothingMessageH1 = document.createElement("h1");
-  nothingMessageH1.innerHTML =
-    "It looks like you do not have any tracks... try texting Tate";
-  nothingDiv.appendChild(nothingMessageH1);
-
-  // Create the Venmo button
-  let venmoLink = document.createElement("a");
-  venmoLink.href = "https://account.venmo.com/u/TateBenson28";
-  venmoLink.target = "_blank"; // Opens the link in a new browser tab
-  venmoLink.rel = "noopener noreferrer"; // Security measure for opening new tabs
-
-  let venmoLogo = document.createElement("img");
-  venmoLogo.src = "../css/assets/venmo.svg"; // Update this path to where your Venmo logo is stored
-  venmoLogo.alt = "Venmo Logo";
-  venmoLogo.style.width = "50px"; // You can adjust this to fit your needs
-  venmoLogo.style.marginRight = "10px"; // A little space between the logo and text
-
-  venmoLink.appendChild(venmoLogo);
-  venmoLink.appendChild(document.createTextNode("Give Tate some money"));
-
-  venmoLink.style.display = "inline-flex"; // Flex to align logo and text
-  venmoLink.style.alignItems = "center"; // Vertical centering
-  venmoLink.style.padding = "0px 10px 0px 10px";
-  venmoLink.style.backgroundColor = "#3d95ce"; // Venmo blue color
-  venmoLink.style.color = "white";
-  venmoLink.style.textDecoration = "none";
-  venmoLink.style.borderRadius = "5px";
-  venmoLink.style.marginTop = "20px"; // Adds some space between the message and the button
-
-  nothingDiv.appendChild(venmoLink);
-
-  sectionHelp.appendChild(nothingDiv);
-}
 
 export async function getTrackNumber() {
   let currentWeek;
@@ -95,8 +51,11 @@ export async function getTrackNumber() {
 
     totalTracks = data.length;
 
-    if (totalTracks === 0) {
-      goToLeaguePage();
+    if (state.onboarding) {
+      document.getElementById("loading")?.remove();
+      const container = document.getElementById("gameMatchups");
+      renderOnboardingPanel(container, state.onboarding, { onRefresh: () => window.location.reload() });
+      return;
     }
 
     for (let i = 0; i < totalTracks; i++) {
@@ -122,17 +81,11 @@ export async function getTrackNumber() {
       //location.href = "../league-page.html"
     }
     await matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap, trackStateMap, state.submissionOpen, currentWeek);
-    if (trackIdArray.length === 0) {
-      displayVenmoButton();
-    }
   } catch (error) {
-    browserLogger.debug("Error: ", error);
-    //displayVenmoButton();
+    browserLogger.error("Unable to load Track state", error);
+    const loading = document.getElementById("loading");
+    if (loading) loading.textContent = "Unable to load your Tracks. Please refresh and try again.";
   }
-}
-
-function goToLeaguePage() {
-  location.href = "../league-page.html";
 }
 
 async function getRecords(seasonYear, currentWeek) {

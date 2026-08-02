@@ -17,6 +17,7 @@ const { inspectTrack } = require("./modules/admin-repairs/inspector-service");
 const { createDefaultHistoricalResultsLoader } = require("./modules/admin-repairs/historical-results-context");
 const { fetchFixtureSchedule } = require("./nfl/fixture-download-client");
 const { LeagueSeason } = require("../models");
+const { buildOnboardingConfiguration } = require("./onboarding/configuration");
 
 function createApp({
   routes,
@@ -26,6 +27,7 @@ function createApp({
   sessionStore,
   fetchImpl = global.fetch,
   logger = createLogger(),
+  onboardingConfiguration = buildOnboardingConfiguration(),
   requestClosureEvaluation,
   inspectAdminTrack = inspectTrack,
   loadLeagueSeasonYear = async () => {
@@ -39,6 +41,9 @@ function createApp({
   }
   if (!adminPassword) {
     throw new Error("ADMIN_PASSWORD is required");
+  }
+  if (onboardingConfiguration.invalidSettings.length) {
+    logger.warn("onboarding_configuration_invalid", { invalidSettings: onboardingConfiguration.invalidSettings });
   }
 
   const app = express();
@@ -79,7 +84,7 @@ function createApp({
   }));
   app.use("/api/admin/repairs", createAdminRepairRouter({ inspectTrack: inspectAdminTrack }));
   app.use("/api/user/league", createPickSubmissionRouter({
-    getSubmissionState: pickLeagueService.getSubmissionState,
+    getSubmissionState: (input) => pickLeagueService.getSubmissionState({ ...input, onboardingPresentation: onboardingConfiguration.presentation }),
     getLeagueView: pickLeagueService.getLeagueView,
     submit: (input) => pickLeagueService.submit({ ...input, fetchImpl }),
   }));

@@ -24,6 +24,14 @@ before merging a release that introduces or changes admin authentication.
 Never place the value in source, a pull request, a command transcript, logs, or
 operations documentation, and never retrieve it during deployment verification.
 
+Zero-Track onboarding also uses `ONBOARDING_TATE_PHONE`,
+`ONBOARDING_ANDREW_PHONE`, `ONBOARDING_VENMO_HANDLE`, and
+`ONBOARDING_VENMO_URL`. Set their values directly through authorized Heroku
+configuration. Verify only that the key names exist; never retrieve or print
+phone values. Invalid or absent values degrade to valid remaining actions or a
+safe generic fallback rather than preventing startup. See
+[`zero-track-onboarding.md`](zero-track-onboarding.md).
+
 Verify only that the key name is present. Missing configuration prevents the
 application from starting, which intentionally blocks deployment rather than
 publishing an admin interface with a fallback credential.

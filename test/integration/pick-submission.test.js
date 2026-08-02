@@ -6,7 +6,7 @@ if (!databaseUrl) {
 } else {
   process.env.NODE_ENV = "test";
   const assert = require("node:assert/strict");
-  const { sequelize, User, Track, LeagueSeason, Pick } = require("../../models");
+  const { sequelize, User, Track, LeagueSeason, Pick, ScheduleSnapshot } = require("../../models");
   const { submitPicks } = require("../../server/modules/picks/submission-service");
   const { executeAutoPick } = require("../../server/modules/picks/auto-pick-service");
   const { getLeagueView, getSubmissionState } = require("../../server/modules/picks/league-service");
@@ -109,6 +109,29 @@ if (!databaseUrl) {
       /closed/
     );
     assert.equal(await Pick.count(), 0);
+  });
+
+  test("zero-Track onboarding is current-season authoritative and eliminated Tracks suppress it", async () => {
+    const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 1, state_version: 1, open_slot: 1 });
+    const emptyUser = await User.create({ first_name: "Empty", last_name: "User", username: "empty", email: "empty@example.test", password: "safe-test-password" });
+    const eliminatedUser = await User.create({ first_name: "Eliminated", last_name: "User", username: "eliminated", email: "eliminated@example.test", password: "safe-test-password" });
+    const eliminated = await Track.create({ user_id: eliminatedUser.id, league_season_id: season.id, available_picks: ["Raiders"], used_picks: ["Broncos"], current_pick: null, wrong_pick: "Broncos", state_version: 1 });
+    const wrongPick = await Pick.create({ track_id: eliminated.id, league_season_id: season.id, week: 1, team_name: "Broncos", origin: "USER_SUBMISSION", outcome: "WRONG_PICK", committed_at: new Date(), state_version: 0 });
+    await eliminated.update({ eliminated_by_pick_id: wrongPick.id });
+    await ScheduleSnapshot.create({ league_season_id: season.id, week: 1, provider: "FIXTURE_DOWNLOAD", content_hash: "7".repeat(64), normalized_schedule: { week: 1, games: [{ kickoff: "2026-09-10T00:00:00.000Z", homeTeam: "Broncos", awayTeam: "Raiders" }] }, fetched_at: new Date(), created_at: new Date() });
+    const presentation = { price: "$5", contacts: [], payment: null };
+
+    const empty = await getSubmissionState({ userId: emptyUser.id, now: new Date("2026-09-09T23:59:59Z"), onboardingPresentation: presentation });
+    assert.deepEqual(empty.onboarding, { ...presentation, enrollmentOpen: true });
+    assert.deepEqual(empty.tracks, []);
+
+    const afterKickoff = await getSubmissionState({ userId: emptyUser.id, now: new Date("2026-09-10T00:00:00Z"), onboardingPresentation: presentation });
+    assert.equal(afterKickoff.onboarding.enrollmentOpen, false);
+    assert.equal(afterKickoff.onboarding.payment, null);
+
+    const owned = await getSubmissionState({ userId: eliminatedUser.id, onboardingPresentation: presentation });
+    assert.equal("onboarding" in owned, false);
+    assert.deepEqual(owned.tracks, []);
   });
 
   test("league view hides every current Pick until the viewing User is complete", async () => {
