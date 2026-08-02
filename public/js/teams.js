@@ -9,7 +9,8 @@ import {
   filterFixtureWeek,
   getLeagueSeasonYear,
 } from "./modules/nfl-data.js";
-import { renderOnboardingPanel } from "./modules/zero-track-onboarding.js";
+import { renderOnboardingPanel, renderTrackLoadError } from "./modules/zero-track-onboarding.js";
+import { renderBuyback } from "./modules/week-two-buyback.js";
 
 let c;
 let i;
@@ -39,6 +40,7 @@ export async function getTrackNumber() {
       throw new Error("Network response was not ok");
     }
     const state = await response.json();
+    renderBuyback(state.buyback);
     const data = state.tracks;
     currentWeek = state.leagueSeason.week;
     if (state.message) {
@@ -80,11 +82,18 @@ export async function getTrackNumber() {
     if (picksCompleteChecker) {
       //location.href = "../league-page.html"
     }
-    await matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap, trackStateMap, state.submissionOpen, currentWeek);
+    await matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap, trackStateMap, state.submissionOpen && !state.buyback?.pickBlocked, currentWeek, state.buyback?.pickBlocked === true);
   } catch (error) {
     browserLogger.error("Unable to load Track state", error);
-    const loading = document.getElementById("loading");
-    if (loading) loading.textContent = "Unable to load your Tracks. Please refresh and try again.";
+    let contacts = [];
+    try {
+      const supportResponse = await fetch("/api/user/league/support", { cache: "no-store" });
+      if (supportResponse.ok) contacts = (await supportResponse.json()).contacts || [];
+    } catch (_supportError) {
+      // The core recovery message remains available when support data cannot load.
+    }
+    document.getElementById("loading")?.remove();
+    renderTrackLoadError(document.getElementById("gameMatchups"), contacts, { onRefresh: () => window.location.reload() });
   }
 }
 
@@ -177,7 +186,7 @@ async function deleteAllTeams() {
   }
 }
 
-async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submissionOpen, currentWeek) {
+async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submissionOpen, currentWeek, buybackBlocked = false) {
   let nflObj = {};
   try {
     const response = await fetchNflTeams();
@@ -354,7 +363,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
               const firstTeamRecordStr = info[logoCounter];
 
               firstTeamButton.setAttribute("class", "teamSelection");
-              firstTeamButton.disabled = committedTrack;
+              firstTeamButton.disabled = committedTrack || buybackBlocked;
               firstTeamButton.setAttribute(
                 "data-value",
                 `${trackIds[i]},${firstTeamNameStr}`
@@ -403,7 +412,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
               const secondTeamRecordStr = info[logoCounter];
 
               secondTeamButton.setAttribute("class", "teamSelection");
-              secondTeamButton.disabled = committedTrack;
+              secondTeamButton.disabled = committedTrack || buybackBlocked;
               secondTeamButton.setAttribute(
                 "data-value",
                 `${trackIds[i]},${secondTeamNameStr}`
@@ -473,7 +482,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
           const submitBtn = document.createElement("button");
           submitBtn.id = "submitPicksBtn";
           submitBtn.className = "btn btn-primary";
-          submitBtn.innerText = submissionOpen ? "Submit Picks" : "Pick submission is closed";
+          submitBtn.innerText = buybackBlocked ? "Resolve buyback decision before picking" : submissionOpen ? "Submit Picks" : "Pick submission is closed";
           submitBtn.disabled = !submissionOpen;
           submitBtn.addEventListener("click", handleSubmitPicks);
 

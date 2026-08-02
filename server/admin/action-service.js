@@ -85,6 +85,14 @@ async function openSeason(transaction, lock = false) {
 
 const historicalActions = new Set(["CORRECT_HISTORICAL_PICK", "RECONCILE_PICK_OUTCOME"]);
 async function prepareActionOptions(action, input, options) {
+  if (action === "START_LEAGUE_SEASON") {
+    const year = Number(input.year);
+    if (!Number.isInteger(year) || year < 1000 || year > 9999) throw new ValidationError("A four-digit League Season year is required");
+    if (typeof options.loadRolloverTargetSchedule !== "function") throw new ConflictError("Week 1 Fixture validation is required");
+    const startSchedule = await options.loadRolloverTargetSchedule({ year, week: 1 });
+    if (!startSchedule || startSchedule.year !== year || startSchedule.week !== 1 || !startSchedule.contentHash || !startSchedule.normalizedSchedule) throw new ConflictError("Week 1 Fixture validation failed");
+    return { ...options, startSchedule };
+  }
   if (action === "ROLLOVER_LEAGUE_SEASON") {
     const targetYear = normalizeTargetYear(input.targetYear);
     if (typeof options.loadRolloverTargetSchedule !== "function") throw new ConflictError("Target-year Fixture validation is required");
@@ -136,6 +144,26 @@ function pickWriteState(state) {
 async function buildActionPreview(action, input, transaction, lock = false, options = {}) {
   const { manualClosureContext, historicalResultsContext } = options;
   if (!getAdminAction(action)) throw new NotFoundError("Admin action not found");
+  if (action === "CREATE_LEAGUE_SEASON") {
+    const year = Number(input.year);
+    if (!Number.isInteger(year) || year < 1000 || year > 9999) throw new ValidationError("A four-digit League Season year is required");
+    if (await LeagueSeason.findOne({ where: { open_slot: 1 }, transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) })) throw new ConflictError("An open League Season already exists");
+    if (await LeagueSeason.findOne({ where: { year }, transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) })) throw new ConflictError("That League Season year already exists");
+    if (await Track.count({ where: { league_season_id: null }, transaction })) throw new ConflictError("Unassigned legacy Tracks must be handled with the guarded bootstrap command");
+    return { normalizedIntent: { year }, description: `Create the ${year} League Season at Week 0`, warnings: [], leagueSeason: null, targets: [{ targetType: "LEAGUE_SEASON", targetId: year, beforeState: null, afterState: { year, state: "SETUP", week: 0, stateVersion: 0 } }], plan: { year }, undoable: false };
+  }
+  if (action === "START_LEAGUE_SEASON") {
+    const season = await openSeason(transaction, lock);
+    const year = Number(input.year);
+    if (season.year !== year || season.state !== "SETUP" || season.current_week !== 0) throw new ConflictError("Only a SETUP League Season at Week 0 can start Week 1");
+    const schedule = options.startSchedule;
+    const earliestKickoff = new Date(schedule?.earliestKickoff || earliestScheduleKickoff({ normalized_schedule: schedule?.normalizedSchedule }));
+    const now = typeof options.now === "function" ? options.now() : options.now || new Date();
+    if (!schedule || Number.isNaN(earliestKickoff.getTime())) throw new ConflictError("A valid Week 1 schedule is required");
+    if (earliestKickoff <= now) throw new ConflictError("Week 1 cannot start after its earliest kickoff");
+    const [userCount, trackCount] = await Promise.all([User.count({ transaction }), Track.count({ where: { league_season_id: season.id }, transaction })]);
+    return { normalizedIntent: { year }, description: `Start Week 1 for ${year} with ${userCount} Users and ${trackCount} Tracks`, warnings: [], leagueSeason: season, scheduleHash: schedule.contentHash, targets: [{ targetType: "LEAGUE_SEASON", targetId: season.id, beforeState: { year, state: season.state, week: season.current_week, stateVersion: season.state_version, userCount, trackCount }, afterState: { year, state: "ACTIVE", week: 1, stateVersion: season.state_version + 1, userCount, trackCount } }], plan: { season, schedule }, undoable: false };
+  }
   if (action === "ADD_USER_WIN") {
     const userId = positiveId(input.userId, "User ID");
     const year = Number(input.year);
@@ -440,6 +468,7 @@ async function buildActionPreview(action, input, transaction, lock = false, opti
     if (season.state !== "ACTIVE") throw new ConflictError("Track reactivation requires an active League Season");
     const trackId = positiveId(input.trackId, "Track ID");
     if (input.paymentConfirmed !== true) throw new ValidationError("Confirm that buyback payment was handled externally");
+    const correctionNote = cleanText(input.correctionNote, "Correction note", 500);
     const track = await Track.findOne({ where: { id: trackId, league_season_id: season.id }, transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
     if (!track) throw new NotFoundError("Track not found");
     const eliminatingPick = track.eliminated_by_pick_id ? await Pick.findByPk(track.eliminated_by_pick_id, { transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) }) : null;
@@ -457,7 +486,7 @@ async function buildActionPreview(action, input, transaction, lock = false, opti
     const beforeTrack = repairTrackState(track);
     const afterTrack = { ...beforeTrack, ...plan.trackAfter, stateVersion: beforeTrack.stateVersion + 1 };
     return {
-      normalizedIntent: { trackId, paymentConfirmed: true },
+      normalizedIntent: { trackId, paymentConfirmed: true, correctionNote },
       description: `Reactivate Track ${trackId} after buyback while preserving Week ${eliminatingPick.week} Wrong Pick ${eliminatingPick.team_name}`,
       warnings: ["League policy intends buyback for Week 1 only.", "Payment confirmation occurs outside the application and no payment data is stored."],
       leagueSeason: season,
@@ -686,7 +715,15 @@ async function confirmPreview(action, confirmationKey, note, options = {}) {
     }
 
     let targets = built.targets;
-    if (action === "ADD_USER_WIN") {
+    let auditLeagueSeason = built.leagueSeason;
+    if (action === "CREATE_LEAGUE_SEASON") {
+      const season = await LeagueSeason.create({ year: built.plan.year, state: "SETUP", current_week: 0, pick_cycle: 1, state_version: 0, open_slot: 1 }, { transaction });
+      auditLeagueSeason = season;
+      targets = [{ ...built.targets[0], targetId: season.id }];
+    } else if (action === "START_LEAGUE_SEASON") {
+      await ScheduleSnapshot.findOrCreate({ where: { league_season_id: built.plan.season.id, week: 1, provider: built.plan.schedule.provider || "FIXTURE_DOWNLOAD", content_hash: built.plan.schedule.contentHash }, defaults: { normalized_schedule: built.plan.schedule.normalizedSchedule, fetched_at: built.plan.schedule.fetchedAt || new Date(), created_at: new Date() }, transaction });
+      await built.plan.season.update({ state: "ACTIVE", current_week: 1, state_version: built.plan.season.state_version + 1 }, { transaction });
+    } else if (action === "ADD_USER_WIN") {
       const user = await User.findByPk(built.normalizedIntent.userId, { transaction, lock: transaction.LOCK.UPDATE });
       await user.addWin(built.normalizedIntent.year, built.normalizedIntent.wonWithTie, { transaction });
       targets = [{ ...built.targets[0], afterState: { userRecord: user.user_record, crownType: user.getCrownType() } }];
@@ -766,8 +803,8 @@ async function confirmPreview(action, confirmationKey, note, options = {}) {
       if (built.plan.operation.action === "REACTIVATE_TRACK") await TrackReactivation.destroy({ where: { admin_audit_operation_id: built.plan.operation.id }, transaction });
     }
 
-    const auditNote = action === "OVERRIDE_GAME_RESULT" ? built.normalizedIntent.explanation : normalizeNote(note);
-    const operation = await AdminAuditOperation.create({ action, description: built.description, note: auditNote, status: "COMMITTED", league_season_id: built.leagueSeason?.id || null, week: built.leagueSeason?.current_week ?? null, summary: { affectedCount: targets.length, ...(built.rolloverExport ? { exportChecksum: built.rolloverExport.exportChecksum, deleted: built.rolloverExport.counts } : {}) }, undoable: Boolean(built.undoable) }, { transaction });
+    const auditNote = action === "OVERRIDE_GAME_RESULT" ? built.normalizedIntent.explanation : action === "REACTIVATE_TRACK" ? built.normalizedIntent.correctionNote : normalizeNote(note);
+    const operation = await AdminAuditOperation.create({ action, description: built.description, note: auditNote, status: "COMMITTED", league_season_id: auditLeagueSeason?.id || null, week: action === "START_LEAGUE_SEASON" ? 1 : auditLeagueSeason?.current_week ?? null, summary: { affectedCount: targets.length, ...(built.rolloverExport ? { exportChecksum: built.rolloverExport.exportChecksum, deleted: built.rolloverExport.counts } : {}) }, undoable: Boolean(built.undoable) }, { transaction });
     if (action === "UNDO_ADMIN_ACTION") await built.plan.operation.update({ status: "UNDONE", undone_by_operation_id: operation.id }, { transaction });
     if (action === "OVERRIDE_GAME_RESULT") {
       const intent = built.normalizedIntent;

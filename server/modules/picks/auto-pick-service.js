@@ -3,6 +3,7 @@ const { Op, Transaction } = require("sequelize");
 const { sequelize, LeagueSeason, LeagueWeekOperation, Track, Pick, ScheduleSnapshot } = require("../../../models");
 const { ConflictError, ValidationError } = require("../../lib/errors");
 const { autoPickDue, planAutomaticSelections } = require("./auto-pick-policy");
+const { expireAtDeadlineLocked } = require("../buyback/buyback-service");
 
 function sameMembers(left, right) {
   return left.length === right.length && new Set(left).size === left.length && left.every((value) => right.includes(value));
@@ -28,6 +29,8 @@ async function executeAutoPick({ schedule, now = () => new Date(), randomIndex =
     const completed = await LeagueWeekOperation.findOne({ where: { league_season_id: season.id, week: season.current_week, phase: "AUTO_PICK" }, transaction, lock: transaction.LOCK.UPDATE });
     if (completed) return { status: "ALREADY_COMPLETED", leagueSeasonId: season.id, week: season.current_week };
 
+    const expiredBuybackCount = await expireAtDeadlineLocked({ season, now: lockedNow, transaction });
+
     const tracks = await Track.findAll({ where: { league_season_id: season.id, eliminated_by_pick_id: null }, order: [["id", "ASC"]], transaction, lock: transaction.LOCK.UPDATE });
     const picks = tracks.length ? await Pick.findAll({ where: { track_id: { [Op.in]: tracks.map((track) => track.id) }, league_season_id: season.id, pick_cycle: season.pick_cycle }, transaction, lock: transaction.LOCK.UPDATE }) : [];
     const currentTrackIds = new Set(picks.filter((pick) => pick.week === season.current_week).map((pick) => pick.track_id));
@@ -45,8 +48,8 @@ async function executeAutoPick({ schedule, now = () => new Date(), randomIndex =
       await Pick.create({ track_id: target.id, league_season_id: season.id, week: season.current_week, pick_cycle: season.pick_cycle, team_name: selection.teamName, origin: "AUTOMATIC_SELECTION", outcome: "PENDING", committed_at: lockedNow, schedule_hash: schedule.contentHash, state_version: 0 }, { transaction });
       await target.track.update({ current_pick: selection.teamName, used_picks: [...target.track.used_picks, selection.teamName], available_picks: target.track.available_picks.filter((team) => team !== selection.teamName), state_version: target.track.state_version + 1 }, { transaction });
     }
-    await LeagueWeekOperation.create({ league_season_id: season.id, week: season.current_week, phase: "AUTO_PICK", mode: "AUTOMATIC", schedule_hash: schedule.contentHash, summary: { assignedCount: selections.length, alreadySubmittedCount: tracks.length - selections.length }, completed_at: lockedNow }, { transaction });
-    return { status: "COMPLETED", leagueSeasonId: season.id, week: season.current_week, assignedCount: selections.length };
+    await LeagueWeekOperation.create({ league_season_id: season.id, week: season.current_week, phase: "AUTO_PICK", mode: "AUTOMATIC", schedule_hash: schedule.contentHash, summary: { assignedCount: selections.length, alreadySubmittedCount: tracks.length - selections.length, expiredBuybackCount }, completed_at: lockedNow }, { transaction });
+    return { status: "COMPLETED", leagueSeasonId: season.id, week: season.current_week, assignedCount: selections.length, expiredBuybackCount };
   });
 }
 

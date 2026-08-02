@@ -43,3 +43,10 @@ An icon beside a User's name that represents the User's complete history of
 solo and tied League Season wins. A Winner Crown is derived from the User's win
 record and is shown only when artwork exists for that exact history.
 _Avoid_: User badge, player crown
+
+**Buyback Decision**:
+A User's one season-scoped Week 2 choice to request reactivation of exact Tracks
+eliminated by Week 1 Picks or continue without them. A pending request remains
+Pick-blocking until shared admin resolves it or the Week 2 deadline expires it.
+Payment is confirmed outside Loser League.
+_Avoid_: Purchase, payment record, new Track request

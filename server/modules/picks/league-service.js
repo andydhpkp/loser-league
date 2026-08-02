@@ -5,6 +5,7 @@ const { fetchFixtureSchedule } = require("../../nfl/fixture-download-client");
 const { currentPickVisibility, eligibleTeamsForTrack } = require("./submission-policy");
 const { submitPicks } = require("./submission-service");
 const { earliestScheduleKickoff, isTrackEnrollmentOpen } = require("../league-season/enrollment-policy");
+const buybackService = require("../buyback/buyback-service");
 
 async function openSeason() {
   const season = await LeagueSeason.findOne({ where: { open_slot: 1 } });
@@ -35,6 +36,7 @@ async function getSubmissionState({ userId, now = new Date(), onboardingPresenta
   const onboarding = ownedTracks.length === 0
     ? { ...onboardingPresentation, payment: enrollmentOpen ? onboardingPresentation.payment : null, enrollmentOpen }
     : null;
+  const buyback = await buybackService.getUserBuyback({ userId, deadlineAvailable: deadline instanceof Date && !Number.isNaN(deadline.getTime()), deadline, presentation: onboardingPresentation, now });
   return {
     leagueSeason: { id: season.id, year: season.year, week: season.current_week, state: season.state },
     scheduleAvailable: Boolean(latest),
@@ -44,6 +46,7 @@ async function getSubmissionState({ userId, now = new Date(), onboardingPresenta
     ...(autoPickStatus === "PENDING" ? { message: "Automatic Picks are pending" } : {}),
     ...(autoPickStatus === "BLOCKED" ? { message: "Automatic Picks are temporarily unavailable" } : {}),
     ...(onboarding ? { onboarding } : {}),
+    ...(buyback ? { buyback } : {}),
     tracks: tracks.map((track) => {
       const history = picks.filter((pick) => pick.track_id === track.id);
       const current = history.find((pick) => pick.week === season.current_week);
@@ -51,6 +54,14 @@ async function getSubmissionState({ userId, now = new Date(), onboardingPresenta
       return { id: track.id, stateVersion: track.state_version, status: current ? "SUBMITTED" : "NOT_SUBMITTED", committedTeamName: current?.team_name || null, usedTeamNames, eligibleTeams: current ? [] : eligibleTeamsForTrack({ scheduledTeams, priorTeamNames: usedTeamNames }) };
     }),
   };
+}
+
+async function decideBuyback({ userId, action, trackIds, stateVersion, fetchImpl, now = () => new Date() }) {
+  const season = await openSeason();
+  const clock = typeof now === "function" ? now : () => now;
+  if (season.state !== "ACTIVE" || season.current_week !== 2) throw new ConflictError("Week 2 buyback decisions are unavailable");
+  const schedule = await fetchFixtureSchedule({ year: season.year, week: 2, fetchImpl, now: clock() });
+  return buybackService.decide({ userId, action, trackIds, stateVersion, deadline: schedule.earliestKickoff, now: clock() });
 }
 
 async function getLeagueView({ userId }) {
@@ -77,7 +88,11 @@ async function submit({ userId, selections, fetchImpl, now = () => new Date() })
   if (season.state !== "ACTIVE") throw new ConflictError("Pick submission is not open");
   const fetchedAt = typeof now === "function" ? now() : now;
   const schedule = await fetchFixtureSchedule({ year: season.year, week: season.current_week, fetchImpl, now: fetchedAt });
+  if (season.current_week === 2) {
+    const buyback = await buybackService.getUserBuyback({ userId, deadlineAvailable: true, deadline: schedule.earliestKickoff, now: fetchedAt });
+    if (buyback?.pickBlocked) throw new ConflictError("Resolve the Week 2 buyback decision before submitting Picks");
+  }
   return submitPicks({ userId, selections, schedule, now });
 }
 
-module.exports = { getLeagueView, getSubmissionState, submit };
+module.exports = { getLeagueView, getSubmissionState, submit, decideBuyback };

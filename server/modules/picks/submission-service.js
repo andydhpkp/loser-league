@@ -2,6 +2,7 @@ const { Transaction, Op } = require("sequelize");
 const { sequelize, LeagueSeason, Track, Pick, ScheduleSnapshot } = require("../../../models");
 const { ConflictError, ValidationError } = require("../../lib/errors");
 const { eligibleTeamsForTrack } = require("./submission-policy");
+const { assertPickAllowedLocked } = require("../buyback/buyback-service");
 
 function normalizedSelections(selections) {
   if (!Array.isArray(selections)) throw new ValidationError("Selections must be an array");
@@ -29,6 +30,8 @@ async function submitPicks({ userId, selections, schedule, now = () => new Date(
     }
     const lockedNow = clock();
     if (lockedNow >= schedule.earliestKickoff) throw new ConflictError("Pick submission is closed");
+    const buybackGate = await assertPickAllowedLocked({ userId, season, now: lockedNow, transaction });
+    if (!buybackGate.allowed) throw new ConflictError("Resolve the Week 2 buyback decision before submitting Picks");
     const tracks = await Track.findAll({ where: { user_id: userId, league_season_id: season.id, eliminated_by_pick_id: null }, order: [["id", "ASC"]], transaction, lock: transaction.LOCK.UPDATE });
     const existing = await Pick.findAll({ where: { track_id: { [Op.in]: tracks.map((track) => track.id) }, league_season_id: season.id, week: season.current_week, pick_cycle: season.pick_cycle }, transaction, lock: transaction.LOCK.UPDATE });
     const byTrack = new Map(requested.map((selection) => [selection.trackId, selection]));

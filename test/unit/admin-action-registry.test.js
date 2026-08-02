@@ -8,6 +8,8 @@ test("registry documents every existing browser admin mutation without actor att
   assert.deepEqual(
     actions.map((action) => action.name),
     [
+      "CREATE_LEAGUE_SEASON",
+      "START_LEAGUE_SEASON",
       "ADD_USER_WIN",
       "CREATE_TRACK",
       "DELETE_TRACK",

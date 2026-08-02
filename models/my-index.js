@@ -11,6 +11,8 @@ const AdminAuditOperation = require('./AdminAuditOperation')
 const AdminAuditTarget = require('./AdminAuditTarget')
 const OfficialGameResultOverride = require('./OfficialGameResultOverride')
 const TrackReactivation = require('./TrackReactivation')
+const BuybackDecision = require('./BuybackDecision')
+const BuybackDecisionTrack = require('./BuybackDecisionTrack')
 
 User.hasMany(Track, {
     foreignKey: 'user_id'
@@ -94,6 +96,16 @@ LeagueSeason.hasMany(TrackReactivation, { as: 'trackReactivations', foreignKey: 
 TrackReactivation.belongsTo(LeagueSeason, { as: 'leagueSeason', foreignKey: 'league_season_id' })
 TrackReactivation.belongsTo(Pick, { as: 'waivedPick', foreignKey: 'waived_pick_id' })
 TrackReactivation.belongsTo(AdminAuditOperation, { as: 'auditOperation', foreignKey: 'admin_audit_operation_id' })
+User.hasMany(BuybackDecision, { as: 'buybackDecisions', foreignKey: 'user_id' })
+BuybackDecision.belongsTo(User, { as: 'user', foreignKey: 'user_id' })
+LeagueSeason.hasMany(BuybackDecision, { as: 'buybackDecisions', foreignKey: 'league_season_id' })
+BuybackDecision.belongsTo(LeagueSeason, { as: 'leagueSeason', foreignKey: 'league_season_id' })
+BuybackDecision.hasMany(BuybackDecisionTrack, { as: 'tracks', foreignKey: 'buyback_decision_id' })
+BuybackDecisionTrack.belongsTo(BuybackDecision, { as: 'decision', foreignKey: 'buyback_decision_id' })
+BuybackDecisionTrack.belongsTo(Track, { as: 'track', foreignKey: 'track_id' })
+BuybackDecisionTrack.belongsTo(Pick, { as: 'weekOnePick', foreignKey: 'week_one_pick_id' })
+BuybackDecisionTrack.belongsTo(TrackReactivation, { as: 'reactivation', foreignKey: 'track_reactivation_id' })
+BuybackDecision.belongsTo(AdminAuditOperation, { as: 'auditOperation', foreignKey: 'admin_audit_operation_id' })
 
 
 module.exports = {
@@ -108,5 +120,7 @@ module.exports = {
     AdminAuditOperation,
     AdminAuditTarget,
     OfficialGameResultOverride,
-    TrackReactivation
+    TrackReactivation,
+    BuybackDecision,
+    BuybackDecisionTrack
 };

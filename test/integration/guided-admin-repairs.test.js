@@ -122,7 +122,7 @@ if (!databaseUrl) {
     const pick = await Pick.create({ track_id: track.id, league_season_id: season.id, week: 1, pick_cycle: 1, team_name: "Broncos", origin: "USER_SUBMISSION", outcome: "WRONG_PICK", committed_at: new Date(), schedule_hash: "a".repeat(64), state_version: 1 });
     await track.update({ eliminated_by_pick_id: pick.id });
 
-    const preview = await createPreview("REACTIVATE_TRACK", { trackId: track.id, paymentConfirmed: true });
+    const preview = await createPreview("REACTIVATE_TRACK", { trackId: track.id, paymentConfirmed: true, correctionNote: "Correct an incorrectly recorded decision" });
     const operation = await confirmPreview("REACTIVATE_TRACK", preview.confirmationKey);
     const repeated = await confirmPreview("REACTIVATE_TRACK", preview.confirmationKey);
 

@@ -8,7 +8,7 @@ TrackReactivation.init({
   track_id: { type: DataTypes.INTEGER, allowNull: false },
   league_season_id: { type: DataTypes.INTEGER, allowNull: false },
   waived_pick_id: { type: DataTypes.INTEGER, allowNull: false, unique: true },
-  admin_audit_operation_id: { type: DataTypes.INTEGER, allowNull: false, unique: true },
+  admin_audit_operation_id: { type: DataTypes.INTEGER, allowNull: false },
 }, {
   sequelize,
   freezeTableName: true,

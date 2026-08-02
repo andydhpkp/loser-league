@@ -48,3 +48,20 @@ for (const [name, url, entry] of pages) {
     expect(errors).toEqual([]);
   });
 }
+
+test("admin numeric fields hide browser spinner controls", async ({ page }) => {
+  await page.route("**/api/**", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: "[]",
+    })
+  );
+  await page.goto("/admin.html");
+
+  const appearance = await page.locator("#overrideHomeScore").evaluate(
+    (input) => getComputedStyle(input).appearance
+  );
+
+  expect(appearance).toBe("textfield");
+});

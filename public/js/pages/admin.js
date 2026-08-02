@@ -1,6 +1,5 @@
 import {
   closeCurrentWeek,
-  displayUsers,
   inspectAdminTrack,
   logoutAdmin,
   overrideGameResult,
@@ -13,11 +12,10 @@ import {
   reconcilePickOutcomes,
   rebuildTrackProjections,
   undoAdminAction,
-  loadAdminGuide,
-  renderAdminGuide,
   completeLeagueSeason,
   rolloverLeagueSeason,
 } from "../modules/admin-management.js";
+import { initializeAdminWorkflows } from "../modules/admin-workflows.js";
 
 const lifecycleStatus = document.getElementById("weeklyLifecycleStatus");
 document.getElementById("officialResultForm")?.addEventListener("submit", async (event) => {
@@ -109,7 +107,54 @@ document.getElementById("currentPickRepairForm")?.addEventListener("submit", asy
 document.getElementById("buybackRepairForm")?.addEventListener("submit", async (event) => {
   event.preventDefault();
   const paymentConfirmed = document.getElementById("buybackPaymentConfirmed")?.checked === true;
-  await runRepair(() => reactivateTrack({ trackId: repairTrackId(), paymentConfirmed }), "Track reactivated; its factual wrong Pick remains used.");
+  const correctionNote = document.getElementById("buybackCorrectionNote")?.value;
+  await runRepair(() => reactivateTrack({ trackId: repairTrackId(), paymentConfirmed, correctionNote }), "Track corrected; its factual wrong Pick remains used and buyback decision history was unchanged.");
+});
+
+async function loadBuybacks(view = "pending") {
+  const response = await fetch(`/api/admin/buybacks?view=${view}`);
+  const target = document.getElementById("buybackQueue");
+  if (!response.ok) { target.textContent = (await response.json()).message || "Buyback queue unavailable"; return; }
+  const payload = await response.json();
+  const decisions = Array.isArray(payload.decisions) ? payload.decisions : [];
+  target.replaceChildren(...decisions.map((decision) => {
+    const section = document.createElement("section");
+    section.className = "border rounded p-3 mb-2";
+    const heading = document.createElement("h3"); heading.className = "h5"; heading.textContent = `${decision.user.displayName} (${decision.user.username}) — ${decision.status}`;
+    const summary = document.createElement("p"); summary.textContent = decision.tracks.map((track) => `Track ${track.trackId}: ${track.weekOnePick}`).join("; ") || "No requested Tracks";
+    section.append(heading, summary);
+    if (decision.status === "PENDING_USER_REQUEST") {
+      const choices = document.createElement("fieldset"); const legend = document.createElement("legend"); legend.className = "h6"; legend.textContent = "$10 each — select only Tracks with confirmed external payment"; choices.append(legend);
+      for (const [index, track] of decision.tracks.entries()) { const label = document.createElement("label"); label.className = "form-check-label me-3"; const input = document.createElement("input"); input.type = "checkbox"; input.className = "form-check-input me-1 admin-buyback-track"; input.value = track.trackId; label.append(input, document.createTextNode(`Requested Track ${index + 1} — Week 1: ${track.weekOnePick}`)); choices.append(label); }
+      const paymentLabel = document.createElement("label"); paymentLabel.className = "form-check-label d-block my-2"; const payment = document.createElement("input"); payment.type = "checkbox"; payment.className = "form-check-input me-1 admin-buyback-payment"; paymentLabel.append(payment, document.createTextNode("External payment confirmed for every selected Track")); choices.append(paymentLabel);
+      section.append(choices);
+      const complete = document.createElement("button"); complete.className = "btn btn-success me-2"; complete.textContent = "Complete selected paid subset";
+      complete.addEventListener("click", async () => { const fulfilledTrackIds = [...section.querySelectorAll(".admin-buyback-track:checked")].map((input) => Number(input.value)); const paymentConfirmed = section.querySelector(".admin-buyback-payment").checked; if (!paymentConfirmed || !fulfilledTrackIds.length || !window.confirm(`Reactivate ${fulfilledTrackIds.map((id) => `Track ${id}`).join(", ")} at $10 each and close every other requested Track as unfulfilled?`)) return; await fetch(`/api/admin/buybacks/${decision.id}/complete`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stateVersion: decision.stateVersion, fulfilledTrackIds, paymentConfirmed }) }); await loadBuybacks(); });
+      const cancel = document.createElement("button"); cancel.className = "btn btn-danger"; cancel.textContent = "Cancel request";
+      cancel.addEventListener("click", async () => { if (!window.confirm("Cancel this request, reactivate no Tracks, and permanently close the User's Week 2 buyback decision?")) return; await fetch(`/api/admin/buybacks/${decision.id}/cancel`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stateVersion: decision.stateVersion }) }); await loadBuybacks(); });
+      section.append(complete, cancel);
+    } else if (decision.status === "ELIGIBLE") {
+      const choices = document.createElement("fieldset"); const legend = document.createElement("legend"); legend.className = "h6"; legend.textContent = "Select Tracks with confirmed external payment"; choices.append(legend);
+      for (const [index, track] of decision.tracks.entries()) { const label = document.createElement("label"); label.className = "form-check-label me-3"; const input = document.createElement("input"); input.type = "checkbox"; input.className = "form-check-input me-1 admin-buyback-track"; input.value = track.trackId; label.append(input, document.createTextNode(`Eligible Track ${index + 1}${track.weekOnePick ? ` — Week 1: ${track.weekOnePick}` : ""}`)); choices.append(label); }
+      const paymentLabel = document.createElement("label"); paymentLabel.className = "form-check-label d-block my-2"; const payment = document.createElement("input"); payment.type = "checkbox"; payment.className = "form-check-input me-1 admin-buyback-payment"; paymentLabel.append(payment, document.createTextNode("External payment confirmed for every selected Track")); choices.append(paymentLabel);
+      const complete = document.createElement("button"); complete.className = "btn btn-warning"; complete.type = "button"; complete.textContent = "Complete selected buybacks";
+      complete.addEventListener("click", async () => { const trackIds = [...section.querySelectorAll(".admin-buyback-track:checked")].map((input) => Number(input.value)); if (!payment.checked || !trackIds.length || !window.confirm(`Reactivate ${trackIds.length} selected Tracks for ${decision.user.displayName}?`)) return; const response = await fetch("/api/admin/buybacks/direct/complete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: decision.user.id, trackIds, stateVersion: decision.stateVersion, paymentConfirmed: true }) }); if (response.ok) await loadBuybacks("eligible"); });
+      section.append(choices, complete);
+    }
+    return section;
+  }));
+}
+document.getElementById("loadPendingBuybacks")?.addEventListener("click", () => loadBuybacks("pending"));
+document.getElementById("loadEligibleBuybacks")?.addEventListener("click", () => loadBuybacks("eligible"));
+document.getElementById("loadBuybackHistory")?.addEventListener("click", () => loadBuybacks("history"));
+loadBuybacks();
+document.getElementById("directBuybackForm")?.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const body = { userId: Number(document.getElementById("directBuybackUserId").value), trackIds: document.getElementById("directBuybackTrackIds").value.split(",").map((value) => Number(value.trim())), stateVersion: Number(document.getElementById("directBuybackVersion").value), paymentConfirmed: document.getElementById("directBuybackPayment").checked };
+  if (!window.confirm(`Reactivate ${body.trackIds.map((id) => `Track ${id}`).join(", ")} for User ${body.userId} at $10 each and suppress the remaining offer?`)) return;
+  const response = await fetch("/api/admin/buybacks/direct/complete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!response.ok) { document.getElementById("buybackQueue").textContent = (await response.json()).message || "Direct buyback failed"; return; }
+  await loadBuybacks();
 });
 
 document.getElementById("resetAllPicksForm")?.addEventListener("submit", async (event) => {
@@ -161,12 +206,6 @@ document.getElementById("logoutBtn")?.addEventListener("click", async () => {
     alert("Unable to log out. Please try again.");
   }
 });
-displayUsers();
-const adminGuide = document.getElementById("adminGuide");
-if (adminGuide) {
-  loadAdminGuide()
-    .then((actions) => renderAdminGuide(actions, adminGuide))
-    .catch((error) => {
-      adminGuide.textContent = error.message || "Unable to load Admin Guide.";
-    });
-}
+initializeAdminWorkflows().catch(() => {
+  document.getElementById("adminHome").insertAdjacentHTML("beforeend", '<p role="alert">Unable to load admin data. Refresh and try again.</p>');
+});

@@ -15,8 +15,9 @@ function appFor({ userId, service }) {
 
 test("Pick submission routes reject before service lookup", async () => {
   let called = false;
-  const service = { getSubmissionState: async () => { called = true; }, submit: async () => { called = true; }, getLeagueView: async () => { called = true; } };
+  const service = { getSubmissionState: async () => { called = true; }, getSupport: async () => { called = true; }, submit: async () => { called = true; }, getLeagueView: async () => { called = true; } };
   assert.equal((await request(appFor({ service })).get("/api/user/league/submission")).status, 401);
+  assert.equal((await request(appFor({ service })).get("/api/user/league/support")).status, 401);
   assert.equal(called, false);
 });
 
@@ -24,8 +25,10 @@ test("Pick submission uses session User and personalized responses are not store
   let received;
   const service = {
     getSubmissionState: async () => ({ tracks: [] }),
+    getSupport: async () => ({ contacts: [{ name: "Tate", formattedPhone: "(303) 555-0101", smsUrl: "sms:+13035550101" }] }),
     getLeagueView: async () => ({ pickVisibility: "VISIBLE", users: [] }),
     submit: async (input) => { received = input; return { picks: [] }; },
+    decideBuyback: async (input) => { received = input; return { status: "DECLINED_USER" }; },
   };
   const app = appFor({ userId: 7, service });
   const response = await request(app).post("/api/user/league/submission").send({ userId: 99, selections: [] });
@@ -33,4 +36,11 @@ test("Pick submission uses session User and personalized responses are not store
   assert.equal(received.userId, 7);
   assert.deepEqual(received.selections, []);
   assert.equal(response.headers["cache-control"], "private, no-store");
+  const support = await request(app).get("/api/user/league/support");
+  assert.equal(support.status, 200);
+  assert.equal(support.body.contacts[0].name, "Tate");
+  const decline = await request(app).post("/api/user/league/buyback/decline").send({ userId: 99, stateVersion: 2 });
+  assert.equal(decline.status, 200);
+  assert.equal(received.userId, 7);
+  assert.equal(received.action, "DECLINE");
 });

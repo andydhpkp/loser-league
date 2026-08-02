@@ -5,6 +5,9 @@ const session = require("express-session");
 const { createAdminRouter } = require("./admin/routes");
 const { createAdminActionRouter } = require("./admin/action-routes");
 const { createAdminRepairRouter } = require("./admin/repair-routes");
+const { createAdminBuybackRouter } = require("./admin/buyback-routes");
+const { createBulkTrackRouter } = require("./admin/bulk-track-routes");
+const { createAdminLeagueSeasonRouter } = require("./admin/league-season-routes");
 const { createPickSubmissionRouter } = require("./user/pick-submission-routes");
 const pickLeagueService = require("./modules/picks/league-service");
 const { UpstreamError } = require("./lib/errors");
@@ -18,6 +21,7 @@ const { createDefaultHistoricalResultsLoader } = require("./modules/admin-repair
 const { fetchFixtureSchedule } = require("./nfl/fixture-download-client");
 const { LeagueSeason } = require("../models");
 const { buildOnboardingConfiguration } = require("./onboarding/configuration");
+const buybackService = require("./modules/buyback/buyback-service");
 
 function createApp({
   routes,
@@ -29,6 +33,7 @@ function createApp({
   logger = createLogger(),
   onboardingConfiguration = buildOnboardingConfiguration(),
   requestClosureEvaluation,
+  requestAutoPickEvaluation,
   inspectAdminTrack = inspectTrack,
   loadLeagueSeasonYear = async () => {
     const season = await LeagueSeason.findOne({ where: { open_slot: 1 }, attributes: ["year"] });
@@ -82,12 +87,17 @@ function createApp({
     loadHistoricalResults: createDefaultHistoricalResultsLoader({ fetchImpl }),
     loadRolloverTargetSchedule: ({ year, week }) => fetchFixtureSchedule({ year, week, fetchImpl }),
   }));
+  app.use("/api/admin/league-season", createAdminLeagueSeasonRouter());
   app.use("/api/admin/repairs", createAdminRepairRouter({ inspectTrack: inspectAdminTrack }));
+  app.use("/api/admin/buybacks", createAdminBuybackRouter(buybackService, { requestAutoPickEvaluation }));
+  app.use("/api/admin/tracks/bulk", createBulkTrackRouter());
   app.use("/api/user/league", createPickSubmissionRouter({
+    getSupport: async () => ({ contacts: onboardingConfiguration.presentation.contacts }),
     getSubmissionState: (input) => pickLeagueService.getSubmissionState({ ...input, onboardingPresentation: onboardingConfiguration.presentation }),
     getLeagueView: pickLeagueService.getLeagueView,
     submit: (input) => pickLeagueService.submit({ ...input, fetchImpl }),
-  }));
+    decideBuyback: (input) => pickLeagueService.decideBuyback({ ...input, fetchImpl }),
+  }, { requestAutoPickEvaluation }));
 
   app.get("/api/proxy/nfl", async (_req, res, next) => {
     try {
