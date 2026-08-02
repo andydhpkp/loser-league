@@ -180,7 +180,7 @@ The detailed route inventory is maintained below during delivery.
 | 5 | Exactly-once results and automatic/manual week closure | #11 | Complete; PR #34, Heroku v262 |
 | 6A | Repair schema/inspector, current-week tools, buyback, playoff Pick reset | #12B and #17 | Complete; PR #35, Heroku v263 |
 | 6B | Historical repair, reconciliation, projection rebuild, conditional undo | #12B | Complete; PR #36, Heroku v264 |
-| 6C | Raw emergency hardening/audit, complete Admin Guide and mapping | #12B | Complete gate passed; PR pending |
+| 6C | Raw emergency hardening/audit, complete Admin Guide and mapping | #12B | PR #37; gate passed |
 | 7 | Explicit completion and export-backed rollover | #14 | Pending |
 | 8 | Superseded-route/browser cleanup and full-program verification | Program tracker | Pending |
 
@@ -273,6 +273,10 @@ transactional mutation/audit, sanitized changed-Track targets, and rollback on
 audit failure. The authenticated Admin Guide is registry-derived, and the raw
 to guided route mapping is complete. Residual route deletion work remains in
 the final cleanup PR after reference and replacement proof.
+
+Draft PR #37 opened from commit `46bcb2c`; GitHub Actions run 30732701697 and
+GitGuardian passed. The documentation-only status commit that records this
+evidence must also clear the remote gate before the PR is marked ready.
 
 The first post-merge deployment created Heroku release `v257`, but its release
 command failed because the migration CLI had been pruned as a development
