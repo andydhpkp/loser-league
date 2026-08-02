@@ -12,6 +12,8 @@ target Tracks, or Teams.
   final 15 minutes. Each request has a 10-second timeout.
 - Every web process starts an exact-deadline timer, an asynchronous startup
   catch-up, and a 30-second recovery evaluator.
+- Deadlines farther away than Node's maximum timer duration use bounded
+  intermediate wake-ups; they must never overflow into a rapid retry loop.
 - All evaluators call one serializable service. The locked League Season row
   and unique `AUTO_PICK` operation select one winner across processes.
 - One successful transaction writes every missing normalized Pick, matching

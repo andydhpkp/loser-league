@@ -1,3 +1,5 @@
+const { boundedTimeoutDelay } = require("../../lib/timers");
+
 function createAutoPickCoordinator({
   evaluate,
   now = () => new Date(),
@@ -22,7 +24,7 @@ function createAutoPickCoordinator({
       blockedReason = undefined;
       if (deadlineTimer) clearTimeoutFn(deadlineTimer);
       if (result.deadline && result.status === "NOT_DUE") {
-        const delay = Math.max(0, result.deadline.getTime() - now().getTime());
+        const delay = boundedTimeoutDelay(result.deadline, now());
         deadlineTimer = setTimeoutFn(run, delay);
       }
       if (result.status === "COMPLETED") logger.info("auto_pick_completed", { assignedCount: result.assignedCount, week: result.week });

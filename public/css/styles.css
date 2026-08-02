@@ -1013,3 +1013,74 @@ label {
     width: 100%;
   }
 }
+
+.dashboard-shell,
+.help-shell {
+  max-width: 48rem;
+  padding-block: 2rem;
+}
+
+.dashboard-summary {
+  background: #f8f9fa;
+  border: 1px solid #ced4da;
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.dashboard-summary p:last-child {
+  margin-bottom: 0;
+}
+
+.dashboard-actions {
+  display: grid;
+  gap: 1rem;
+  margin-block: 2rem;
+}
+
+.dashboard-action {
+  border: 2px solid #0d6efd;
+  border-radius: 0.75rem;
+  color: inherit;
+  display: grid;
+  gap: 0.25rem;
+  min-height: 4.5rem;
+  padding: 1rem;
+  text-decoration: none;
+}
+
+.dashboard-action:hover,
+.dashboard-action:focus-visible {
+  background: #eef5ff;
+  color: inherit;
+}
+
+.dashboard-action:focus-visible,
+.authenticated-actions a:focus-visible,
+.authenticated-actions button:focus-visible {
+  outline: 3px solid #212529;
+  outline-offset: 3px;
+}
+
+.help-shell section {
+  margin-block: 1.5rem;
+}
+
+.authenticated-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+@media (max-width: 360px) {
+  .dashboard-shell,
+  .help-shell {
+    padding-inline: 1rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-action {
+    transition: none;
+  }
+}

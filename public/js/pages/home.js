@@ -12,9 +12,4 @@ document
   .querySelector("#adminPassword .btn-primary")
   ?.addEventListener("click", adminHandler);
 
-const loggedInUser = window.localStorage.getItem("loggedInUser");
-if (loggedInUser) {
-  location.href = "../profile.html";
-} else {
-  doTeamsExist();
-}
+doTeamsExist();

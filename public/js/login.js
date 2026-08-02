@@ -18,14 +18,8 @@ export async function loginFormHandler(event) {
     });
 
     if (response.ok) {
-      const data = await response.json();
-      const userId = data.user.id; // Assuming the response includes the user's ID
-
-      // Store the username and user ID in localStorage
-      window.localStorage.setItem("loggedInUser", username.toLowerCase());
-      window.localStorage.setItem("loggedInUserId", userId);
-
-      location.href = "../profile.html";
+      await response.json();
+      location.href = "/dashboard.html";
     } else {
       alert("Sorry, incorrect username or password");
     }

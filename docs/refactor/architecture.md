@@ -88,7 +88,11 @@ binding. The shared HTTP client owns request/error normalization.
 
 ## Browser modules
 
-- Page entries exist for home, registration, profile, league, and admin.
+- Page entries exist for home, registration, authenticated dashboard, User
+  Help, profile, league, and admin.
+- The authenticated dashboard consumes a minimal server-authoritative summary.
+  Its browser entry formats the authoritative deadline for local display but
+  does not infer Pick, buyback, deadline, or League Season rules.
 - The profile entry renders an accessible buyback modal from sanitized
   submission state. Browser dismissal and disabled controls are presentation;
   server identity, eligibility, price, deadline, and Pick gating are authority.

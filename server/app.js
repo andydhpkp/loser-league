@@ -9,6 +9,8 @@ const { createAdminBuybackRouter } = require("./admin/buyback-routes");
 const { createBulkTrackRouter } = require("./admin/bulk-track-routes");
 const { createAdminLeagueSeasonRouter } = require("./admin/league-season-routes");
 const { createPickSubmissionRouter } = require("./user/pick-submission-routes");
+const { createDashboardRouter } = require("./user/dashboard-routes");
+const dashboardService = require("./modules/dashboard/dashboard-service");
 const pickLeagueService = require("./modules/picks/league-service");
 const { UpstreamError } = require("./lib/errors");
 const { createLogger } = require("./lib/logger");
@@ -35,6 +37,7 @@ function createApp({
   requestClosureEvaluation,
   requestAutoPickEvaluation,
   inspectAdminTrack = inspectTrack,
+  userDashboardService = dashboardService,
   loadLeagueSeasonYear = async () => {
     const season = await LeagueSeason.findOne({ where: { open_slot: 1 }, attributes: ["year"] });
     if (!season) throw new UpstreamError("League Season configuration is unavailable");
@@ -78,6 +81,16 @@ function createApp({
     }
     res.sendFile(path.join(__dirname, "../public/admin.html"));
   });
+  for (const page of ["dashboard.html", "help.html"]) {
+    app.get(`/${page}`, sessionMiddleware, (req, res) => {
+      if (req.session?.loggedIn !== true || !Number.isInteger(req.session.user_id)) {
+        res.redirect("/index.html");
+        return;
+      }
+      res.set("Cache-Control", "private, no-store");
+      res.sendFile(path.join(__dirname, `../public/${page}`));
+    });
+  }
   app.use(express.static(path.join(__dirname, "../public")));
   app.use(sessionMiddleware);
   app.use("/api/admin", createAdminRouter({ adminPassword }));
@@ -98,6 +111,7 @@ function createApp({
     submit: (input) => pickLeagueService.submit({ ...input, fetchImpl }),
     decideBuyback: (input) => pickLeagueService.decideBuyback({ ...input, fetchImpl }),
   }, { requestAutoPickEvaluation }));
+  app.use("/api/user/dashboard", createDashboardRouter(userDashboardService, { requestAutoPickEvaluation }));
 
   app.get("/api/proxy/nfl", async (_req, res, next) => {
     try {

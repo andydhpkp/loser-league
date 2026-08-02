@@ -1,3 +1,5 @@
+const { boundedTimeoutDelay } = require("../../lib/timers");
+
 function createWeekClosureCoordinator({
   evaluate,
   now = () => new Date(),
@@ -22,7 +24,7 @@ function createWeekClosureCoordinator({
       blockedReason = undefined;
       if (timer) clearTimeoutFn(timer);
       if (result.nextCheckAt) {
-        const delay = Math.max(0, result.nextCheckAt.getTime() - now().getTime());
+        const delay = boundedTimeoutDelay(result.nextCheckAt, now());
         timer = setTimeoutFn(run, delay);
       }
       if (result.status === "COMPLETED") {

@@ -107,6 +107,15 @@ test("admin page redirects until the client has an admin session", async () => {
   assert.match(accepted.text, /id="adminView"/);
 });
 
+test("authenticated User pages redirect until a User session exists", async () => {
+  const application = createTestApp({ routes: express.Router() });
+  for (const path of ["/dashboard.html", "/help.html"]) {
+    const response = await request(application).get(path);
+    assert.equal(response.status, 302);
+    assert.equal(response.headers.location, "/index.html");
+  }
+});
+
 test("admin login rejects malformed credentials with one generic response", async () => {
   const app = createTestApp({
     routes: express.Router(),
