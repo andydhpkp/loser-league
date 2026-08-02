@@ -3,8 +3,6 @@ import { bindLoginForm } from "../login.js";
 import { bindResetPassword } from "../reset-password.js";
 import {
   doTeamsExist,
-  getCurrentWeek,
-  getEndOfGameTime,
 } from "../teams.js";
 
 bindLoginForm();
@@ -19,6 +17,4 @@ if (loggedInUser) {
   location.href = "../profile.html";
 } else {
   doTeamsExist();
-  getEndOfGameTime();
-  getCurrentWeek();
 }

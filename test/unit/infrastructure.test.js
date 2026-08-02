@@ -122,9 +122,10 @@ test("schedule proxy maps rejected and thrown upstream calls to safe 502 errors"
       createTestApp({
         routes: express.Router(),
         sessionSecret: "test-secret",
+        loadLeagueSeasonYear: async () => 2026,
         fetchImpl,
       })
-    ).get("/api/proxy/nfl-2025");
+    ).get("/api/proxy/nfl");
 
     assert.equal(response.status, 502);
     assert.deepEqual(response.body, {

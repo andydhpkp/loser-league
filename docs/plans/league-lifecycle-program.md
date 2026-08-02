@@ -162,12 +162,13 @@ The detailed route inventory is maintained below during delivery.
 
 | Existing capability | Disposition | Replacement PR | Status |
 | --- | --- | --- | --- |
-| Raw repair and maintenance routes | Retained admin-only with transactional legacy audit; guided mapping documented | Admin repair | PR 6C implemented; final deletion proof pending |
-| Browser Track Pick write | Replaced with atomic final submission | Final submission | PR gate passed |
-| Browser force-pick | Replaced with server lifecycle auto-pick | Auto-pick | PR gate passed |
-| Browser result and current-Pick reset orchestration | Replaced with server week closure | Weekly results | Implemented; PR gate pending |
-| Admin Track/User create/delete and add-win | Move behind audited admin actions | Admin infrastructure | PR gate passed |
-| Buyback wrong-Pick reset | Replace with guided Week 1 buyback | Admin repair | Pending |
+| Raw repair and maintenance routes | Retained admin-only with transactional legacy audit; guided mapping documented | Admin repair | Intentionally retained owner tools |
+| Browser Track Pick write | Replaced with atomic final submission | Final submission | Complete in production |
+| Browser force-pick | Replaced with server lifecycle auto-pick | Auto-pick | Complete in production |
+| Browser result and current-Pick reset orchestration | Replaced with server week closure | Weekly results | Complete in production; dead browser timer removed in PR 8 |
+| Admin Track/User create/delete and add-win | Moved behind audited admin actions | Admin infrastructure | Complete in production |
+| Buyback wrong-Pick reset | Replaced with guided Week 1 buyback | Admin repair | Complete in production; dead browser helpers removed in PR 8 |
+| Fixed-year Fixture proxy | Replaced with stored-season-year proxy | Rollover/cleanup | Compatibility route removed in PR 8 |
 
 ## Pull-request sequence
 
@@ -181,10 +182,11 @@ The detailed route inventory is maintained below during delivery.
 | 6A | Repair schema/inspector, current-week tools, buyback, playoff Pick reset | #12B and #17 | Complete; PR #35, Heroku v263 |
 | 6B | Historical repair, reconciliation, projection rebuild, conditional undo | #12B | Complete; PR #36, Heroku v264 |
 | 6C | Raw emergency hardening/audit, complete Admin Guide and mapping | #12B | Complete; PR #37, Heroku v265 |
-| 7 | Explicit completion and export-backed rollover | #14 | PR gate passed |
-| 8 | Superseded-route/browser cleanup and full-program verification | Program tracker | Pending |
+| 7 | Explicit completion and export-backed rollover | #14 | Complete; PR #38, Heroku v266 |
+| 8 | Superseded-route/browser cleanup and full-program verification | Program tracker | Verification passed; PR pending |
 
-Issue #12 remains open until both #12A and #12B are complete.
+Issues #12, #14, and #17 are complete. Remaining open Issues #15, #18, and #20
+are independent of this lifecycle program.
 
 ## Delivery and verification
 
@@ -422,9 +424,34 @@ the forward repair is tracked in
   overrides, and append-only audit evidence survive. No schema migration is
   required.
 - The live browser Fixture proxy now resolves the stored open League Season
-  year; the year-named 2025 route remains for historical compatibility only.
+  year. The temporarily retained year-named 2025 compatibility route is
+  removed by PR 8 after reference proof.
 - `npm run test:unit` — passed, 135 tests.
 - `npm run test:unit:coverage` — passed, 83.33% line coverage.
+- `npm run lint:browser` — passed.
+- `npm run test:integration` — passed, 38 tests against the guarded disposable
+  MySQL schema.
+- `npm run test:smoke` — passed, 7 Playwright tests.
+- `git diff --check` — passed.
+- PR #38 merged as `566b2587777fe441bdffd00894968bb7b4bb1671`.
+  GitHub Actions workflow `30733548751` passed against that exact SHA, Heroku
+  release `v266` succeeded without migrations, bounded homepage and NFL Teams
+  health checks passed, and Issue #14 closed.
+
+### PR 8 implementation — 2026-08-02
+
+- Made the stored League Season week authoritative in the Pick UI: the browser
+  no longer increments it or substitutes a hard-coded Week 12, and Fixture
+  matchups are filtered to that exact week.
+- Removed the no-op browser result timer, discarded duplicate Fixture fetch,
+  unused direct buyback helpers, and unreferenced fixed-2025 Fixture proxy after
+  caller and route reference searches.
+- Preserved the dynamic stored-year Fixture proxy, Team bootstrap path, and all
+  authenticated/audited raw emergency repair endpoints.
+- Reconciled the route inventory and issue status, replaced the stale handoff,
+  and added the durable lifecycle program summary.
+- `npm run test:unit` — passed, 136 tests.
+- `npm run test:unit:coverage` — passed, 83.28% line coverage.
 - `npm run lint:browser` — passed.
 - `npm run test:integration` — passed, 38 tests against the guarded disposable
   MySQL schema.

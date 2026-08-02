@@ -169,13 +169,14 @@ test("NFL proxy returns upstream JSON through the application interface", async 
   const app = createTestApp({
     routes: express.Router(),
     sessionSecret: "test-session-secret",
+    loadLeagueSeasonYear: async () => 2026,
     fetchImpl: async () => ({
       ok: true,
       json: async () => upstreamBody,
     }),
   });
 
-  const response = await request(app).get("/api/proxy/nfl-2025");
+  const response = await request(app).get("/api/proxy/nfl");
 
   assert.equal(response.status, 200);
   assert.deepEqual(response.body, upstreamBody);
