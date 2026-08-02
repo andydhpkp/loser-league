@@ -35,7 +35,7 @@ test("admin records a confirmed solo win from the selected User workspace", asyn
   await page.goto("/admin.html");
   await page.getByRole("button", { name: "Make Changes for a User" }).click();
   await page.locator("#adminUserList").getByRole("button", { name: /Example User/ }).click();
-  const yearInput = page.getByLabel("League Season year");
+  const yearInput = page.locator("#adminUserWorkspace").getByLabel("League Season year");
   await expect(yearInput).toHaveAttribute("type", "text");
   await expect(yearInput).toHaveAttribute("inputmode", "numeric");
   await expect(yearInput).toHaveAttribute("pattern", "[0-9]{4}");
