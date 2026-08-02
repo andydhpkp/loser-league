@@ -790,10 +790,31 @@ export async function closeCurrentWeek(note, options = {}) {
   return runAdminAction("CLOSE_WEEK", {}, { ...options, note: note.trim() });
 }
 
+export async function inspectAdminTrack(trackId, fetchImpl = fetch) {
+  const response = await fetchImpl(`/api/admin/repairs/tracks/${Number(trackId)}`);
+  if (!response.ok) throw new Error("Unable to inspect Track");
+  return response.json();
+}
+
+export const resetCurrentPicks = (intent, options = {}) =>
+  runAdminAction("RESET_CURRENT_PICKS", intent, options);
+
+export const assignCurrentPick = (intent, options = {}) =>
+  runAdminAction("ASSIGN_CURRENT_PICK", intent, options);
+
+export const replaceCurrentPick = (intent, options = {}) =>
+  runAdminAction("REPLACE_CURRENT_PICK", intent, options);
+
+export const reactivateTrack = (intent, options = {}) =>
+  runAdminAction("REACTIVATE_TRACK", intent, options);
+
+export const resetPlayoffPickPools = (options = {}) =>
+  runAdminAction("RESET_PLAYOFF_PICK_POOLS", {}, options);
+
 export async function runAdminAction(
   action,
   intent,
-  { confirmImpl = confirm, fetchImpl = fetch, displayName = "", note } = {}
+  { confirmImpl = confirm, fetchImpl = fetch, displayName = "", note, confirmationPhrase } = {}
 ) {
   const previewResponse = await fetchImpl(`/api/admin/actions/${action}/preview`, {
     method: "POST",
@@ -812,7 +833,11 @@ export async function runAdminAction(
   const response = await fetchImpl(`/api/admin/actions/${action}/confirm`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ confirmationKey: preview.confirmationKey, ...(note ? { note } : {}) }),
+    body: JSON.stringify({
+      confirmationKey: preview.confirmationKey,
+      ...(note ? { note } : {}),
+      ...(confirmationPhrase ? { confirmationPhrase } : {}),
+    }),
   });
   if (!response.ok) throw new Error("Unable to confirm admin action");
   const operation = await response.json();

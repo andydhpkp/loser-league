@@ -154,6 +154,28 @@ if (!databaseUrl) {
     assert.equal(state.autoPickStatus, "COMPLETED");
   });
 
+  test("normal submission and auto-pick commit in the active playoff Pick cycle", async () => {
+    const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 19, pick_cycle: 2, state_version: 9, open_slot: 1 });
+    const submittingUser = await User.create({ first_name: "Playoff", last_name: "Submitter", username: "playoff-submit", email: "playoff-submit@example.test", password: "safe-test-password" });
+    const automaticUser = await User.create({ first_name: "Playoff", last_name: "Automatic", username: "playoff-auto", email: "playoff-auto@example.test", password: "safe-test-password" });
+    const submittingTrack = await Track.create({ user_id: submittingUser.id, league_season_id: season.id, available_picks: ["Broncos", "Raiders"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 1 });
+    const automaticTrack = await Track.create({ user_id: automaticUser.id, league_season_id: season.id, available_picks: ["Broncos", "Raiders"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 1 });
+    await Pick.bulkCreate([
+      { track_id: submittingTrack.id, league_season_id: season.id, week: 1, pick_cycle: 1, team_name: "Broncos", origin: "USER_SUBMISSION", outcome: "PREDICTION_CORRECT", committed_at: new Date(), state_version: 0 },
+      { track_id: automaticTrack.id, league_season_id: season.id, week: 1, pick_cycle: 1, team_name: "Broncos", origin: "AUTOMATIC_SELECTION", outcome: "PREDICTION_CORRECT", committed_at: new Date(), state_version: 0 },
+    ]);
+    const schedule = { year: 2026, week: 19, provider: "FIXTURE_DOWNLOAD", contentHash: "9".repeat(64), teams: ["Broncos", "Raiders"], earliestKickoff: new Date("2027-01-10T00:00:00Z"), normalizedSchedule: { week: 19, games: [] }, fetchedAt: new Date("2027-01-01T00:00:00Z") };
+
+    await submitPicks({ userId: submittingUser.id, selections: [{ trackId: submittingTrack.id, stateVersion: 1, teamName: "Broncos" }], schedule, now: new Date("2027-01-02T00:00:00Z") });
+    await executeAutoPick({ schedule, now: new Date("2027-01-10T00:00:00Z"), randomIndex: () => 0 });
+
+    const cycleTwo = await Pick.findAll({ where: { league_season_id: season.id, pick_cycle: 2 }, order: [["track_id", "ASC"]] });
+    assert.deepEqual(cycleTwo.map((pick) => [pick.track_id, pick.team_name, pick.pick_cycle]), [
+      [submittingTrack.id, "Broncos", 2],
+      [automaticTrack.id, "Broncos", 2],
+    ]);
+  });
+
   test("concurrent auto-pick evaluators converge on one Pick and one completion", async () => {
     const { LeagueWeekOperation } = require("../../models");
     const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 1, state_version: 1, open_slot: 1 });

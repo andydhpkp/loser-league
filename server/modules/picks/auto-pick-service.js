@@ -29,7 +29,7 @@ async function executeAutoPick({ schedule, now = () => new Date(), randomIndex =
     if (completed) return { status: "ALREADY_COMPLETED", leagueSeasonId: season.id, week: season.current_week };
 
     const tracks = await Track.findAll({ where: { league_season_id: season.id, eliminated_by_pick_id: null }, order: [["id", "ASC"]], transaction, lock: transaction.LOCK.UPDATE });
-    const picks = tracks.length ? await Pick.findAll({ where: { track_id: { [Op.in]: tracks.map((track) => track.id) }, league_season_id: season.id }, transaction, lock: transaction.LOCK.UPDATE }) : [];
+    const picks = tracks.length ? await Pick.findAll({ where: { track_id: { [Op.in]: tracks.map((track) => track.id) }, league_season_id: season.id, pick_cycle: season.pick_cycle }, transaction, lock: transaction.LOCK.UPDATE }) : [];
     const currentTrackIds = new Set(picks.filter((pick) => pick.week === season.current_week).map((pick) => pick.track_id));
     const targets = tracks.filter((track) => !currentTrackIds.has(track.id)).map((track) => {
       const priorTeamNames = picks.filter((pick) => pick.track_id === track.id && pick.week < season.current_week).map((pick) => pick.team_name);
@@ -42,7 +42,7 @@ async function executeAutoPick({ schedule, now = () => new Date(), randomIndex =
     await ScheduleSnapshot.findOrCreate({ where: { league_season_id: season.id, week: season.current_week, provider: schedule.provider, content_hash: schedule.contentHash }, defaults: { normalized_schedule: schedule.normalizedSchedule, fetched_at: schedule.fetchedAt, created_at: lockedNow }, transaction });
     for (const selection of selections) {
       const target = targets.find(({ id }) => id === selection.trackId);
-      await Pick.create({ track_id: target.id, league_season_id: season.id, week: season.current_week, team_name: selection.teamName, origin: "AUTOMATIC_SELECTION", outcome: "PENDING", committed_at: lockedNow, schedule_hash: schedule.contentHash, state_version: 0 }, { transaction });
+      await Pick.create({ track_id: target.id, league_season_id: season.id, week: season.current_week, pick_cycle: season.pick_cycle, team_name: selection.teamName, origin: "AUTOMATIC_SELECTION", outcome: "PENDING", committed_at: lockedNow, schedule_hash: schedule.contentHash, state_version: 0 }, { transaction });
       await target.track.update({ current_pick: selection.teamName, used_picks: [...target.track.used_picks, selection.teamName], available_picks: target.track.available_picks.filter((team) => team !== selection.teamName), state_version: target.track.state_version + 1 }, { transaction });
     }
     await LeagueWeekOperation.create({ league_season_id: season.id, week: season.current_week, phase: "AUTO_PICK", mode: "AUTOMATIC", schedule_hash: schedule.contentHash, summary: { assignedCount: selections.length, alreadySubmittedCount: tracks.length - selections.length }, completed_at: lockedNow }, { transaction });

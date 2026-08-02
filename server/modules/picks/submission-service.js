@@ -30,7 +30,7 @@ async function submitPicks({ userId, selections, schedule, now = () => new Date(
     const lockedNow = clock();
     if (lockedNow >= schedule.earliestKickoff) throw new ConflictError("Pick submission is closed");
     const tracks = await Track.findAll({ where: { user_id: userId, league_season_id: season.id, eliminated_by_pick_id: null }, order: [["id", "ASC"]], transaction, lock: transaction.LOCK.UPDATE });
-    const existing = await Pick.findAll({ where: { track_id: { [Op.in]: tracks.map((track) => track.id) }, league_season_id: season.id, week: season.current_week }, transaction, lock: transaction.LOCK.UPDATE });
+    const existing = await Pick.findAll({ where: { track_id: { [Op.in]: tracks.map((track) => track.id) }, league_season_id: season.id, week: season.current_week, pick_cycle: season.pick_cycle }, transaction, lock: transaction.LOCK.UPDATE });
     const byTrack = new Map(requested.map((selection) => [selection.trackId, selection]));
     if (byTrack.size !== requested.length || requested.length !== tracks.length || tracks.some((track) => !byTrack.has(track.id))) {
       throw new ValidationError("Submit exactly one Pick for every active Track");
@@ -41,7 +41,7 @@ async function submitPicks({ userId, selections, schedule, now = () => new Date(
       const committed = existingByTrack.get(track.id);
       if (committed && committed.team_name !== selection.teamName) throw new ConflictError("Submitted Picks are locked");
       if (!committed && track.state_version !== selection.stateVersion) throw new ConflictError(`Track ${track.id} changed; reload before submitting`);
-      const prior = await Pick.findAll({ where: { track_id: track.id, league_season_id: season.id, week: { [Op.lt]: season.current_week } }, attributes: ["team_name"], transaction });
+      const prior = await Pick.findAll({ where: { track_id: track.id, league_season_id: season.id, pick_cycle: season.pick_cycle, week: { [Op.lt]: season.current_week } }, attributes: ["team_name"], transaction });
       if (!eligibleTeamsForTrack({ scheduledTeams: schedule.teams, priorTeamNames: prior.map((pick) => pick.team_name) }).includes(selection.teamName)) {
         throw new ValidationError(`Track ${track.id} has an ineligible Team`);
       }
@@ -50,11 +50,11 @@ async function submitPicks({ userId, selections, schedule, now = () => new Date(
     for (const track of tracks) {
       if (existingByTrack.has(track.id)) continue;
       const selection = byTrack.get(track.id);
-      await Pick.create({ track_id: track.id, league_season_id: season.id, week: season.current_week, team_name: selection.teamName, origin: "USER_SUBMISSION", outcome: "PENDING", committed_at: lockedNow, schedule_hash: schedule.contentHash, state_version: 0 }, { transaction });
+      await Pick.create({ track_id: track.id, league_season_id: season.id, week: season.current_week, pick_cycle: season.pick_cycle, team_name: selection.teamName, origin: "USER_SUBMISSION", outcome: "PENDING", committed_at: lockedNow, schedule_hash: schedule.contentHash, state_version: 0 }, { transaction });
       const used = [...track.used_picks, selection.teamName];
       await track.update({ current_pick: selection.teamName, used_picks: used, available_picks: track.available_picks.filter((team) => team !== selection.teamName), state_version: track.state_version + 1 }, { transaction });
     }
-    const picks = await Pick.findAll({ where: { track_id: { [Op.in]: tracks.map((track) => track.id) }, league_season_id: season.id, week: season.current_week }, order: [["track_id", "ASC"]], transaction });
+    const picks = await Pick.findAll({ where: { track_id: { [Op.in]: tracks.map((track) => track.id) }, league_season_id: season.id, week: season.current_week, pick_cycle: season.pick_cycle }, order: [["track_id", "ASC"]], transaction });
     return { leagueSeasonId: season.id, week: season.current_week, idempotent: existing.length === tracks.length, picks: picks.map((pick) => ({ trackId: pick.track_id, teamName: pick.team_name, committedAt: pick.committed_at })) };
   });
 }

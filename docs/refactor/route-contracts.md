@@ -88,6 +88,11 @@ Static/named paths must be registered before `/:id` so they are reachable.
 
 `GET /api/admin/actions`, `POST /api/admin/actions/:action/preview`, and
 `POST /api/admin/actions/:action/confirm` require the shared-admin session.
+Registered guided repairs use the same preview/confirm protocol. Confirmation
+accepts the one-use `confirmationKey` and, where required, an exact
+`confirmationPhrase`. `GET /api/admin/repairs/tracks/:trackId` is an
+authenticated, read-only Track inspector that excludes User email and
+credentials.
 The registry includes `OVERRIDE_GAME_RESULT` and `CLOSE_WEEK`.
 
 `OVERRIDE_GAME_RESULT` preview accepts the exact current Fixture home/away

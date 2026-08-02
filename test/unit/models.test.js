@@ -176,7 +176,28 @@ test("Pick validates explicit week, origin, and outcome", async () => {
     team_name: "Broncos",
     origin: "USER_SUBMISSION",
     outcome: "PENDING",
+    pick_cycle: 1,
   }).validate();
+
+  await Pick.build({
+    track_id: 10,
+    league_season_id: 2,
+    week: 19,
+    team_name: "Broncos",
+    origin: "SHARED_ADMIN_REPAIR",
+    outcome: "PENDING",
+    pick_cycle: 2,
+  }).validate();
+
+  await assert.rejects(Pick.build({
+    track_id: 10,
+    league_season_id: 2,
+    week: 19,
+    team_name: "Broncos",
+    origin: "SHARED_ADMIN_REPAIR",
+    outcome: "PENDING",
+    pick_cycle: 3,
+  }).validate(), /pick_cycle/);
 
   await assert.rejects(
     Pick.build({
@@ -225,6 +246,9 @@ test("model graph exposes League Season, Pick history, and elimination associati
     models.OfficialGameResultOverride.associations.auditOperation.target,
     models.AdminAuditOperation
   );
+  assert.equal(models.Track.associations.reactivations.target, models.TrackReactivation);
+  assert.equal(models.TrackReactivation.associations.waivedPick.target, models.Pick);
+  assert.equal(models.TrackReactivation.associations.auditOperation.target, models.AdminAuditOperation);
 });
 
 test("League week operation validates exactly-once lifecycle phases", async () => {

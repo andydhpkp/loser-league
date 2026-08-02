@@ -10,6 +10,7 @@ const AdminActionPreview = require('./AdminActionPreview')
 const AdminAuditOperation = require('./AdminAuditOperation')
 const AdminAuditTarget = require('./AdminAuditTarget')
 const OfficialGameResultOverride = require('./OfficialGameResultOverride')
+const TrackReactivation = require('./TrackReactivation')
 
 User.hasMany(Track, {
     foreignKey: 'user_id'
@@ -87,6 +88,12 @@ AdminActionPreview.belongsTo(AdminAuditOperation, { as: 'auditOperation', foreig
 LeagueSeason.hasMany(OfficialGameResultOverride, { as: 'officialResultOverrides', foreignKey: 'league_season_id' })
 OfficialGameResultOverride.belongsTo(LeagueSeason, { as: 'leagueSeason', foreignKey: 'league_season_id' })
 OfficialGameResultOverride.belongsTo(AdminAuditOperation, { as: 'auditOperation', foreignKey: 'admin_audit_operation_id' })
+Track.hasMany(TrackReactivation, { as: 'reactivations', foreignKey: 'track_id' })
+TrackReactivation.belongsTo(Track, { as: 'track', foreignKey: 'track_id' })
+LeagueSeason.hasMany(TrackReactivation, { as: 'trackReactivations', foreignKey: 'league_season_id' })
+TrackReactivation.belongsTo(LeagueSeason, { as: 'leagueSeason', foreignKey: 'league_season_id' })
+TrackReactivation.belongsTo(Pick, { as: 'waivedPick', foreignKey: 'waived_pick_id' })
+TrackReactivation.belongsTo(AdminAuditOperation, { as: 'auditOperation', foreignKey: 'admin_audit_operation_id' })
 
 
 module.exports = {
@@ -100,5 +107,6 @@ module.exports = {
     AdminActionPreview,
     AdminAuditOperation,
     AdminAuditTarget,
-    OfficialGameResultOverride
+    OfficialGameResultOverride,
+    TrackReactivation
 };

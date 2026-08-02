@@ -34,6 +34,12 @@ LeagueSeason.init(
       allowNull: false,
       validate: { min: 0, max: 22 },
     },
+    pick_cycle: {
+      type: DataTypes.TINYINT.UNSIGNED,
+      allowNull: false,
+      defaultValue: 1,
+      validate: { isIn: [[1, 2]] },
+    },
     state_version: {
       type: DataTypes.INTEGER.UNSIGNED,
       allowNull: false,

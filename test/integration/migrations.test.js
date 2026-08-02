@@ -35,6 +35,7 @@ if (!databaseUrl) {
       "admin_audit_operation",
       "admin_audit_target",
       "official_game_result_override",
+      "track_reactivation",
     ]) {
       assert.equal(tables.has(table), true, `missing ${table}`);
     }
@@ -48,6 +49,12 @@ if (!databaseUrl) {
     assert.equal(audit.actor_id, undefined);
     const pick = await queryInterface.describeTable("pick");
     assert.ok(pick.schedule_hash);
+    assert.ok(pick.pick_cycle);
+    const season = await queryInterface.describeTable("league_season");
+    assert.ok(season.pick_cycle);
+    const reactivation = await queryInterface.describeTable("track_reactivation");
+    assert.ok(reactivation.waived_pick_id);
+    assert.ok(reactivation.admin_audit_operation_id);
     const resultOverride = await queryInterface.describeTable("official_game_result_override");
     assert.ok(resultOverride.matchup_key);
     assert.ok(resultOverride.schedule_hash);

@@ -1,10 +1,22 @@
 const express = require("express");
 const { requireAdmin } = require("./require-admin");
 const { listAdminActions } = require("./action-registry");
-const { confirmPreview, createPreview } = require("./action-service");
 const { AdminAuditOperation, AdminAuditTarget } = require("../../models");
 
-function createAdminActionRouter({ requestClosureEvaluation = async () => {}, loadManualClosureContext } = {}) {
+function defaultCreatePreview(...args) {
+  return require("./action-service").createPreview(...args);
+}
+
+function defaultConfirmPreview(...args) {
+  return require("./action-service").confirmPreview(...args);
+}
+
+function createAdminActionRouter({
+  requestClosureEvaluation = async () => {},
+  loadManualClosureContext,
+  createActionPreview = defaultCreatePreview,
+  confirmActionPreview = defaultConfirmPreview,
+} = {}) {
   const router = express.Router();
   router.use(requireAdmin);
 
@@ -22,14 +34,14 @@ function createAdminActionRouter({ requestClosureEvaluation = async () => {}, lo
   router.post("/:action/preview", async (req, res, next) => {
     try {
       const manualClosureContext = req.params.action === "CLOSE_WEEK" ? await loadManualClosureContext() : undefined;
-      res.status(201).json(await createPreview(req.params.action, req.body, { manualClosureContext }));
+      res.status(201).json(await createActionPreview(req.params.action, req.body, { manualClosureContext }));
     }
     catch (error) { next(error); }
   });
   router.post("/:action/confirm", async (req, res, next) => {
     try {
       const manualClosureContext = req.params.action === "CLOSE_WEEK" ? await loadManualClosureContext() : undefined;
-      const result = await confirmPreview(req.params.action, req.body.confirmationKey, req.body.note, { manualClosureContext });
+      const result = await confirmActionPreview(req.params.action, req.body.confirmationKey, req.body.note, { manualClosureContext, confirmationPhrase: req.body.confirmationPhrase });
       res.json(result);
       if (req.params.action === "OVERRIDE_GAME_RESULT") void requestClosureEvaluation();
     }

@@ -49,6 +49,46 @@
         </form>
         <p id="weeklyLifecycleStatus" role="status" aria-live="polite"></p>
       </section>
+      <section class="container my-4" aria-labelledby="guidedRepairsHeading">
+        <h2 id="guidedRepairsHeading">Guided Track repairs</h2>
+        <p>Inspect a Track before changing it. Repairs are previewed and audited.</p>
+        <form id="trackInspectorForm" class="row g-2 mb-4">
+          <div class="col-md-4"><label class="form-label" for="repairTrackId">Track ID</label><input class="form-control" id="repairTrackId" type="number" min="1" required /></div>
+          <div class="col-12"><button class="btn btn-info" type="submit">Inspect Track</button></div>
+        </form>
+        <pre id="trackInspectorResult" class="border rounded p-3 bg-light" aria-live="polite"></pre>
+
+        <div class="row g-4 mt-1">
+          <form id="currentPickRepairForm" class="col-lg-6">
+            <h3 class="h5">Current Pick</h3>
+            <label class="form-label" for="repairTeamName">Team</label>
+            <input class="form-control mb-2" id="repairTeamName" />
+            <div class="d-flex gap-2 flex-wrap">
+              <button class="btn btn-primary" type="submit" name="repairAction" value="assign">Assign missing Pick</button>
+              <button class="btn btn-warning" type="submit" name="repairAction" value="replace">Replace pending Pick</button>
+              <button class="btn btn-danger" type="submit" name="repairAction" value="reset">Reset pending Pick</button>
+            </div>
+          </form>
+          <form id="buybackRepairForm" class="col-lg-6">
+            <h3 class="h5">Week 1 buyback</h3>
+            <div class="form-check mb-2"><input class="form-check-input" id="buybackPaymentConfirmed" type="checkbox" required /><label class="form-check-label" for="buybackPaymentConfirmed">Payment confirmed</label></div>
+            <button class="btn btn-warning" type="submit">Reactivate eliminated Track</button>
+          </form>
+          <form id="resetAllPicksForm" class="col-lg-6">
+            <h3 class="h5">Reset every current Pick</h3>
+            <label class="form-label" for="resetAllPhrase">Type RESET EVERY TRACK</label>
+            <input class="form-control mb-2" id="resetAllPhrase" required />
+            <button class="btn btn-danger" type="submit">Preview league-wide reset</button>
+          </form>
+          <form id="playoffResetForm" class="col-lg-6">
+            <h3 class="h5">Week 19 playoff Pick reset</h3>
+            <label class="form-label" for="playoffResetPhrase">Type RESET PICKS FOR PLAYOFFS</label>
+            <input class="form-control mb-2" id="playoffResetPhrase" required />
+            <button class="btn btn-danger" type="submit">Preview playoff reset</button>
+          </form>
+        </div>
+        <p id="guidedRepairStatus" role="status" aria-live="polite"></p>
+      </section>
       <section id="adminUsers"></section>
     </main>
     <button
