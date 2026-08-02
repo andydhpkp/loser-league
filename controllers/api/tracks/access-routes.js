@@ -4,6 +4,7 @@ const { Op, Sequelize } = require("sequelize");
 const { makePick } = require("../../../server/modules/tracks/pick-state");
 const { logger } = require("../../../server/lib/logger");
 const { requireAdmin } = require("../../../server/admin/require-admin");
+const { legacyEmergencyRepair } = require("../../../server/admin/legacy-emergency-repair");
 
 router.get("/", requireAdmin, (req, res) => {
   Track.findAll({
@@ -126,14 +127,14 @@ router.get("/wrong-pick-not-null/:userId", requireAdmin, (req, res) => {
     });
 });
 
-router.put("/reset-wrong-pick/:trackId", (req, res) => {
+router.put("/reset-wrong-pick/:trackId", requireAdmin, legacyEmergencyRepair, (req, res) => {
   const trackId = req.params.trackId;
 
   if (!trackId) {
     return res.status(400).json({ error: "Track ID is required" });
   }
 
-  Track.update({ wrong_pick: null }, { where: { id: trackId } })
+  Track.update({ wrong_pick: null }, { where: { id: trackId }, transaction: res.locals.legacyEmergencyTransaction })
     .then(([rowsUpdate]) => {
       if (rowsUpdate === 0) {
         return res.status(404).json({ error: "No track found with this ID" });
@@ -186,12 +187,13 @@ router.post("/", (req, res) => {
 });
 
 //Make Pick
-router.put("/:id(\\d+)", requireAdmin, (req, res) => {
+router.put("/:id(\\d+)", requireAdmin, legacyEmergencyRepair, (req, res) => {
   // First, fetch the current track
   Track.findOne({
     where: {
       id: req.params.id,
     },
+    transaction: res.locals.legacyEmergencyTransaction,
   })
     .then((dbTrack) => {
       if (!dbTrack) {
@@ -213,7 +215,7 @@ router.put("/:id(\\d+)", requireAdmin, (req, res) => {
       dbTrack.current_pick = nextState.currentPick;
 
       // Now, save the track with the modified properties
-      return dbTrack.save();
+      return dbTrack.save({ transaction: res.locals.legacyEmergencyTransaction });
     })
     .then((updatedTrack) => {
       res.json(updatedTrack);
@@ -225,7 +227,7 @@ router.put("/:id(\\d+)", requireAdmin, (req, res) => {
 });
 
 //Set Losing Team
-router.put("/:id(\\d+)/loser", (req, res) => {
+router.put("/:id(\\d+)/loser", requireAdmin, legacyEmergencyRepair, (req, res) => {
   const { wrong_pick } = req.body;
 
   Track.update(
@@ -234,6 +236,7 @@ router.put("/:id(\\d+)/loser", (req, res) => {
       where: {
         id: req.params.id,
       },
+      transaction: res.locals.legacyEmergencyTransaction,
     }
   )
     .then((dbTrack) => {
@@ -250,8 +253,8 @@ router.put("/:id(\\d+)/loser", (req, res) => {
     });
 });
 
-router.put("/all-tracks/reset-current-pick", (req, res) => {
-  Track.update({ current_pick: null }, { where: {} })
+router.put("/all-tracks/reset-current-pick", requireAdmin, legacyEmergencyRepair, (req, res) => {
+  Track.update({ current_pick: null }, { where: {}, transaction: res.locals.legacyEmergencyTransaction })
     .then(([rowsUpdate]) => {
       if (rowsUpdate === 0) {
         return res.status(404).json({ error: "No tracks found to update" });
@@ -265,11 +268,12 @@ router.put("/all-tracks/reset-current-pick", (req, res) => {
 });
 
 //delete
-router.delete("/:id(\\d+)", (req, res) => {
+router.delete("/:id(\\d+)", requireAdmin, legacyEmergencyRepair, (req, res) => {
   Track.destroy({
     where: {
       id: req.params.id,
     },
+    transaction: res.locals.legacyEmergencyTransaction,
   })
     .then((dbTrack) => {
       if (!dbTrack) {

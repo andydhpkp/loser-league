@@ -5,7 +5,7 @@ const request = require("supertest");
 const sequelize = require("../../config/connection");
 const { Track } = require("../../models/my-index");
 const trackRoutes = require("../../controllers/api/tracks");
-const { createRouteApp, createTrack } = require("../support/route-app");
+const { createAdminRouteApp, createTrack, mockLegacyEmergencyPersistence } = require("../support/route-app");
 
 function mockTracks(t, tracks) {
   const calls = [];
@@ -25,6 +25,7 @@ function mockTracks(t, tracks) {
 }
 
 test("all Track maintenance endpoints preserve successful summaries and mutations", async (t) => {
+  mockLegacyEmergencyPersistence(t);
   const tracks = [
     createTrack({
       id: 1,
@@ -42,7 +43,7 @@ test("all Track maintenance endpoints preserve successful summaries and mutation
     }),
   ];
   const calls = mockTracks(t, tracks);
-  const app = createRouteApp("/api/tracks", trackRoutes);
+  const app = createAdminRouteApp("/api/tracks", trackRoutes);
 
   const cases = [
     ["put", "/api/tracks/reset-to-pick-count/1"],
@@ -62,8 +63,9 @@ test("all Track maintenance endpoints preserve successful summaries and mutation
 });
 
 test("Track maintenance endpoints reject invalid parameters and empty results", async (t) => {
+  mockLegacyEmergencyPersistence(t);
   mockTracks(t, []);
-  const app = createRouteApp("/api/tracks", trackRoutes);
+  const app = createAdminRouteApp("/api/tracks", trackRoutes);
 
   for (const path of [
     "/api/tracks/reset-to-pick-count/nope",
@@ -87,6 +89,7 @@ test("Track maintenance endpoints reject invalid parameters and empty results", 
 });
 
 test("individual Track reduction preserves its successful contract", async (t) => {
+  mockLegacyEmergencyPersistence(t);
   const track = createTrack({
     used_picks: ["Broncos", "Raiders", "Chiefs"],
     available_picks: ["Bills"],
@@ -94,7 +97,7 @@ test("individual Track reduction preserves its successful contract", async (t) =
   });
   mockTracks(t, [track]);
   const response = await request(
-    createRouteApp("/api/tracks", trackRoutes)
+    createAdminRouteApp("/api/tracks", trackRoutes)
   ).put("/api/tracks/reduce-used-picks/7/1");
 
   assert.equal(response.status, 200);
@@ -104,9 +107,10 @@ test("individual Track reduction preserves its successful contract", async (t) =
 });
 
 test("individual Track reduction missing-Track response terminates with one 404", async (t) => {
+  mockLegacyEmergencyPersistence(t);
   mockTracks(t, []);
   const response = await request(
-    createRouteApp("/api/tracks", trackRoutes)
+    createAdminRouteApp("/api/tracks", trackRoutes)
   ).put("/api/tracks/reduce-used-picks/999/1");
 
   assert.equal(response.status, 404);
@@ -114,6 +118,7 @@ test("individual Track reduction missing-Track response terminates with one 404"
 });
 
 test("individual Track reduction no-op response terminates with one 400", async (t) => {
+  mockLegacyEmergencyPersistence(t);
   mockTracks(t, [
     createTrack({
       used_picks: ["Broncos"],
@@ -122,7 +127,7 @@ test("individual Track reduction no-op response terminates with one 400", async 
     }),
   ]);
   const response = await request(
-    createRouteApp("/api/tracks", trackRoutes)
+    createAdminRouteApp("/api/tracks", trackRoutes)
   ).put("/api/tracks/reduce-used-picks/7/1");
 
   assert.equal(response.status, 400);
@@ -135,6 +140,7 @@ test("individual Track reduction no-op response terminates with one 400", async 
 });
 
 test("all Track repair endpoints preserve matching and nonmatching batch summaries", async (t) => {
+  mockLegacyEmergencyPersistence(t);
   const tracks = [
     createTrack({
       id: 1,
@@ -150,7 +156,7 @@ test("all Track repair endpoints preserve matching and nonmatching batch summari
     }),
   ];
   const calls = mockTracks(t, tracks);
-  const app = createRouteApp("/api/tracks", trackRoutes);
+  const app = createAdminRouteApp("/api/tracks", trackRoutes);
 
   const fix = await request(app).put("/api/tracks/fix-wrong-pick/2");
   assert.equal(fix.status, 200);
@@ -168,8 +174,9 @@ test("all Track repair endpoints preserve matching and nonmatching batch summari
 });
 
 test("Track repair endpoints preserve validation, no-record, and safe error contracts", async (t) => {
+  mockLegacyEmergencyPersistence(t);
   mockTracks(t, []);
-  const app = createRouteApp("/api/tracks", trackRoutes);
+  const app = createAdminRouteApp("/api/tracks", trackRoutes);
 
   assert.equal(
     (await request(app).put("/api/tracks/fix-wrong-pick/nope")).status,

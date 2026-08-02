@@ -5,6 +5,10 @@ login. Begin every repair by inspecting the numeric Track ID and checking its
 normalized Picks, active Pick cycle, elimination, projections, eligibility,
 inconsistencies, reactivations, and recent operations.
 
+The Admin Guide on that page is generated from the authenticated action
+registry. Use it for current instructions, warnings, and undo status for every
+guided action.
+
 ## Current-week repairs
 
 - **Assign missing Pick:** for an active Track with no normalized pending Pick.
@@ -75,5 +79,8 @@ and playoff reset operations are never undoable.
 Preview does not mutate data. Confirmation reloads and locks state; stale,
 expired, replayed-with-different-state, or unsafe requests fail without a
 partial change. Successful operations and sanitized before/after target states
-are audited transactionally. Conditional undo for undoable repairs is part of
-the next program PR; until then, do not attempt a raw database reversal.
+are audited transactionally. Retained raw emergency routes are also admin-only
+and transactionally audited, but they are intentionally non-undoable and are
+not shown in the guide. Prefer guided actions; reserve raw routes for
+exceptional owner repairs whose existing low-level contract is specifically
+needed.

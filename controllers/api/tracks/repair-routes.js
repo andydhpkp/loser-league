@@ -1,4 +1,8 @@
 const router = require("express").Router();
+const { requireAdmin } = require("../../../server/admin/require-admin");
+const { legacyEmergencyRepair } = require("../../../server/admin/legacy-emergency-repair");
+
+router.use(requireAdmin, legacyEmergencyRepair);
 const { Track, User } = require("../../../models/my-index");
 const { Op, Sequelize } = require("sequelize");
 const { logger } = require("../../../server/lib/logger");
@@ -21,6 +25,7 @@ router.put("/fix-wrong-pick/:minLength", async (req, res) => {
           attributes: ["id", "first_name", "last_name", "username", "email"],
         },
       ],
+      transaction: res.locals.legacyEmergencyTransaction,
     });
 
     if (!tracks || tracks.length === 0) {
@@ -47,7 +52,7 @@ router.put("/fix-wrong-pick/:minLength", async (req, res) => {
           wrongPick = lastUsedPick;
 
           // Update the track
-          trackUpdates.push(track.update({ wrong_pick: wrongPick }));
+          trackUpdates.push(track.update({ wrong_pick: wrongPick }, { transaction: res.locals.legacyEmergencyTransaction }));
 
           updatedTracks.push({
             trackId: track.id,
@@ -120,6 +125,7 @@ router.put("/bug-fix/set-wrong-pick-for-teams", async (req, res) => {
           attributes: ["id", "first_name", "last_name", "username", "email"],
         },
       ],
+      transaction: res.locals.legacyEmergencyTransaction,
     });
 
     if (!tracks || tracks.length === 0) {
@@ -142,7 +148,7 @@ router.put("/bug-fix/set-wrong-pick-for-teams", async (req, res) => {
         // Check if the last used pick is in the teams list
         if (teams.includes(lastUsedPick)) {
           // Update wrong_pick to the last used pick
-          trackUpdates.push(track.update({ wrong_pick: lastUsedPick }));
+          trackUpdates.push(track.update({ wrong_pick: lastUsedPick }, { transaction: res.locals.legacyEmergencyTransaction }));
 
           updatedTracks.push({
             trackId: track.id,
@@ -216,6 +222,7 @@ router.put("/bug-fix/clear-wrong-pick-if-matches/:length", async (req, res) => {
           attributes: ["id", "first_name", "last_name", "username", "email"],
         },
       ],
+      transaction: res.locals.legacyEmergencyTransaction,
     });
 
     if (!tracks || tracks.length === 0) {
@@ -235,7 +242,7 @@ router.put("/bug-fix/clear-wrong-pick-if-matches/:length", async (req, res) => {
         // Check if wrong_pick matches current_pick
         if (track.wrong_pick && track.current_pick && track.wrong_pick === track.current_pick) {
           // Clear wrong_pick
-          trackUpdates.push(track.update({ wrong_pick: null }));
+          trackUpdates.push(track.update({ wrong_pick: null }, { transaction: res.locals.legacyEmergencyTransaction }));
 
           updatedTracks.push({
             trackId: track.id,

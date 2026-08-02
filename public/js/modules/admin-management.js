@@ -753,6 +753,43 @@ export async function logoutAdmin(fetchImpl = fetch) {
   }
 }
 
+export async function loadAdminGuide(fetchImpl = fetch) {
+  const response = await fetchImpl("/api/admin/actions");
+  if (!response.ok) throw new Error("Unable to load Admin Guide");
+  const payload = await response.json();
+  return payload.actions;
+}
+
+export function renderAdminGuide(actions, container) {
+  container.replaceChildren();
+  for (const action of actions) {
+    const section = document.createElement("section");
+    section.className = "border rounded p-3 mb-3";
+    const heading = document.createElement("h3");
+    heading.className = "h5";
+    heading.textContent = action.name;
+    const description = document.createElement("p");
+    description.textContent = action.description;
+    const instructions = document.createElement("ol");
+    for (const text of action.instructions) {
+      const item = document.createElement("li");
+      item.textContent = text;
+      instructions.appendChild(item);
+    }
+    const warnings = document.createElement("ul");
+    warnings.setAttribute("aria-label", "Warnings");
+    for (const text of action.warnings) {
+      const item = document.createElement("li");
+      item.textContent = text;
+      warnings.appendChild(item);
+    }
+    const undo = document.createElement("p");
+    undo.textContent = action.undoable ? "Eligible for conditional one-level undo." : "Not undoable.";
+    section.append(heading, description, instructions, warnings, undo);
+    container.appendChild(section);
+  }
+}
+
 export async function addUserWin(
   { userId, displayName, year, wonWithTie },
   { confirmImpl = confirm, fetchImpl = fetch } = {}

@@ -16,6 +16,10 @@ An unauthenticated request for `/admin.html` redirects home. Every route under
 `/api/admin/actions` verifies the shared-admin session before parsing targets or
 performing lookups and returns HTTP 401 otherwise.
 
+The Admin Guide on `/admin.html` is loaded from the authenticated action
+registry. It lists every registered action's purpose, instructions, warnings,
+and undo status; it does not advertise retained low-level emergency routes.
+
 ## Previewed admin actions
 
 Current admin mutations include User/Track management, official-result and
@@ -87,6 +91,9 @@ management and distribute it outside the application. Existing admin sessions
 remain valid until logout or their eight-hour expiry.
 
 The shared password is intentionally independent of User accounts. The admin
-browser no longer uses general User/Track mutation routes for its registered
-operations. Those legacy routes remain during the expand phase for known User
-and manual-repair consumers and are migrated or removed in later program PRs.
+browser no longer uses general Track mutation routes for its registered
+operations. Retained raw Track mutations remain callable for known owner repair
+workflows, but now require the same admin session and transactionally write a
+sanitized, actorless, non-undoable `LEGACY_EMERGENCY_REPAIR` audit. Their route
+contracts are unchanged and their guided mappings are documented in the route
+inventory.

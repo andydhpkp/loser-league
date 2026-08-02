@@ -13,6 +13,8 @@ import {
   reconcilePickOutcomes,
   rebuildTrackProjections,
   undoAdminAction,
+  loadAdminGuide,
+  renderAdminGuide,
 } from "../modules/admin-management.js";
 
 const lifecycleStatus = document.getElementById("weeklyLifecycleStatus");
@@ -137,3 +139,11 @@ document.getElementById("logoutBtn")?.addEventListener("click", async () => {
   }
 });
 displayUsers();
+const adminGuide = document.getElementById("adminGuide");
+if (adminGuide) {
+  loadAdminGuide()
+    .then((actions) => renderAdminGuide(actions, adminGuide))
+    .catch((error) => {
+      adminGuide.textContent = error.message || "Unable to load Admin Guide.";
+    });
+}
