@@ -355,6 +355,24 @@ async function loadMatchups() {
 }
 
 export async function initializeAdminWorkflows() {
+  const helpDialog = document.getElementById("adminHelpDialog");
+  let helpReturnFocus = null;
+  helpDialog.addEventListener("keydown", (event) => {
+    if (event.key !== "Tab") return;
+    const focusable = [...helpDialog.querySelectorAll("button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])")]
+      .filter((element) => !element.disabled && !element.hidden);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (focusable.length === 1 || (event.shiftKey && document.activeElement === first) || (!event.shiftKey && document.activeElement === last)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    }
+  });
+  helpDialog.addEventListener("close", () => {
+    helpReturnFocus?.focus();
+    helpReturnFocus = null;
+  });
   document.querySelectorAll("[data-open-workflow]").forEach((button) => button.addEventListener("click", async () => { await refreshUsers(); await showWorkflow(button.dataset.openWorkflow); }));
   document.querySelectorAll("[data-admin-home]").forEach((button) => button.addEventListener("click", showHome));
   document.getElementById("adminUserSearch").addEventListener("input", renderUserList);
@@ -362,7 +380,9 @@ export async function initializeAdminWorkflows() {
     const guide = help[button.dataset.help];
     document.getElementById("adminHelpTitle").textContent = guide.title;
     renderHelpGuide(document.getElementById("adminHelpBody"), guide);
-    document.getElementById("adminHelpDialog").showModal();
+    helpReturnFocus = button;
+    helpDialog.showModal();
+    helpDialog.querySelector(".btn-close")?.focus();
   }));
   document.getElementById("bulkTrackForm").addEventListener("submit", async (event) => {
     event.preventDefault();
