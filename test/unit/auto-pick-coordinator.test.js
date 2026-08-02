@@ -26,3 +26,16 @@ test("coordinator starts catch-up, schedules the deadline, and recovers every 30
   assert.equal(timeouts[0].milliseconds, 60_000);
   coordinator.stop();
 });
+
+test("coordinator bounds a distant deadline to Node's maximum timer delay", async () => {
+  const timeouts = [];
+  const coordinator = createAutoPickCoordinator({
+    evaluate: async () => ({ status: "NOT_DUE", deadline: new Date("2026-09-10T00:00:00Z") }),
+    now: () => new Date("2026-08-02T00:00:00Z"),
+    setIntervalFn: () => 1, clearIntervalFn() {},
+    setTimeoutFn: (_callback, milliseconds) => { timeouts.push(milliseconds); return 2; }, clearTimeoutFn() {},
+    logger: { info() {}, warn() {} },
+  });
+  await coordinator.evaluate();
+  assert.deepEqual(timeouts, [2_147_483_647]);
+});

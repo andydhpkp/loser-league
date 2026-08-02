@@ -55,3 +55,16 @@ test("week closure coordinator logs one sanitized completion summary", async () 
   await coordinator.evaluate();
   assert.deepEqual(messages, [{ event: "week_closure_completed", context: { week: 4, eliminatedCount: 2 } }]);
 });
+
+test("week closure coordinator bounds a distant check to Node's maximum timer delay", async () => {
+  const timeouts = [];
+  const coordinator = createWeekClosureCoordinator({
+    evaluate: async () => ({ status: "NOT_DUE", nextCheckAt: new Date("2026-09-10T00:00:00Z") }),
+    now: () => new Date("2026-08-02T00:00:00Z"),
+    setIntervalFn: () => 1, clearIntervalFn() {},
+    setTimeoutFn: (_callback, milliseconds) => { timeouts.push(milliseconds); return 2; }, clearTimeoutFn() {},
+    logger: { info() {}, warn() {} },
+  });
+  await coordinator.evaluate();
+  assert.deepEqual(timeouts, [2_147_483_647]);
+});

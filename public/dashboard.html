@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="icon" href="/css/assets/pumpkin-logo.png" type="image/png" />
+    <title>Loser League Home</title>
+  </head>
+  <body>
+    <header><a href="/dashboard.html"><h1>Loser League Home</h1><img src="css/assets/pumpkin-logo.png" alt="Loser League home" class="logo" /></a></header>
+    <main class="container dashboard-shell">
+      <section aria-labelledby="seasonSummaryTitle">
+        <h2 id="seasonSummaryTitle">League Season summary</h2>
+        <div id="dashboardStatus" class="dashboard-summary" role="status" aria-live="polite" aria-busy="true">Loading your League Season summary…</div>
+        <button id="retryDashboard" class="btn btn-outline-primary mt-3" type="button" hidden>Retry</button>
+      </section>
+      <nav class="dashboard-actions" aria-label="Primary">
+        <a class="dashboard-action" href="/league-page.html"><strong>View League</strong><span>See the current league standings and visible Picks.</span></a>
+        <a class="dashboard-action" href="/profile.html"><strong>Make Picks</strong><span id="makePicksStatus">Loading Pick status…</span></a>
+        <a class="dashboard-action" href="/help.html"><strong>Help</strong><span>Review how Loser League works and get support.</span></a>
+      </nav>
+      <button id="logoutBtn" class="btn btn-outline-primary" type="button">Logout</button>
+    </main>
+    <script type="module" src="./js/pages/dashboard.js"></script>
+  </body>
+</html>

@@ -18,6 +18,8 @@ records, or advances the League Season.
   required. Scores or elapsed time alone never make a game final.
 - Startup catch-up and a five-minute recovery loop call the same evaluator as
   targeted timers.
+- Targeted checks farther away than Node's maximum timer duration use bounded
+  intermediate wake-ups rather than overflowing into immediate retries.
 - Automatic closure waits for every scheduled game to be final.
 
 Closure is one serializable transaction. It locks and revalidates the League
@@ -59,4 +61,3 @@ After deployment, verify the migration is current, the exact release SHA is
 active, startup has no `week_closure_blocked` configuration error, `/` and
 `/api/nfl/teams` are healthy, and the Admin page shows both weekly lifecycle
 actions. Do not preview or force a production closure merely as a health check.
-

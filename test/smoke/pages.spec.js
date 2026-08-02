@@ -3,6 +3,8 @@ const { expect, test } = require("@playwright/test");
 const pages = [
   ["home", "/index.html", "home.js"],
   ["registration", "/create-account.html", "register.js"],
+  ["dashboard", "/dashboard.html", "dashboard.js"],
+  ["help", "/help.html", "help.js"],
   ["profile", "/profile.html", "profile.js"],
   ["league", "/league-page.html", "league.js"],
   ["admin", "/admin.html", "admin.js"],
@@ -22,6 +24,10 @@ for (const [name, url, entry] of pages) {
 
       if (requestUrl.includes("/api/users/logged")) {
         body = {};
+      } else if (requestUrl.includes("/api/user/dashboard")) {
+        body = { leagueSeason: { year: 2026, week: 1, state: "ACTIVE" }, deadline: { available: true, timestamp: "2026-09-10T00:00:00.000Z" }, tracks: { active: 2, missingPicks: 1 }, makePicks: { code: "PICKS_REQUIRED", label: "1 Pick still needed" }, features: { textPickReminders: false } };
+      } else if (requestUrl.includes("/api/user/league/support")) {
+        body = { contacts: [] };
       } else if (requestUrl.includes("/api/user/league/view")) {
         body = { leagueSeason: { id: 1, year: 2026, week: 1 }, pickVisibility: "VISIBLE", users: [] };
       } else if (requestUrl.includes("/api/user/league/submission")) {

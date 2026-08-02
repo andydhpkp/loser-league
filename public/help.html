@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <title>Loser League Help</title>
+  </head>
+  <body>
+    <header><a href="/dashboard.html"><h1>Loser League Help</h1><img src="css/assets/pumpkin-logo.png" alt="Loser League home" class="logo" /></a></header>
+    <main class="container help-shell">
+      <h2>How to play</h2>
+      <section><h3>The objective</h3><p>Choose an NFL Team you expect to lose each week. A User can own more than one Track; every Track has its own Picks and elimination state.</p></section>
+      <section><h3>Making Picks</h3><p>Submit the final Pick for every active Track before the displayed deadline. A Track cannot choose the same NFL Team twice in one League Season. If a Pick is missing at the deadline, Loser League assigns an automatic Pick when the rules allow it.</p></section>
+      <section><h3>Pick visibility</h3><p>Current league Picks stay hidden until the league visibility rules allow them to be shown.</p></section>
+      <section><h3>Wrong Picks and elimination</h3><p>Your goal is to pick a losing Team. If that Team wins or ties, the Pick is a Wrong Pick and that Track is eliminated.</p></section>
+      <section><h3>Week 1 buyback</h3><p>After Week 1, eligible eliminated Tracks may receive a one-time Week 2 buyback offer. Make the decision before the Week 2 deadline. A pending request blocks Week 2 Picks until an admin resolves it or the deadline expires it.</p></section>
+      <section aria-labelledby="supportTitle"><h3 id="supportTitle">Contact us</h3><div id="supportContacts" role="status" aria-live="polite">Loading contact options…</div></section>
+      <nav class="authenticated-actions" aria-label="User navigation"><a class="btn btn-primary" href="/dashboard.html">Home</a><button id="logoutBtn" class="btn btn-outline-primary" type="button">Logout</button></nav>
+    </main>
+    <script type="module" src="./js/pages/help.js"></script>
+  </body>
+</html>

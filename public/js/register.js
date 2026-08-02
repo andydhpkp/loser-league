@@ -27,8 +27,7 @@ export async function signupFormHandler(event) {
             headers: { 'Content-Type': 'application/json' }
         });
         if (response.ok) {
-            window.localStorage.setItem("loggedInUser", username)
-            location.href = "../profile.html";
+            location.href = "/dashboard.html";
         } else {
             alert(response.statusText);
         }

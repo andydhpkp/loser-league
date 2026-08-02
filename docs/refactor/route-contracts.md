@@ -24,6 +24,22 @@ status codes and bodies are compatibility constraints.
 Browser callers: login, logout, registration, password reset, admin, profile,
 and standings page modules.
 
+## Authenticated User home
+
+`/dashboard.html` and `/help.html` require a valid User session and redirect
+unauthenticated requests to `/index.html`. Successful login and registration
+navigate to the dashboard. Authenticated page headers and explicit Home
+actions return there; direct `/profile.html` and `/league-page.html` links
+remain compatible.
+
+`GET /api/user/dashboard` requires the User session, returns `private,
+no-store`, and exposes only the active League Season year/week/state,
+authoritative deadline availability/timestamp, the User's active and
+missing-Pick counts, a server-computed Make Picks code/label, and feature
+capabilities. It never returns Track details, other Users, Picks, contact data,
+session state, or admin state. `features.textPickReminders` remains `false` in
+Phase 1 and all reminder UI and Help copy are hidden.
+
 ## Teams (`/api/teams`)
 
 | Method | Path | Purpose |
