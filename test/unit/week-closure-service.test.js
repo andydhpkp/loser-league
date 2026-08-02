@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const { test } = require("node:test");
 
 const {
+  sequelize,
   LeagueSeason,
   Track,
   Pick,
@@ -21,6 +22,58 @@ const games = [{
   loserTeam: "Las Vegas Raiders",
   tied: false,
 }];
+
+test("week closure rejects invalid League Season identity and mode", async () => {
+  await assert.rejects(
+    closeWeek({
+      leagueSeasonId: "23",
+      week: 4,
+      scheduleHash,
+      mode: "EMERGENCY",
+      games,
+    }),
+    (error) => error.code === "VALIDATION_ERROR"
+  );
+});
+
+test("week closure rejects an invalid schedule hash and game payload", async () => {
+  await assert.rejects(
+    closeWeek({
+      leagueSeasonId: 23,
+      week: 4,
+      scheduleHash: "not-a-hash",
+      mode: "AUTOMATIC",
+      games: null,
+    }),
+    (error) => error.code === "VALIDATION_ERROR"
+  );
+});
+
+test("week closure opens its transaction and returns an existing completion idempotently", async (t) => {
+  const transaction = { LOCK: { UPDATE: "UPDATE" } };
+  t.mock.method(sequelize, "transaction", async (_options, callback) => callback(transaction));
+  t.mock.method(LeagueSeason, "findByPk", async () => ({
+    id: 23,
+    state: "ACTIVE",
+    current_week: 4,
+  }));
+  t.mock.method(LeagueWeekOperation, "findOne", async () => ({ id: 72 }));
+
+  const result = await closeWeek({
+    leagueSeasonId: 23,
+    week: 4,
+    scheduleHash,
+    mode: "AUTOMATIC",
+    games,
+  });
+
+  assert.deepEqual(result, {
+    status: "ALREADY_COMPLETED",
+    leagueSeasonId: 23,
+    week: 4,
+    operationId: 72,
+  });
+});
 
 function mutableRow(values) {
   return {

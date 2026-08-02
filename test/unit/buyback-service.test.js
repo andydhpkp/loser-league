@@ -3,6 +3,7 @@ const { test } = require("node:test");
 
 const {
   sequelize,
+  User,
   LeagueSeason,
   Track,
   Pick,
@@ -16,6 +17,9 @@ const {
   getUserBuyback,
   decide,
   resolveAdmin,
+  completeAdminDirect,
+  listAdmin,
+  expireAtDeadlineLocked,
 } = require("../../server/modules/buyback/buyback-service");
 
 function stubTransaction(t) {
@@ -385,4 +389,171 @@ test("admin partially fulfills a pending Buyback Decision atomically", async (t)
     stateVersion: 4,
     fulfilledTrackIds: [17],
   });
+});
+
+test("admin directly completes an eligible Buyback Decision for exact Tracks", async (t) => {
+  stubTransaction(t);
+  const season = { id: 23, state: "ACTIVE", current_week: 2 };
+  const decision = mutableDecision({
+    id: 41,
+    user_id: 7,
+    league_season_id: 23,
+    status: "ELIGIBLE",
+    state_version: 0,
+  });
+  const track = mutableDecision({
+    id: 17,
+    user_id: 7,
+    league_season_id: 23,
+    eliminated_by_pick_id: 29,
+    wrong_pick: "Denver Broncos",
+    state_version: 5,
+  });
+  const pick = {
+    id: 29,
+    week: 1,
+    outcome: "WRONG_PICK",
+    team_name: "Denver Broncos",
+  };
+  let memberValues;
+
+  t.mock.method(LeagueSeason, "findOne", async () => season);
+  t.mock.method(ScheduleSnapshot, "findOne", async () => ({
+    normalized_schedule: {
+      games: [{ kickoff: "2026-09-20T18:00:00.000Z" }],
+    },
+  }));
+  t.mock.method(BuybackDecision, "findOne", async () => decision);
+  t.mock.method(Track, "findAll", async () => [track]);
+  t.mock.method(Pick, "findAll", async () => [pick]);
+  t.mock.method(AdminAuditOperation, "create", async () => ({ id: 88 }));
+  t.mock.method(Track, "findByPk", async () => track);
+  t.mock.method(Pick, "findByPk", async () => pick);
+  t.mock.method(TrackReactivation, "create", async () => ({ id: 99 }));
+  t.mock.method(BuybackDecisionTrack, "create", async (values) => {
+    memberValues = values;
+    return values;
+  });
+
+  const result = await completeAdminDirect({
+    userId: 7,
+    trackIds: [17],
+    stateVersion: 0,
+    paymentConfirmed: true,
+    now: new Date("2026-09-20T17:00:00.000Z"),
+  });
+
+  assert.deepEqual(memberValues, {
+    buyback_decision_id: 41,
+    track_id: 17,
+    week_one_pick_id: 29,
+    resolution: "FULFILLED",
+    track_reactivation_id: 99,
+  });
+  assert.equal(track.eliminated_by_pick_id, null);
+  assert.equal(decision.status, "COMPLETED_ADMIN_DIRECT");
+  assert.equal(decision.origin, "ADMIN");
+  assert.equal(decision.admin_audit_operation_id, 88);
+  assert.equal(decision.state_version, 1);
+  assert.deepEqual(result, {
+    idempotent: false,
+    status: "COMPLETED_ADMIN_DIRECT",
+    stateVersion: 1,
+    fulfilledTrackIds: [17],
+  });
+});
+
+test("admin Buyback Decision history returns sanitized Users and resolved Tracks", async (t) => {
+  const resolvedAt = new Date("2026-09-20T17:00:00.000Z");
+  const decision = {
+    id: 41,
+    user_id: 7,
+    status: "COMPLETED_USER_REQUEST",
+    state_version: 4,
+    requested_at: new Date("2026-09-20T16:00:00.000Z"),
+    resolved_at: resolvedAt,
+    user: {
+      id: 7,
+      first_name: "Alex",
+      last_name: "Viewer",
+      username: "alex",
+      get password() {
+        throw new Error("Buyback history must not read User credentials");
+      },
+    },
+  };
+
+  t.mock.method(LeagueSeason, "findOne", async () => ({ id: 23 }));
+  t.mock.method(BuybackDecision, "findAll", async () => [decision]);
+  t.mock.method(BuybackDecisionTrack, "findAll", async () => [{
+    track_id: 17,
+    resolution: "FULFILLED",
+    weekOnePick: { team_name: "Denver Broncos" },
+  }]);
+  t.mock.method(User, "findAll", async () => {
+    throw new Error("history must not materialize eligible Users");
+  });
+
+  const history = await listAdmin({ view: "history" });
+
+  assert.deepEqual(history, [{
+    id: 41,
+    status: "COMPLETED_USER_REQUEST",
+    stateVersion: 4,
+    requestedAt: decision.requested_at,
+    resolvedAt,
+    user: {
+      id: 7,
+      displayName: "Alex Viewer",
+      username: "alex",
+    },
+    tracks: [{
+      trackId: 17,
+      teamName: "Denver Broncos",
+      resolution: "FULFILLED",
+    }],
+  }]);
+  assert.equal("password" in history[0].user, false);
+});
+
+test("Week 2 deadline expires every unresolved User Buyback Decision", async (t) => {
+  const transaction = { LOCK: { UPDATE: "UPDATE" } };
+  const season = { id: 23, state: "ACTIVE", current_week: 2 };
+  const first = mutableDecision({
+    id: 41,
+    status: "ELIGIBLE",
+    state_version: 0,
+  });
+  const second = mutableDecision({
+    id: 42,
+    status: "PENDING_USER_REQUEST",
+    state_version: 2,
+  });
+  let lookup = 0;
+  const updatedDecisionTracks = [];
+
+  t.mock.method(User, "findAll", async () => [{ id: 7 }, { id: 8 }]);
+  t.mock.method(BuybackDecision, "findOne", async () => {
+    lookup += 1;
+    return lookup === 1 ? first : second;
+  });
+  t.mock.method(BuybackDecisionTrack, "update", async (_values, query) => {
+    updatedDecisionTracks.push(query.where.buyback_decision_id);
+  });
+
+  const now = new Date("2026-09-20T18:00:00.000Z");
+  const expired = await expireAtDeadlineLocked({
+    season,
+    now,
+    transaction,
+  });
+
+  assert.equal(expired, 2);
+  assert.deepEqual(updatedDecisionTracks, [41, 42]);
+  assert.equal(first.status, "EXPIRED_DEADLINE");
+  assert.equal(first.state_version, 1);
+  assert.equal(second.status, "EXPIRED_DEADLINE");
+  assert.equal(second.state_version, 3);
+  assert.equal(first.resolved_at, now);
+  assert.equal(second.resolved_at, now);
 });

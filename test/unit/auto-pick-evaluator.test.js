@@ -1,7 +1,11 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { createAutoPickEvaluator } = require("../../server/modules/picks/auto-pick-evaluator");
+const { LeagueSeason } = require("../../models");
+const {
+  createAutoPickEvaluator,
+  createDefaultAutoPickEvaluator,
+} = require("../../server/modules/picks/auto-pick-evaluator");
 
 test("evaluator refreshes on the five-minute cadence and every 30 seconds near deadline", async () => {
   let currentTime = new Date("2026-09-09T23:40:00Z");
@@ -28,4 +32,23 @@ test("evaluator refreshes on the five-minute cadence and every 30 seconds near d
   await evaluator();
 
   assert.equal(fetches, 3);
+});
+
+test("default evaluator stays dormant without an active League Season", async (t) => {
+  t.mock.method(LeagueSeason, "findOne", async (query) => {
+    assert.deepEqual(query, { where: { open_slot: 1 } });
+    return null;
+  });
+
+  const evaluator = createDefaultAutoPickEvaluator({
+    fetchImpl: async () => {
+      throw new Error("dormant evaluator must not fetch");
+    },
+    now: () => new Date("2026-09-09T23:40:00.000Z"),
+  });
+
+  assert.deepEqual(await evaluator(), {
+    status: "NOT_DUE",
+    deadline: null,
+  });
 });
