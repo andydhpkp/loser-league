@@ -1,4 +1,8 @@
 const router = require("express").Router();
+const { requireAdmin } = require("../../../server/admin/require-admin");
+const { legacyEmergencyRepair } = require("../../../server/admin/legacy-emergency-repair");
+
+router.use(requireAdmin, legacyEmergencyRepair);
 const { Track, User } = require("../../../models/my-index");
 const { Op, Sequelize } = require("sequelize");
 const { logger } = require("../../../server/lib/logger");
@@ -21,6 +25,7 @@ router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
           attributes: ["id", "first_name", "last_name", "username", "email"],
         },
       ],
+      transaction: res.locals.legacyEmergencyTransaction,
     });
 
     if (!tracks || tracks.length === 0) {
@@ -75,7 +80,7 @@ router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
           current_pick: null, // Clear current pick as requested
         };
 
-        trackUpdates.push(track.update(updateData));
+        trackUpdates.push(track.update(updateData, { transaction: res.locals.legacyEmergencyTransaction }));
 
         updatedTracks.push({
           trackId: track.id,
@@ -97,7 +102,7 @@ router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
               track.update({
                 wrong_pick: wrongPick,
                 current_pick: null,
-              })
+              }, { transaction: res.locals.legacyEmergencyTransaction })
             );
 
             updatedTracks.push({
@@ -112,7 +117,7 @@ router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
             });
           } else {
             // Just clear current_pick
-            trackUpdates.push(track.update({ current_pick: null }));
+            trackUpdates.push(track.update({ current_pick: null }, { transaction: res.locals.legacyEmergencyTransaction }));
           }
         } else if (pickCount === 0 && wrongPick) {
           // Clear wrong_pick if resetting to 0 picks
@@ -120,7 +125,7 @@ router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
             track.update({
               wrong_pick: null,
               current_pick: null,
-            })
+            }, { transaction: res.locals.legacyEmergencyTransaction })
           );
 
           updatedTracks.push({
@@ -135,7 +140,7 @@ router.put("/reset-to-pick-count/:pickCount", async (req, res) => {
           });
         } else {
           // Just clear current_pick
-          trackUpdates.push(track.update({ current_pick: null }));
+          trackUpdates.push(track.update({ current_pick: null }, { transaction: res.locals.legacyEmergencyTransaction }));
         }
       }
     }
@@ -182,6 +187,7 @@ router.put("/fix-current-pick/:length", async (req, res) => {
           attributes: ["id", "first_name", "last_name", "username", "email"],
         },
       ],
+      transaction: res.locals.legacyEmergencyTransaction,
     });
 
     if (!tracksToFix || tracksToFix.length === 0) {
@@ -204,7 +210,7 @@ router.put("/fix-current-pick/:length", async (req, res) => {
         const lastPick = usedPicks[usedPicks.length - 1];
 
         // Update current_pick to the last used pick
-        trackUpdates.push(track.update({ current_pick: lastPick }));
+        trackUpdates.push(track.update({ current_pick: lastPick }, { transaction: res.locals.legacyEmergencyTransaction }));
 
         updatedTracks.push({
           trackId: track.id,
@@ -274,6 +280,7 @@ router.put("/user/:userId/reset-current-picks", async (req, res) => {
           attributes: ["id", "first_name", "last_name", "username", "email"],
         },
       ],
+      transaction: res.locals.legacyEmergencyTransaction,
     });
 
     if (!userAliveTracks || userAliveTracks.length === 0) {
@@ -307,7 +314,7 @@ router.put("/user/:userId/reset-current-picks", async (req, res) => {
           current_pick: null,
           available_picks: availablePicks,
           used_picks: usedPicks,
-        })
+        }, { transaction: res.locals.legacyEmergencyTransaction })
       );
 
       updatedTracks.push({
@@ -364,6 +371,7 @@ router.put("/user/:userId/move-last-used-to-available", async (req, res) => {
           attributes: ["id", "first_name", "last_name", "username", "email"],
         },
       ],
+      transaction: res.locals.legacyEmergencyTransaction,
     });
 
     if (!userAliveTracks || userAliveTracks.length === 0) {
@@ -403,7 +411,7 @@ router.put("/user/:userId/move-last-used-to-available", async (req, res) => {
         track.update({
           used_picks: usedPicks,
           available_picks: availablePicks,
-        })
+        }, { transaction: res.locals.legacyEmergencyTransaction })
       );
 
       updatedTracks.push({
@@ -459,6 +467,7 @@ router.put("/reduce-used-picks/:trackId/:targetLength", (req, res) => {
     where: {
       id: trackId,
     },
+    transaction: res.locals.legacyEmergencyTransaction,
   })
     .then((dbTrack) => {
       if (!dbTrack) {
@@ -510,7 +519,7 @@ router.put("/reduce-used-picks/:trackId/:targetLength", (req, res) => {
         used_picks: usedPicks,
         available_picks: availablePicks,
         current_pick: currentPick,
-      });
+      }, { transaction: res.locals.legacyEmergencyTransaction });
     })
     .then((updatedTrack) => {
       if (!updatedTrack) {
@@ -556,6 +565,7 @@ router.put("/reduce-all-used-picks/:targetLength", async (req, res) => {
           attributes: ["id", "first_name", "last_name", "username", "email"],
         },
       ],
+      transaction: res.locals.legacyEmergencyTransaction,
     });
 
     if (!tracks || tracks.length === 0) {
@@ -607,7 +617,7 @@ router.put("/reduce-all-used-picks/:targetLength", async (req, res) => {
           current_pick: currentPick,
         };
 
-        trackUpdates.push(track.update(updateData));
+        trackUpdates.push(track.update(updateData, { transaction: res.locals.legacyEmergencyTransaction }));
 
         updatedTracks.push({
           trackId: track.id,

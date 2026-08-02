@@ -1,4 +1,8 @@
 const router = require("express").Router();
+const { requireAdmin } = require("../../../server/admin/require-admin");
+const { legacyEmergencyRepair } = require("../../../server/admin/legacy-emergency-repair");
+
+router.use(requireAdmin, legacyEmergencyRepair);
 const { Track, User } = require("../../../models/my-index");
 const { Op, Sequelize } = require("sequelize");
 const {
@@ -21,6 +25,7 @@ router.put("/quick-replace/:trackId", (req, res) => {
     where: {
       id: trackId,
     },
+    transaction: res.locals.legacyEmergencyTransaction,
   })
     .then((dbTrack) => {
       if (!dbTrack) {
@@ -42,7 +47,7 @@ router.put("/quick-replace/:trackId", (req, res) => {
       dbTrack.used_picks = nextState.usedPicks;
 
       // Now, save the track with the modified properties
-      return dbTrack.save();
+      return dbTrack.save({ transaction: res.locals.legacyEmergencyTransaction });
     })
     .then((updatedTrack) => {
       res.json(updatedTrack);
@@ -65,6 +70,7 @@ router.put("/add-placeholder/:trackId", (req, res) => {
     where: {
       id: trackId,
     },
+    transaction: res.locals.legacyEmergencyTransaction,
   })
     .then((dbTrack) => {
       if (!dbTrack) {
@@ -82,7 +88,7 @@ router.put("/add-placeholder/:trackId", (req, res) => {
       dbTrack.used_picks = usedPicks;
 
       // Save the track with the modified used_picks
-      return dbTrack.save();
+      return dbTrack.save({ transaction: res.locals.legacyEmergencyTransaction });
     })
     .then((updatedTrack) => {
       res.json(updatedTrack);
@@ -108,6 +114,7 @@ router.delete("/clear-memory/delete-wrong-pick", async (req, res) => {
           },
         },
         limit: batchSize, // Set the batch size
+        transaction: res.locals.legacyEmergencyTransaction,
       });
 
       if (result === 0) {
@@ -183,6 +190,7 @@ router.get("/all-tracks/alive-without-pick", (req, res) => {
         ],
       },
     ],
+    transaction: res.locals.legacyEmergencyTransaction,
   })
     .then((dbTracks) => {
       if (!dbTracks || dbTracks.length === 0) {
@@ -228,6 +236,7 @@ router.put("/remove-placeholder/:trackId", (req, res) => {
     where: {
       id: trackId,
     },
+    transaction: res.locals.legacyEmergencyTransaction,
   })
     .then((dbTrack) => {
       if (!dbTrack) {
@@ -245,7 +254,7 @@ router.put("/remove-placeholder/:trackId", (req, res) => {
       dbTrack.used_picks = usedPicks;
 
       // Save the track with the modified used_picks
-      return dbTrack.save();
+      return dbTrack.save({ transaction: res.locals.legacyEmergencyTransaction });
     })
     .then((updatedTrack) => {
       res.json(updatedTrack);
@@ -268,6 +277,7 @@ router.put("/update-recent-pick-remove-and-add/:trackId", (req, res) => {
     where: {
       id: trackId,
     },
+    transaction: res.locals.legacyEmergencyTransaction,
   })
     .then((dbTrack) => {
       if (!dbTrack) {
@@ -298,7 +308,7 @@ router.put("/update-recent-pick-remove-and-add/:trackId", (req, res) => {
       return dbTrack.update({
         used_picks: usedPicks,
         current_pick: currentPick,
-      });
+      }, { transaction: res.locals.legacyEmergencyTransaction });
     })
     .then((updatedTrack) => {
       res.json({ message: "Track updated successfully", updatedTrack });
@@ -320,7 +330,7 @@ router.put("/remove-excess-used-picks/:limit", (req, res) => {
   }
 
   // Fetch all tracks
-  Track.findAll()
+  Track.findAll({ transaction: res.locals.legacyEmergencyTransaction })
     .then((tracks) => {
       // Iterate through each track and process the used_picks and wrong_pick
       const updatePromises = tracks.map((track) => {
@@ -341,7 +351,7 @@ router.put("/remove-excess-used-picks/:limit", (req, res) => {
         return track.update({
           used_picks: usedPicks,
           wrong_pick: wrongPick,
-        });
+        }, { transaction: res.locals.legacyEmergencyTransaction });
       });
 
       // Wait for all the updates to complete
@@ -374,6 +384,7 @@ router.put("/remove-last-used-pick/:trackId", (req, res) => {
     where: {
       id: trackId,
     },
+    transaction: res.locals.legacyEmergencyTransaction,
   })
     .then((dbTrack) => {
       if (!dbTrack) {
@@ -406,7 +417,7 @@ router.put("/remove-last-used-pick/:trackId", (req, res) => {
         used_picks: usedPicks,
         available_picks: availablePicks,
         current_pick: currentPick,
-      });
+      }, { transaction: res.locals.legacyEmergencyTransaction });
     })
     .then((updatedTrack) => {
       res.json({ message: "Track updated successfully", updatedTrack });
@@ -435,6 +446,7 @@ router.put("/add-to-available-picks/:trackId", (req, res) => {
     where: {
       id: trackId,
     },
+    transaction: res.locals.legacyEmergencyTransaction,
   })
     .then((dbTrack) => {
       if (!dbTrack) {
@@ -454,7 +466,7 @@ router.put("/add-to-available-picks/:trackId", (req, res) => {
       }
 
       // Update the track with the modified available_picks
-      return dbTrack.update({ available_picks: availablePicks });
+      return dbTrack.update({ available_picks: availablePicks }, { transaction: res.locals.legacyEmergencyTransaction });
     })
     .then((updatedTrack) => {
       res.json({
@@ -486,6 +498,7 @@ router.put("/add-to-used-picks/:trackId", (req, res) => {
     where: {
       id: trackId,
     },
+    transaction: res.locals.legacyEmergencyTransaction,
   })
     .then((dbTrack) => {
       if (!dbTrack) {
@@ -512,7 +525,7 @@ router.put("/add-to-used-picks/:trackId", (req, res) => {
       return dbTrack.update({
         used_picks: usedPicks,
         available_picks: availablePicks,
-      });
+      }, { transaction: res.locals.legacyEmergencyTransaction });
     })
     .then((updatedTrack) => {
       res.json({
@@ -541,6 +554,7 @@ router.put("/reset-picks/:trackId", (req, res) => {
     where: {
       id: trackId,
     },
+    transaction: res.locals.legacyEmergencyTransaction,
   })
     .then((dbTrack) => {
       if (!dbTrack) {
@@ -565,7 +579,7 @@ router.put("/reset-picks/:trackId", (req, res) => {
       return dbTrack.update({
         available_picks: availablePicks,
         used_picks: usedPicks,
-      });
+      }, { transaction: res.locals.legacyEmergencyTransaction });
     })
     .then((updatedTrack) => {
       res.json({

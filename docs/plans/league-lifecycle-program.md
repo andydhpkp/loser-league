@@ -162,7 +162,7 @@ The detailed route inventory is maintained below during delivery.
 
 | Existing capability | Disposition | Replacement PR | Status |
 | --- | --- | --- | --- |
-| Raw repair and maintenance routes | Replace with mapped guided actions | Admin repair | Inventory pending |
+| Raw repair and maintenance routes | Retained admin-only with transactional legacy audit; guided mapping documented | Admin repair | PR 6C implemented; final deletion proof pending |
 | Browser Track Pick write | Replaced with atomic final submission | Final submission | PR gate passed |
 | Browser force-pick | Replaced with server lifecycle auto-pick | Auto-pick | PR gate passed |
 | Browser result and current-Pick reset orchestration | Replaced with server week closure | Weekly results | Implemented; PR gate pending |
@@ -179,8 +179,8 @@ The detailed route inventory is maintained below during delivery.
 | 4 | Exactly-once independent per-Track auto-pick | #19 | Complete; PR #33, Heroku v261 |
 | 5 | Exactly-once results and automatic/manual week closure | #11 | Complete; PR #34, Heroku v262 |
 | 6A | Repair schema/inspector, current-week tools, buyback, playoff Pick reset | #12B and #17 | Complete; PR #35, Heroku v263 |
-| 6B | Historical repair, reconciliation, projection rebuild, conditional undo | #12B | PR gate passed; draft PR pending |
-| 6C | Raw emergency hardening/audit, complete Admin Guide and mapping | #12B | Pending |
+| 6B | Historical repair, reconciliation, projection rebuild, conditional undo | #12B | Complete; PR #36, Heroku v264 |
+| 6C | Raw emergency hardening/audit, complete Admin Guide and mapping | #12B | Complete gate passed; PR pending |
 | 7 | Explicit completion and export-backed rollover | #14 | Pending |
 | 8 | Superseded-route/browser cleanup and full-program verification | Program tracker | Pending |
 
@@ -252,6 +252,27 @@ plus `/api/nfl/teams` were healthy.
   MySQL schema.
 - `npm run test:smoke` — passed, 7 Playwright tests.
 - No schema migration is included in PR 6B.
+
+PR #36 merged as `79c4f6f`. Workflow 30731534035 passed the complete gate
+against that exact SHA, Heroku release `v264` succeeded, and `/` plus
+`/api/nfl/teams` were healthy.
+
+### PR 6C verification — 2026-08-02
+
+- `npm run test:unit` — passed, 131 tests.
+- `npm run test:unit:coverage` — passed, 83.19% line coverage.
+- `npm run lint:browser` — passed.
+- `NODE_ENV=test npm run test:integration` — passed, 36 tests against the
+  runtime-verified `loser_league_test` disposable schema.
+- `npm run test:smoke` — passed, 7 Playwright tests.
+- No schema migration is included in PR 6C.
+
+PR 6C preserves every retained raw Track mutation's method, path, input, and
+successful response while adding early shared-admin authorization, serialized
+transactional mutation/audit, sanitized changed-Track targets, and rollback on
+audit failure. The authenticated Admin Guide is registry-derived, and the raw
+to guided route mapping is complete. Residual route deletion work remains in
+the final cleanup PR after reference and replacement proof.
 
 The first post-merge deployment created Heroku release `v257`, but its release
 command failed because the migration CLI had been pruned as a development

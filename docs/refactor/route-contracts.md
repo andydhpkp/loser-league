@@ -61,7 +61,7 @@ Static/named paths must be registered before `/:id` so they are reachable.
 ### Weekly and forced-pick maintenance
 
 `PUT /all-tracks/reset-current-pick`,
-`GET /all-tracks/alive-without-pick`, `PUT /force-picks/all-alive`,
+`GET /all-tracks/alive-without-pick`,
 `PUT /reset-to-pick-count/:pickCount`, and
 `PUT /fix-current-pick/:length`.
 
@@ -102,8 +102,33 @@ server rebuilds it from Fixture, ESPN, stored overrides, `AUTO_PICK`, active
 Tracks, and Picks. Its confirmation requires `note`.
 
 The League-page browser no longer calls `PUT /:id/loser`, Team record writes,
-or `PUT /all-tracks/reset-current-pick`. Those raw routes remain available for
-known manual repair workflows until the mapped-repair program replaces them.
+or `PUT /all-tracks/reset-current-pick`. Every retained raw Track mutation
+requires the shared-admin session before lookup, executes its mutation and a
+sanitized non-undoable `LEGACY_EMERGENCY_REPAIR` operation plus changed-Track
+target states in one transaction, and
+preserves its existing method, path, input, and success response. These routes
+are deliberately absent from the browser Admin Guide and remain available for
+the owner's known emergency workflows until final cleanup proves each guided
+replacement.
+
+### Retained raw mutation mapping
+
+| Raw capability | Guided/server-authoritative replacement |
+| --- | --- |
+| `PUT /:id`, `/quick-replace/:trackId` | `ASSIGN_CURRENT_PICK` or `REPLACE_CURRENT_PICK` |
+| `PUT /:id/loser` | authoritative automatic/manual `CLOSE_WEEK` or `RECONCILE_PICK_OUTCOME` |
+| `PUT /all-tracks/reset-current-pick`, `/user/:userId/reset-current-picks` | selected/all `RESET_CURRENT_PICKS` |
+| `DELETE /:id`, `DELETE /clear-memory/delete-wrong-pick` | previewed `DELETE_TRACK` for each intended Track |
+| Placeholder add/remove and `/reset-picks/:trackId` | normalized Pick history plus `RESET_PLAYOFF_PICK_POOLS`; repair projections with `REBUILD_TRACK_PROJECTIONS` |
+| Recent/last/excess/reduced used-Pick mutations, including user/all variants | `CORRECT_HISTORICAL_PICK`, selected/all `RESET_CURRENT_PICKS`, then `REBUILD_TRACK_PROJECTIONS` |
+| Add-to-used/available projection mutations | `ASSIGN_CURRENT_PICK`, `REPLACE_CURRENT_PICK`, or `REBUILD_TRACK_PROJECTIONS` |
+| `/fix-current-pick/:length` | `REBUILD_TRACK_PROJECTIONS` or `ASSIGN_CURRENT_PICK` |
+| Wrong-Pick set/fix/clear/reset mutations | `RECONCILE_PICK_OUTCOME`, `REACTIVATE_TRACK`, or `REBUILD_TRACK_PROJECTIONS` |
+
+The mapping describes the authoritative outcome, not a promise that arbitrary
+legacy array corruption remains valid domain state. Raw routes are retained in
+PR 6C; deletion decisions belong to final cleanup after reference and
+replacement verification.
 
 ## Error contract
 

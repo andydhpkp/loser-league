@@ -64,6 +64,12 @@ binding. The shared HTTP client owns request/error normalization.
   state. Projection derivation is pure; conditional undo restores recorded
   business state only when every target still matches, while advancing state
   versions to prevent stale-state ABA.
+- Retained raw Track mutation adapters share an early admin boundary and a
+  transaction wrapper. A successful legacy mutation is not returned until its
+  sanitized actorless `LEGACY_EMERGENCY_REPAIR` operation and changed-Track
+  target states commit; an error or audit failure rolls back the mutation. Their
+  low-level response contracts remain
+  compatibility adapters and are not action-registry guide entries.
 - Track routes are grouped into access, pick lifecycle, force-pick,
   maintenance, and repair modules behind the unchanged route entry point.
 - Pure pick-state transitions live behind `makePick` and

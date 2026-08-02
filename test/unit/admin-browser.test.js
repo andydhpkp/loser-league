@@ -51,6 +51,25 @@ test("admin logout clears the server-owned admin session", async () => {
   ]);
 });
 
+test("Admin Guide loads complete registry metadata from the authenticated action endpoint", async () => {
+  const { loadAdminGuide } = await import("../../public/js/modules/admin-management.js");
+  const actions = [{
+    name: "RESET_CURRENT_PICKS",
+    description: "Reset pending Picks",
+    warnings: ["Leaves a Track without a Pick"],
+    instructions: ["Inspect", "Preview", "Confirm"],
+    undoable: true,
+  }];
+  const calls = [];
+  const result = await loadAdminGuide(async (url) => {
+    calls.push(url);
+    return { ok: true, json: async () => ({ actions }) };
+  });
+
+  assert.deepEqual(calls, ["/api/admin/actions"]);
+  assert.deepEqual(result, actions);
+});
+
 test("admin confirms and records a solo League Season win", async () => {
   const confirmations = [];
   const calls = [];
