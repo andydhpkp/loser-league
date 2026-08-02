@@ -9,8 +9,14 @@ import {
   filterFixtureWeek,
   getLeagueSeasonYear,
 } from "./modules/nfl-data.js";
-import { renderOnboardingPanel, renderTrackLoadError } from "./modules/zero-track-onboarding.js";
+import { renderOnboardingPanel } from "./modules/zero-track-onboarding.js";
 import { renderBuyback } from "./modules/week-two-buyback.js";
+import {
+  showMatchupEmpty,
+  showMatchupError,
+  showMatchupLoading,
+  showMatchupReady,
+} from "./modules/matchup-page-state.js";
 
 let c;
 let i;
@@ -27,7 +33,18 @@ let x;
 
 export { finalScores } from "./modules/team-results.js";
 
-export async function getTrackNumber() {
+let matchupInitialization;
+
+export function getTrackNumber() {
+  if (matchupInitialization) return matchupInitialization;
+  showMatchupLoading();
+  matchupInitialization = loadMatchupPage().finally(() => {
+    matchupInitialization = null;
+  });
+  return matchupInitialization;
+}
+
+async function loadMatchupPage() {
   let currentWeek;
   let totalTracks = 0;
   let trackIdArray = [];
@@ -54,9 +71,18 @@ export async function getTrackNumber() {
     totalTracks = data.length;
 
     if (state.onboarding) {
-      document.getElementById("loading")?.remove();
       const container = document.getElementById("gameMatchups");
       renderOnboardingPanel(container, state.onboarding, { onRefresh: () => window.location.reload() });
+      showMatchupReady();
+      return;
+    }
+
+    if (data.length === 0) {
+      if (state.buyback?.pickBlocked) {
+        showMatchupReady();
+        return;
+      }
+      showMatchupEmpty("No active Tracks are available.");
       return;
     }
 
@@ -82,22 +108,19 @@ export async function getTrackNumber() {
     if (picksCompleteChecker) {
       //location.href = "../league-page.html"
     }
-    await matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap, trackStateMap, state.submissionOpen && !state.buyback?.pickBlocked, currentWeek, state.buyback?.pickBlocked === true);
-  } catch (error) {
-    browserLogger.error("Unable to load Track state", error);
-    let contacts = [];
-    try {
-      const supportResponse = await fetch("/api/user/league/support", { cache: "no-store" });
-      if (supportResponse.ok) contacts = (await supportResponse.json()).contacts || [];
-    } catch (_supportError) {
-      // The core recovery message remains available when support data cannot load.
+    const result = await matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap, trackStateMap, state.submissionOpen && !state.buyback?.pickBlocked, currentWeek, state.buyback?.pickBlocked === true);
+    if (result === "empty") {
+      showMatchupEmpty(`No matchups are available for Week ${currentWeek}.`);
+      return;
     }
-    document.getElementById("loading")?.remove();
-    renderTrackLoadError(document.getElementById("gameMatchups"), contacts, { onRefresh: () => window.location.reload() });
+    showMatchupReady();
+  } catch (error) {
+    browserLogger.error("Unable to load matchup page", error);
+    showMatchupError(() => getTrackNumber());
   }
 }
 
-async function getRecords(seasonYear, currentWeek) {
+async function getRecords(seasonYear, currentWeek, root = document) {
   try {
     const response = await fetchNflSchedule(seasonYear, currentWeek);
     if (!response.ok) {
@@ -115,10 +138,10 @@ async function getRecords(seasonYear, currentWeek) {
       });
     }
 
-    let recordHTML = document.getElementsByClassName("record");
+    let recordHTML = root.querySelectorAll(".record");
 
     for (let i = 0; i < recordHTML.length; i++) {
-      let teamName = recordHTML[i].previousSibling.innerText;
+      let teamName = recordHTML[i].previousSibling.textContent;
       if (records[teamName]) {
         let splitRecord = records[teamName].split("-");
         let finalRecord;
@@ -134,6 +157,7 @@ async function getRecords(seasonYear, currentWeek) {
     }
   } catch (error) {
     browserLogger.error("Error in getRecords:", error);
+    throw error;
   }
 }
 
@@ -197,29 +221,39 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
     }
   } catch (error) {
     browserLogger.error("Error fetching the ESPN API", error);
+    throw error;
   }
 
   let containerNumber = totalTracks;
   const container = document.getElementById("gameMatchups");
-  const main = document.getElementById("games");
   const actions = document.getElementById("trackActions");
-  const getLoading = document.getElementById("loading");
+  const stagingContainer = document.createElement("section");
+
+  if (!container || !actions || !document.getElementById("logoutBtn")) {
+    throw new Error("Required matchup page element is missing");
+  }
 
   container.innerHTML = "";
 
   var nflScoreApi = "/api/proxy/nfl";
-  fetch(nflScoreApi)
+  return new Promise((resolve, reject) => fetch(nflScoreApi)
     .then(function (response) {
       if (response.ok) {
-        response.json().then(function (data) {
+        response.json().then(async function (data) {
           let headerHelp = document.getElementsByTagName("header")[0];
           let currentWeekDiv = document.createElement("div");
+          currentWeekDiv.id = "matchupWeek";
+          currentWeekDiv.hidden = true;
           let currentWeekH1 = document.createElement("h1");
           currentWeekH1.innerHTML = `Week ${currentWeek}`;
           currentWeekDiv.appendChild(currentWeekH1);
-          headerHelp.appendChild(currentWeekDiv);
 
           const thisWeeksGames = filterFixtureWeek(data, currentWeek);
+
+          if (thisWeeksGames.length === 0) {
+            resolve("empty");
+            return;
+          }
 
           let thisWeeksMatchups = [];
 
@@ -476,7 +510,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
             trackContent.appendChild(hiddenInput);
             trackDropdown.appendChild(trackHeader);
             trackDropdown.appendChild(trackContent);
-            container.appendChild(trackDropdown);
+            stagingContainer.appendChild(trackDropdown);
           }
 
           const submitBtn = document.createElement("button");
@@ -486,24 +520,35 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
           submitBtn.disabled = !submissionOpen;
           submitBtn.addEventListener("click", handleSubmitPicks);
 
-          // Insert just above Logout
-          actions.insertBefore(submitBtn, document.getElementById("logoutBtn"));
-
-          getLoading.remove();
           const seasonYear = getLeagueSeasonYear(data);
           if (seasonYear) {
-            getRecords(seasonYear, currentWeek);
+            await getRecords(seasonYear, currentWeek, stagingContainer);
           } else {
-            browserLogger.error("Unable to determine the League Season year.");
+            throw new Error("Unable to determine the League Season year");
           }
-        });
+          await Promise.all([...stagingContainer.querySelectorAll("img.teamLogos")].map((image) => {
+            if (image.complete) {
+              return image.naturalWidth > 0
+                ? Promise.resolve()
+                : Promise.reject(new Error("Unable to load Team logo"));
+            }
+            return new Promise((imageResolve, imageReject) => {
+              image.addEventListener("load", imageResolve, { once: true });
+              image.addEventListener("error", () => imageReject(new Error("Unable to load Team logo")), { once: true });
+            });
+          }));
+          container.replaceChildren(...stagingContainer.children);
+          headerHelp.appendChild(currentWeekDiv);
+          actions.insertBefore(submitBtn, document.getElementById("logoutBtn"));
+          resolve("ready");
+        }).catch(reject);
       } else {
-        alert("didn't work");
+        reject(new Error("Unable to load Fixture schedule"));
       }
     })
     .catch(function (error) {
-      browserLogger.debug("unable to connect");
-    });
+      reject(error);
+    }));
 }
 
 // Helper function to handle team selection
