@@ -129,8 +129,33 @@ test("admin action registry requires the shared-admin session and exposes no act
     "DELETE_USER",
     "OVERRIDE_GAME_RESULT",
     "CLOSE_WEEK",
+    "RESET_CURRENT_PICKS",
+    "ASSIGN_CURRENT_PICK",
+    "REPLACE_CURRENT_PICK",
+    "REACTIVATE_TRACK",
+    "RESET_PLAYOFF_PICK_POOLS",
   ]);
   assert.equal(JSON.stringify(response.body).includes("actor"), false);
+});
+
+test("admin Track inspector authorizes before lookup and returns only its sanitized service view", async () => {
+  const lookedUp = [];
+  const app = createTestApp({
+    routes: express.Router(),
+    inspectAdminTrack: async (trackId) => {
+      lookedUp.push(trackId);
+      return { user: { displayName: "Safe Name", username: "safe" }, track: { id: trackId } };
+    },
+  });
+  assert.equal((await request(app).get("/api/admin/repairs/tracks/42")).status, 401);
+  assert.deepEqual(lookedUp, []);
+
+  const agent = request.agent(app);
+  await agent.post("/api/admin/login").send({ password: "test-admin-password" });
+  const response = await agent.get("/api/admin/repairs/tracks/42");
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body, { user: { displayName: "Safe Name", username: "safe" }, track: { id: 42 } });
+  assert.deepEqual(lookedUp, [42]);
 });
 
 test("NFL proxy returns upstream JSON through the application interface", async () => {

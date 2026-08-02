@@ -18,8 +18,8 @@ performing lookups and returns HTTP 401 otherwise.
 
 ## Previewed admin actions
 
-Current admin mutations are registered as add User win, create Track, delete
-Track, delete User, official-result override, and manual week closure. The
+Current admin mutations include User/Track management, official-result and
+week-closure controls, and guided Track repairs. The
 admin page first creates a ten-minute persisted
 preview, displays its generated description, affected count, and warnings, and
 then confirms it with a one-use key. The server stores only a hash of that key.
@@ -39,6 +39,26 @@ Official-result override requires final scores and an explanation; an HTTP(S)
 source URL is optional. Manual closure requires a note and is offered only when
 every active Track's selected game is authoritative and final. See
 [`week-closure.md`](week-closure.md). Neither workflow uses User login.
+
+## Guided Track repairs
+
+The admin page inspector accepts a numeric Track ID and returns the owning
+User's display name and username (never email), normalized Pick history and
+Pick cycles, current projections, current scheduled eligibility,
+inconsistencies, buyback reactivations, and recent audit operations.
+
+The guided operations can reset, assign, or replace a current-week Pick and
+reactivate an eliminated Track after external Week 1 buyback payment is
+confirmed. Buyback preserves the factual Wrong Pick and its used Team. A reset
+of every active Track requires the exact phrase `RESET EVERY TRACK`.
+
+At Week 19, before any Week 19 Pick or auto-pick operation exists, Admin can
+reset Team eligibility for every active and eliminated Track. This requires
+`RESET PICKS FOR PLAYOFFS`, advances the League Season from Pick cycle 1 to
+cycle 2, and is non-undoable. Once cycle 2 exists, cycle-unaware application
+code is rollback-unsafe; recover with a forward fix.
+
+See [`guided-admin-repairs.md`](guided-admin-repairs.md) for the runbook.
 
 ## Record a League Season win
 

@@ -4,6 +4,7 @@ const session = require("express-session");
 
 const { createAdminRouter } = require("./admin/routes");
 const { createAdminActionRouter } = require("./admin/action-routes");
+const { createAdminRepairRouter } = require("./admin/repair-routes");
 const { createPickSubmissionRouter } = require("./user/pick-submission-routes");
 const pickLeagueService = require("./modules/picks/league-service");
 const { UpstreamError } = require("./lib/errors");
@@ -12,6 +13,7 @@ const { createErrorHandler } = require("./middleware/error-handler");
 const { requestContext } = require("./middleware/request-context");
 const { createNflRouter } = require("./nfl/routes");
 const { createDefaultManualClosureContextLoader } = require("./modules/week-closure/manual-closure-context");
+const { inspectTrack } = require("./modules/admin-repairs/inspector-service");
 
 function createApp({
   routes,
@@ -22,6 +24,7 @@ function createApp({
   fetchImpl = global.fetch,
   logger = createLogger(),
   requestClosureEvaluation,
+  inspectAdminTrack = inspectTrack,
 } = {}) {
   if (!sessionSecret) {
     throw new Error("SESSION_SECRET is required");
@@ -64,6 +67,7 @@ function createApp({
     requestClosureEvaluation,
     loadManualClosureContext: createDefaultManualClosureContextLoader({ fetchImpl }),
   }));
+  app.use("/api/admin/repairs", createAdminRepairRouter({ inspectTrack: inspectAdminTrack }));
   app.use("/api/user/league", createPickSubmissionRouter({
     getSubmissionState: pickLeagueService.getSubmissionState,
     getLeagueView: pickLeagueService.getLeagueView,

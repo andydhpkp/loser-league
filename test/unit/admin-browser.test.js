@@ -207,3 +207,43 @@ test("admin official-result and manual-close workflows use registered preview an
     { url: "/api/admin/actions/CLOSE_WEEK/confirm", body: { confirmationKey: "a".repeat(64), note: "All selected games are official" } },
   ]);
 });
+
+test("guided repairs use registered actions and carry destructive confirmation phrases", async () => {
+  const {
+    inspectAdminTrack,
+    resetCurrentPicks,
+    assignCurrentPick,
+    replaceCurrentPick,
+    reactivateTrack,
+    resetPlayoffPickPools,
+  } = await import("../../public/js/modules/admin-management.js");
+  const calls = [];
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url, body: options.body ? JSON.parse(options.body) : undefined });
+    if (!options.method) return { ok: true, json: async () => ({ track: { id: 9 } }) };
+    if (url.endsWith("/preview")) return { ok: true, json: async () => ({ description: "Preview", warnings: [], targets: [{}], confirmationKey: "a".repeat(64) }) };
+    return { ok: true, json: async () => ({ action: "COMMITTED", targets: [] }) };
+  };
+  const options = { fetchImpl, confirmImpl: () => true };
+
+  await inspectAdminTrack(9, fetchImpl);
+  await resetCurrentPicks({ scope: "ALL" }, { ...options, confirmationPhrase: "RESET EVERY TRACK" });
+  await assignCurrentPick({ trackId: 9, teamName: "Broncos" }, options);
+  await replaceCurrentPick({ trackId: 9, teamName: "Raiders" }, options);
+  await reactivateTrack({ trackId: 9, paymentConfirmed: true }, options);
+  await resetPlayoffPickPools({ ...options, confirmationPhrase: "RESET PICKS FOR PLAYOFFS" });
+
+  assert.deepEqual(calls, [
+    { url: "/api/admin/repairs/tracks/9", body: undefined },
+    { url: "/api/admin/actions/RESET_CURRENT_PICKS/preview", body: { scope: "ALL" } },
+    { url: "/api/admin/actions/RESET_CURRENT_PICKS/confirm", body: { confirmationKey: "a".repeat(64), confirmationPhrase: "RESET EVERY TRACK" } },
+    { url: "/api/admin/actions/ASSIGN_CURRENT_PICK/preview", body: { trackId: 9, teamName: "Broncos" } },
+    { url: "/api/admin/actions/ASSIGN_CURRENT_PICK/confirm", body: { confirmationKey: "a".repeat(64) } },
+    { url: "/api/admin/actions/REPLACE_CURRENT_PICK/preview", body: { trackId: 9, teamName: "Raiders" } },
+    { url: "/api/admin/actions/REPLACE_CURRENT_PICK/confirm", body: { confirmationKey: "a".repeat(64) } },
+    { url: "/api/admin/actions/REACTIVATE_TRACK/preview", body: { trackId: 9, paymentConfirmed: true } },
+    { url: "/api/admin/actions/REACTIVATE_TRACK/confirm", body: { confirmationKey: "a".repeat(64) } },
+    { url: "/api/admin/actions/RESET_PLAYOFF_PICK_POOLS/preview", body: {} },
+    { url: "/api/admin/actions/RESET_PLAYOFF_PICK_POOLS/confirm", body: { confirmationKey: "a".repeat(64), confirmationPhrase: "RESET PICKS FOR PLAYOFFS" } },
+  ]);
+});

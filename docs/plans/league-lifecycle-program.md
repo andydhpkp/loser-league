@@ -177,8 +177,10 @@ The detailed route inventory is maintained below during delivery.
 | 2 | Admin authorization boundary, action registry, previews, audit, existing admin mutations | #12A | Complete; PR #30 plus CI fixture repair #31 |
 | 3 | Atomic final Pick submission and visibility | #13 | Complete; PR #32, Heroku v260 |
 | 4 | Exactly-once independent per-Track auto-pick | #19 | Complete; PR #33, Heroku v261 |
-| 5 | Exactly-once results and automatic/manual week closure | #11 | PR gate passed; publication pending |
-| 6 | Inspector, mapped repairs/resets, buyback, undo, and Admin Guide | #12B and #17 | Pending |
+| 5 | Exactly-once results and automatic/manual week closure | #11 | Complete; PR #34, Heroku v262 |
+| 6A | Repair schema/inspector, current-week tools, buyback, playoff Pick reset | #12B and #17 | PR gate passed; draft PR pending |
+| 6B | Historical repair, reconciliation, projection rebuild, conditional undo | #12B | Pending |
+| 6C | Raw emergency hardening/audit, complete Admin Guide and mapping | #12B | Pending |
 | 7 | Explicit completion and export-backed rollover | #14 | Pending |
 | 8 | Superseded-route/browser cleanup and full-program verification | Program tracker | Pending |
 
@@ -219,6 +221,22 @@ Update this document after each PR with:
 - `npm run test:smoke` — passed, 7 Playwright tests.
 - `NODE_ENV=test npm run db:migrate` — passed against disposable MySQL; an
   immediate repeat executed no migrations.
+
+### PR 6A verification — 2026-08-01
+
+- `npm run test:unit` — passed, 120 tests.
+- `npm run test:unit:coverage` — passed, 82.61% line coverage.
+- `npm run lint:browser` — passed.
+- `npm run test:integration` — passed, 31 tests against the configured
+  disposable MySQL schema guarded by a database name containing `test`.
+- `npm run test:smoke` — passed, 7 Playwright tests.
+- `NODE_ENV=test npm run db:migrate` from an empty, runtime-verified
+  `loser_league_test` schema — passed; immediate repeat executed no migrations.
+
+PR 6A is forward-compatible before the manual Week 19 reset. After an Admin
+starts Pick cycle 2, rollback to cycle-unaware code is unsafe and recovery must
+be a forward fix. Retained raw emergency routes are unchanged in this PR and
+remain scheduled for PR 6C authorization/audit and mapping.
 
 The first post-merge deployment created Heroku release `v257`, but its release
 command failed because the migration CLI had been pruned as a development
@@ -282,6 +300,10 @@ the forward repair is tracked in
 - `npm run test:integration` — passed, 22 tests against disposable MySQL.
 - `npm run test:smoke` — passed, 7 Playwright tests.
 - `git diff --check` — passed.
+- PR #34 merged as `de10537`. Workflow 30720023219 passed the complete gate
+  against that exact SHA, Heroku release `v262` succeeded, migration
+  `20260801030000-add-official-game-result-overrides` completed, and `/` plus
+  `/api/nfl/teams` were healthy. Issue #11 is closed.
 - Track creation preserves the legacy Week-1 allowance in #12A; #13 will add
   the confirmed schedule-aware pre-kickoff enforcement.
 - PR #30 merged as `c61e981`. Its first workflow correctly stopped before

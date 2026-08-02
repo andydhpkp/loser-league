@@ -54,6 +54,11 @@ binding. The shared HTTP client owns request/error normalization.
   stale-checked mutations with append-only operation/target audits in one
   transaction. Admin authority remains a shared session and has no User or
   actor association.
+- Guided admin repairs add an authenticated read-only Track inspector and
+  registered current-Pick, buyback, and playoff reset actions. Pick-cycle
+  identity belongs to League Season/Pick persistence; normal submission and
+  auto-pick services consume the active cycle, while Track arrays remain
+  current-cycle compatibility projections.
 - Track routes are grouped into access, pick lifecycle, force-pick,
   maintenance, and repair modules behind the unchanged route entry point.
 - Pure pick-state transitions live behind `makePick` and

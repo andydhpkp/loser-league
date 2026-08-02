@@ -38,6 +38,12 @@ Pick.init(
       allowNull: false,
       validate: { min: 1, max: 22 },
     },
+    pick_cycle: {
+      type: DataTypes.TINYINT.UNSIGNED,
+      allowNull: false,
+      defaultValue: 1,
+      validate: { isIn: [[1, 2]] },
+    },
     team_name: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -81,7 +87,7 @@ Pick.init(
       { unique: true, fields: ["track_id", "league_season_id", "week"] },
       {
         unique: true,
-        fields: ["track_id", "league_season_id", "team_name"],
+        fields: ["track_id", "league_season_id", "pick_cycle", "team_name"],
       },
     ],
   }
