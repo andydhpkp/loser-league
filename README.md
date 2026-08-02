@@ -1,69 +1,129 @@
-# loser-league
+# Loser League
+
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow)](https://opensource.org/licenses/MIT)
-## Table of Contents
 
-* [Description](#description)
-* [Status](#status)
-* [Deployment](#deployment)
-* [Usage](#usage)
-* [License](#license)
-* [Questions](#questions)
-## Description
-An application that will be used for the future 'Loser League' seasons between me and my friends. The concept is each user will pick a team to lose each week in the NFL season, and no repeat picks are allowed.
+Loser League is a private NFL elimination-pick game for a group of friends. It
+reverses the usual survivor-pool premise: each week, every active entry picks
+an NFL team expected to **lose**. If the selected team wins or ties, that entry
+is eliminated.
 
-## Status
-Current status is Users can create accounts and login, and they can manually input the amount of tracks that they have, and matchups will be randomly generated to show future format with future updates. Still need to add front-end for updating user information. Next step is making picks and preventing those picks from ever being selected in the same track again. 
-## Deployment
-https://loser-league.herokuapp.com/
+The application manages the competition from preseason setup through weekly
+picks, results, standings, and season rollover. It includes a player-facing web
+experience and a separate shared-admin workspace for running the league.
 
-Pushes to `main` are tested and deployed automatically through GitHub Actions.
-Setup, verification, and rollback procedures are documented in
-[`docs/operations/heroku-deploy.md`](docs/operations/heroku-deploy.md).
+## How the game works
 
-## Installation
+- A **User** can own one or more independent **Tracks** in a League Season.
+- Each active Track makes one Pick per weekly round.
+- A Track cannot select the same NFL team more than once in the same Pick
+  cycle; different Tracks owned by one User choose independently.
+- A Pick is correct when the selected team loses.
+- A winning or tied selected team produces a **Wrong Pick** and eliminates that
+  Track without eliminating the User's other Tracks.
+- Eligible Tracks eliminated in Week 1 may receive a one-time Week 2 buyback
+  offer. Payment is handled outside the application.
+- At season completion, solo or tied winners are recorded in each User's win
+  history and represented by Winner Crown artwork when available.
 
-To run this application locally, please do the following installation:
+The canonical product vocabulary and detailed definitions live in
+[`CONTEXT.md`](CONTEXT.md).
 
-`
-npm i
-`
+## What the application does
 
-To seed the database, type in the following:
+### For Users
 
-`
-npm run seeds
-`
+- Register, log in, reset a password, and maintain a server-backed session.
+- View a dashboard summarizing the current League Season and Pick status.
+- Review weekly NFL matchups and submit one final selection for every active
+  Track.
+- See used Picks, current Picks, eliminated Tracks, league standings, and
+  weekly statistics.
+- Request or decline an eligible Week 2 buyback.
+- Access an authenticated Help page with league rules and organizer contacts.
 
-Create a .env file in the root, and add the following with credentials:
+### For league administrators
 
-`
-DB_NAME='loser_league_db'
-DB_USER='your_username'
-DB_PW='your_password'
-`
+- Create and start a League Season, manage Users and Tracks, and add Tracks in
+  bulk.
+- Preview and confirm audited league operations instead of applying invisible
+  data changes.
+- Assign or replace Picks, reconcile results, reactivate eligible Tracks, and
+  rebuild compatibility projections.
+- Resolve Week 2 buyback requests after confirming payment externally.
+- Close weeks, complete a season, record winning Tracks, export rollover data,
+  and initialize the next League Season.
 
-Copy `.env.example` to `.env`, provide a long random `SESSION_SECRET`, and set
-`ADMIN_PASSWORD` to the shared admin password and `ODDS_API_KEY` to the
-credential from The Odds API. The ignored `.env` file is the only local file
-that should contain real credential values.
-The application targets Node.js 22 LTS.
+Weekly deadlines, missing-Pick auto-selection, result settlement, and season
+advancement are server-authoritative and transactionally protected. External
+NFL schedule and result data is used to support these workflows; credentials
+remain on the server.
 
-Development and production commands:
+## Main pages
+
+| Page | Purpose |
+| --- | --- |
+| `/index.html` | User login, password reset, and shared-admin access |
+| `/create-account.html` | User registration |
+| `/dashboard.html` | Authenticated season and Pick summary |
+| `/profile.html` | Track details, matchup review, Pick submission, and buyback decisions |
+| `/league-page.html` | League standings and weekly statistics |
+| `/help.html` | Authenticated rules and support information |
+| `/admin.html` | Shared-admin league operations |
+
+## Technology
+
+- Node.js 22 and Express
+- MySQL with Sequelize and forward-only migrations
+- Server-backed sessions with bcrypt password hashing
+- Browser-native JavaScript modules and static HTML/CSS
+- Node's built-in test runner, Supertest, ESLint, and Playwright
+- GitHub Actions deployment to Heroku
+
+## Local development
+
+### Prerequisites
+
+- Node.js 22.x
+- npm
+- MySQL
+
+Install dependencies:
+
+```sh
+npm install
+```
+
+Copy `.env.example` to `.env` and replace its placeholder values. At minimum,
+local startup requires database credentials, a long random `SESSION_SECRET`,
+the shared `ADMIN_PASSWORD`, and an `ODDS_API_KEY` from The Odds API. Keep real
+credentials only in the ignored `.env` file.
+
+Create the configured MySQL database, then apply the schema migrations:
 
 ```sh
 npm run db:migrate
-npm run dev
-npm start
 ```
 
-Application startup verifies database connectivity but does not create or alter
-schema. Run the forward migrations before starting a new local database. League
-Season bootstrap is a separate dry-run-first operation documented in
+Optional development seed data can be loaded with:
+
+```sh
+npm run seeds
+```
+
+Start the application in development mode:
+
+```sh
+npm run dev
+```
+
+For production-style startup, use `npm start`. Startup verifies database
+connectivity but never creates or changes the schema. Initial League Season
+setup is a separate, dry-run-first process documented in
 [`docs/operations/league-season-bootstrap.md`](docs/operations/league-season-bootstrap.md).
 
-## Verification
+## Testing
 
-Fast module and route tests:
+Fast checks that do not require a database:
 
 ```sh
 npm run test:unit
@@ -71,7 +131,7 @@ npm run test:unit:coverage
 npm run lint:browser
 ```
 
-MySQL integration tests require a disposable schema whose database name
+Integration tests require a disposable MySQL schema whose database name
 contains `test`:
 
 ```sh
@@ -79,27 +139,38 @@ TEST_DATABASE_URL=mysql://user:password@127.0.0.1:3306/loser_league_test \
   npm run test:integration
 ```
 
-Browser smoke tests run all five page entry modules against a static server:
+Browser smoke tests use Playwright:
 
 ```sh
 PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install chromium
 npm run test:smoke
 ```
 
-Refactor architecture, behavior, route contracts, rules, decisions, and current
-status are indexed in `docs/refactor/README.md`.
+See [`docs/engineering/README.md`](docs/engineering/README.md) for the complete
+verification requirements, architecture boundaries, and contribution rules.
 
-Contributors should follow the permanent engineering standards in
-[`docs/engineering/README.md`](docs/engineering/README.md), use the canonical
-product language in [`CONTEXT.md`](CONTEXT.md), and plan non-trivial changes
-from [`docs/plans/TEMPLATE.md`](docs/plans/TEMPLATE.md). The refactor library is
-retained as historical evidence.
-## Usage
-Up to current status, click on create account and enter information. Once in, enter number of tracks you want to have and click the button. The matchups will then be displayed and that is as far as I have gotten.
+## Deployment and operations
+
+The production application is available at
+[loser-league.herokuapp.com](https://loser-league.herokuapp.com/). Pushes to
+`main` are tested and deployed automatically through GitHub Actions.
+
+Operational procedures are documented in [`docs/operations/`](docs/operations/),
+including deployment verification and rollback, weekly closure, auto-picks,
+buybacks, guided repairs, and season bootstrap.
+
+## Documentation
+
+- [`CONTEXT.md`](CONTEXT.md): canonical product language
+- [`docs/engineering/README.md`](docs/engineering/README.md): current engineering standards
+- [`docs/engineering/lifecycle-program-summary.md`](docs/engineering/lifecycle-program-summary.md): server-authoritative season lifecycle overview
+- [`docs/refactor/README.md`](docs/refactor/README.md): historical refactor evidence and interface documentation
+- [`docs/plans/TEMPLATE.md`](docs/plans/TEMPLATE.md): change-contract template for non-trivial work
 
 ## License
 
-This application is covered under the MIT license.
+This project is covered under the MIT License.
+
 ## Questions
 
-Email for any questions at [Andrew Durham: andrewdurham1094@gmail.com](mailto:andrewdurham1094@gmail.com).
+Contact [Andrew Durham](mailto:andrewdurham1094@gmail.com).
