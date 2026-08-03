@@ -10,6 +10,7 @@ const {
 } = require("../../models");
 const { createAdminActionRouter } = require("../../server/admin/action-routes");
 const { createAdminLeagueSeasonRouter } = require("../../server/admin/league-season-routes");
+const { createAdminUserWorkspaceRouter } = require("../../server/admin/user-workspace-routes");
 
 function authenticatedApp(path, router) {
   const app = express();
@@ -27,6 +28,17 @@ function authenticatedApp(path, router) {
   });
   return app;
 }
+
+test("admin User workspace route maps the selected User to one sanitized view", async () => {
+  const calls = [];
+  const app = authenticatedApp("/users", createAdminUserWorkspaceRouter({
+    inspectUserWorkspace: async (userId) => { calls.push(userId); return { user: { id: userId }, tracks: [] }; },
+  }));
+  const response = await request(app).get("/users/7/workspace");
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body, { user: { id: 7 }, tracks: [] });
+  assert.deepEqual(calls, [7]);
+});
 
 test("admin action audit route returns the newest operations", async (t) => {
   const operations = [{

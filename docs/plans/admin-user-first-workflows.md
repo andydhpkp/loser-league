@@ -29,12 +29,14 @@
 - Buybacks remain available per User and in a cross-User queue; raw direct-buyback inputs are removed.
 - Statistics opens a read-only weekly modal from Admin Home. It shows current-season Pick popularity, eliminated and remaining Users, remaining Tracks, Users with the most and least remaining Tracks, and an on-demand riskiest-Pick calculation from game odds.
 - Current data is refreshed when a workflow opens and before mutation preview. Stale selections fail safely with plain-language guidance.
+- The selected User workspace loads through one targeted authenticated request. Successful per-User mutations refresh that workspace from server-authoritative state while preserving the selected User and, when it still exists, the selected Track. Affected controls expose an inline updating or failure state.
 - Only the current League Season is exposed. “Historical Pick” means an earlier week in the current League Season.
 
 ## Interfaces and data
 
 - Preserve existing admin mutation APIs where their contracts fit the new UI.
 - Add current-season workspace/read APIs only where existing responses do not expose safe selection data.
+- `GET /api/admin/users/:userId/workspace` returns one sanitized selected-User summary with all current-season Track inspection views.
 - Add one admin-authorized transactional bulk Track endpoint accepting `{ additions: [{ userId, quantity }] }` with quantities capped at 100.
 - No migration or stored-data shape change is required.
 - Browser modules continue to call shared HTTP/admin action seams; server modules retain domain and transaction ownership.

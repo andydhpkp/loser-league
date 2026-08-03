@@ -5,10 +5,30 @@ const users = [
   { id: 4, first_name: "Bob", last_name: "Baker", username: "bob", user_record: [], tracks: [{ id: 41, league_season_id: 1, current_pick: "Raiders", wrong_pick: "Raiders", eliminated_by_pick_id: 9 }] },
 ];
 
+function inspectedTrack(id, currentPick = "Broncos") {
+  return {
+    user: { id: 3, displayName: "Alice Able", username: "alice" },
+    track: { id, active: true, stateVersion: 1, eliminatingPickId: null },
+    leagueSeason: { id: 1, year: 2026, state: "ACTIVE", week: 1, pickCycle: 1, stateVersion: 1 },
+    picks: [],
+    projections: { currentPick, usedPicks: currentPick ? [currentPick] : [], availablePicks: ["Raiders"], wrongPick: null },
+    eligibleCurrentWeekTeams: ["Raiders"], inconsistencies: [], reactivations: [], recentOperations: [],
+  };
+}
+
 test.beforeEach(async ({ page }) => {
+  let listedUsers = [...users];
+  let aliceTracks = [inspectedTrack(31)];
   await page.route("**/api/**", async (route) => {
     const url = route.request().url();
-    if (url.endsWith("/api/users")) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(users) });
+    if (url.endsWith("/api/users")) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(listedUsers) });
+    if (url.endsWith("/api/admin/users/3/workspace")) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ user: users[0], tracks: aliceTracks }) });
+    if (url.includes("/api/admin/actions/DELETE_TRACK/preview")) return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ description: "Delete Track", targets: [{}], warnings: [], confirmationKey: "a".repeat(64) }) });
+    if (url.includes("/api/admin/actions/DELETE_TRACK/confirm")) { aliceTracks = []; return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ action: "DELETE_TRACK", targets: [] }) }); }
+    if (url.includes("/api/admin/actions/REPLACE_CURRENT_PICK/preview")) return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ description: "Replace Pick", targets: [{}], warnings: [], confirmationKey: "a".repeat(64) }) });
+    if (url.includes("/api/admin/actions/REPLACE_CURRENT_PICK/confirm")) { aliceTracks = [inspectedTrack(31, "Raiders")]; return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ action: "REPLACE_CURRENT_PICK", targets: [] }) }); }
+    if (url.includes("/api/admin/actions/DELETE_USER/preview")) return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ description: "Delete User", targets: [{}], warnings: [], confirmationKey: "a".repeat(64) }) });
+    if (url.includes("/api/admin/actions/DELETE_USER/confirm")) { listedUsers = listedUsers.filter((user) => user.id !== 3); return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ action: "DELETE_USER", targets: [] }) }); }
     if (url.endsWith("/api/admin/league-season")) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ leagueSeason: { id: 1, year: 2026, state: "ACTIVE", week: 1, stateVersion: 1 }, unassignedTrackCount: 0 }) });
     if (url.includes("/api/admin/tracks/bulk")) return route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ totalCreated: 5 }) });
     if (url.endsWith("/api/proxy/nfl-odds")) return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([{ bookmakers: [{ markets: [{ outcomes: [{ name: "Broncos", point: -7 }, { name: "Raiders", point: 7 }] }] }] }]) });
@@ -26,6 +46,68 @@ test("admin home opens focused workflows with contextual help", async ({ page })
   await expect(page.locator("#adminUserList").getByText("Alice Able")).toBeVisible();
   await page.getByRole("button", { name: "Help" }).click();
   await expect(page.getByRole("dialog")).toContainText("Search for the User by name or username");
+});
+
+test("deleting a Track refreshes the selected User workspace without navigating away", async ({ page }) => {
+  let workspaceReads = 0;
+  page.on("request", (request) => { if (request.url().endsWith("/api/admin/users/3/workspace")) workspaceReads += 1; });
+  await page.getByRole("button", { name: "Make Changes for a User" }).click();
+  await page.getByRole("button", { name: /Alice Able/ }).click();
+  await page.getByRole("button", { name: /Track 1 Active/ }).click();
+  await page.getByRole("button", { name: "Delete Track 1" }).click();
+  await expect(page.getByRole("heading", { name: /Alice Able/ })).toBeVisible();
+  await expect(page.locator("#adminUserWorkspaceStatus")).toContainText("Track 1 deleted.");
+  await expect(page.getByRole("button", { name: /Track 1 Active/ })).toHaveCount(0);
+  expect(workspaceReads).toBe(2);
+});
+
+test("a successful Pick mutation refreshes and preserves the selected Track", async ({ page }) => {
+  await page.getByRole("button", { name: "Make Changes for a User" }).click();
+  await page.getByRole("button", { name: /Alice Able/ }).click();
+  await page.getByRole("button", { name: /Track 1 Active/ }).click();
+  await page.getByLabel("Valid Team for Track 1").selectOption("Raiders");
+  await page.getByRole("button", { name: "Replace current Pick" }).click();
+  await expect(page.locator("#adminUserWorkspaceStatus")).toContainText("Pick updated.");
+  await expect(page.getByRole("heading", { name: "Track 1 actions" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Track 1 Active Current Pick: Raiders/ })).toBeVisible();
+});
+
+test("a failed mutation restores controls and preserves User and Track selection", async ({ page }) => {
+  await page.route("**/api/admin/actions/REPLACE_CURRENT_PICK/preview", (route) => route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ message: "Track changed; refresh and review it." }) }));
+  await page.getByRole("button", { name: "Make Changes for a User" }).click();
+  await page.getByRole("button", { name: /Alice Able/ }).click();
+  await page.getByRole("button", { name: /Track 1 Active/ }).click();
+  await page.getByLabel("Valid Team for Track 1").selectOption("Raiders");
+  const replace = page.getByRole("button", { name: "Replace current Pick" });
+  await replace.click();
+  await expect(page.getByRole("heading", { name: /Alice Able/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Track 1 actions" })).toBeVisible();
+  await expect(replace).toBeEnabled();
+  await expect(page.getByRole("status").last()).toContainText("Unable to preview admin action");
+});
+
+test("a pending mutation disables affected controls and announces progress", async ({ page }) => {
+  await page.route("**/api/admin/actions/REPLACE_CURRENT_PICK/confirm", () => new Promise(() => {}));
+  await page.getByRole("button", { name: "Make Changes for a User" }).click();
+  await page.getByRole("button", { name: /Alice Able/ }).click();
+  await page.getByRole("button", { name: /Track 1 Active/ }).click();
+  await page.getByLabel("Valid Team for Track 1").selectOption("Raiders");
+  const replace = page.getByRole("button", { name: "Replace current Pick" });
+  await replace.click();
+  await expect(replace).toBeDisabled();
+  await expect(page.getByRole("status").last()).toHaveText("Updating…");
+});
+
+test("deleting a User preserves the search and returns to the filtered list", async ({ page }) => {
+  await page.getByRole("button", { name: "Make Changes for a User" }).click();
+  const search = page.getByLabel("Find a User");
+  await search.fill("Alice");
+  await page.getByRole("button", { name: /Alice Able/ }).click();
+  await page.getByText("Danger Zone", { exact: true }).click();
+  await page.getByRole("button", { name: "Delete Alice Able" }).click();
+  await expect(search).toHaveValue("Alice");
+  await expect(page.locator("#adminUserList").getByText("Alice Able")).toHaveCount(0);
+  await expect(page.getByRole("status")).toContainText("User deleted.");
 });
 
 test("View Statistics opens the detailed weekly modal and loads riskiest Pick odds", async ({ page }) => {

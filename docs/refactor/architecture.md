@@ -99,6 +99,9 @@ binding. The shared HTTP client owns request/error normalization.
 - Reusable modules own admin management, track actions, league rendering,
   profile navigation, team results, team catalog data, auto-pick scheduling,
   weekly statistics, and browser logging.
+- The admin User workspace uses one targeted authenticated aggregate read and
+  reconciles successful per-User mutations from that server-authoritative view
+  while preserving User and applicable Track selection.
 - League result rendering is read-only and receives the server-authoritative
   League Season year/week. It never owns Track, Pick, Team, or week mutations.
 - `app.js` is a compatibility re-export rather than a shared implementation.

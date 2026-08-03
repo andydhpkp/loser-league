@@ -10,7 +10,7 @@ const {
   TrackReactivation,
   AdminAuditTarget,
 } = require("../../models");
-const { inspectTrack } = require("../../server/modules/admin-repairs/inspector-service");
+const { inspectTrack, inspectUserWorkspace } = require("../../server/modules/admin-repairs/inspector-service");
 
 test("Track inspector returns normalized state and flags projection inconsistencies", async (t) => {
   const track = {
@@ -142,4 +142,28 @@ test("Track inspector returns normalized state and flags projection inconsistenc
     }],
   });
   assert.equal("password" in view.user, false);
+});
+
+test("User workspace aggregates only current-season Tracks through the inspector interface", async (t) => {
+  const user = { id: 7, first_name: "Alex", last_name: "Viewer", username: "alex", user_record: [], getCrownType: () => null };
+  t.mock.method(User, "findByPk", async (_id, query) => {
+    assert.deepEqual(query.attributes, ["id", "first_name", "last_name", "username", "user_record"]);
+    return user;
+  });
+  t.mock.method(LeagueSeason, "findOne", async (query) => {
+    assert.deepEqual(query.where, { open_slot: 1 });
+    return { id: 23 };
+  });
+  t.mock.method(Track, "findAll", async (query) => {
+    assert.deepEqual(query, { where: { user_id: 7, league_season_id: 23 }, attributes: ["id"], order: [["id", "ASC"]] });
+    return [{ id: 17 }, { id: 21 }];
+  });
+  const inspected = [];
+  const workspace = await inspectUserWorkspace(7, { inspect: async (id) => { inspected.push(id); return { track: { id } }; } });
+
+  assert.deepEqual(inspected, [17, 21]);
+  assert.deepEqual(workspace, {
+    user: { id: 7, first_name: "Alex", last_name: "Viewer", username: "alex", user_record: [], crown_type: null },
+    tracks: [{ track: { id: 17 } }, { track: { id: 21 } }],
+  });
 });

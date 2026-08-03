@@ -70,4 +70,30 @@ async function inspectTrack(trackId) {
   };
 }
 
-module.exports = { inspectTrack };
+async function inspectUserWorkspace(userId, { inspect = inspectTrack } = {}) {
+  const id = Number(userId);
+  if (!Number.isInteger(id) || id < 1) throw new NotFoundError("User not found");
+  const [user, season] = await Promise.all([
+    User.findByPk(id, { attributes: ["id", "first_name", "last_name", "username", "user_record"] }),
+    LeagueSeason.findOne({ where: { open_slot: 1 }, attributes: ["id"] }),
+  ]);
+  if (!user) throw new NotFoundError("User not found");
+  const tracks = season ? await Track.findAll({
+    where: { user_id: id, league_season_id: season.id },
+    attributes: ["id"],
+    order: [["id", "ASC"]],
+  }) : [];
+  return {
+    user: {
+      id: user.id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      username: user.username,
+      user_record: user.user_record || [],
+      crown_type: user.getCrownType(),
+    },
+    tracks: await Promise.all(tracks.map((track) => inspect(track.id))),
+  };
+}
+
+module.exports = { inspectTrack, inspectUserWorkspace };
