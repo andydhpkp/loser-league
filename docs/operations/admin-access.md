@@ -17,7 +17,9 @@ An unauthenticated request for `/admin.html` redirects home. Every route under
 performing lookups and returns HTTP 401 otherwise.
 
 The admin page opens on five focused workflows: per-User changes, bulk Track
-creation, Week and League Season management, buybacks, and statistics. Only one
+creation, Week and League Season management, and buybacks. View Statistics opens
+a read-only weekly modal with current Pick and remaining User/Track summaries;
+Reload Game Odds adds the riskiest current Pick when odds are available. Only one
 workflow is shown at a time. Each workflow has contextual Help; the page does
 not expose one long action guide or require an admin to know database IDs.
 

@@ -33,13 +33,17 @@ export async function handleSubmitPicks() {
     return;
   }
   const list = document.getElementById("pickReviewList");
-  list.replaceChildren(...selections.map(({ trackId, teamName }) => {
+  list.replaceChildren(...selections.map((selection, index) => {
     const item = document.createElement("li");
-    item.textContent = `Track ${trackId}: ${teamName}`;
+    item.textContent = formatPickReviewLabel(selection, index);
     return item;
   }));
   document.getElementById("pickReviewModal").dataset.selections = JSON.stringify(selections);
   window.bootstrap.Modal.getOrCreateInstance(document.getElementById("pickReviewModal")).show();
+}
+
+export function formatPickReviewLabel({ teamName }, index) {
+  return `Track ${index + 1}: ${teamName}`;
 }
 
 export function collectDraftSelections() {

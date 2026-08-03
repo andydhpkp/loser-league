@@ -10,6 +10,7 @@ import {
   runAdminAction,
   undoAdminAction,
 } from "./admin-management.js";
+import { computeAdminStatistics, computeRiskiestPick } from "./admin-statistics.js";
 
 const help = {
   user: {
@@ -188,7 +189,7 @@ function renderTrackActions(target, view, ordinal) {
     actions.append(reactivate);
   }
   const remove = document.createElement("button");
-  remove.className = "btn btn-outline-danger";
+  remove.className = "btn btn-danger";
   remove.textContent = `Delete Track ${ordinal}`;
   remove.addEventListener("click", () => run(() => runAdminAction("DELETE_TRACK", { trackId: view.track.id }), `Track ${ordinal} deleted.`));
   actions.append(remove);
@@ -202,7 +203,7 @@ function renderTrackActions(target, view, ordinal) {
     row.className = "admin-pick-row";
     row.innerHTML = `<span>Week ${pick.week}: ${pick.teamName} — ${pick.outcome.replaceAll("_", " ")}</span>`;
     const correct = document.createElement("button");
-    correct.className = "btn btn-sm btn-outline-warning";
+    correct.className = "btn btn-sm btn-warning";
     correct.textContent = "Correct this Pick";
     correct.addEventListener("click", () => {
       const select = document.createElement("select");
@@ -225,7 +226,7 @@ function renderTrackActions(target, view, ordinal) {
     operations.innerHTML = "<h5>Recent actions eligible for undo</h5>";
     undoable.forEach((operation) => {
       const button = document.createElement("button");
-      button.className = "btn btn-outline-warning d-block mb-2";
+      button.className = "btn btn-warning d-block mb-2";
       button.textContent = `Undo ${operation.description}`;
       button.addEventListener("click", () => run(() => undoAdminAction(operation.id), "Action undone."));
       operations.append(button);
@@ -262,7 +263,7 @@ async function renderUserWorkspace(user) {
   const winButtons = document.createElement("div"); winButtons.className = "d-flex gap-2";
   const winStatus = document.createElement("p"); winStatus.setAttribute("role", "status");
   for (const [label, tied] of [["Add solo win", false], ["Add tied win", true]]) {
-    const button = document.createElement("button"); button.className = "btn btn-outline-primary"; button.textContent = label;
+    const button = document.createElement("button"); button.className = "btn btn-primary"; button.textContent = label;
     button.addEventListener("click", async () => {
       try {
         const result = await addUserWin({ userId: user.id, displayName: displayName(user), year: yearInput.value, wonWithTie: tied });
@@ -277,7 +278,7 @@ async function renderUserWorkspace(user) {
   }
   wins.append(winHistory, crownType, yearLabel, winButtons, winStatus);
   const buyback = document.createElement("button");
-  buyback.className = "btn btn-outline-warning mb-3";
+  buyback.className = "btn btn-warning mb-3";
   buyback.textContent = "Manage this User's buyback";
   buyback.addEventListener("click", () => showWorkflow("buybacks"));
   workspace.append(addForm, wins, buyback);
@@ -329,15 +330,53 @@ function renderWinnerChoices() {
   })));
 }
 
-function renderStatistics() {
-  const tracks = users.flatMap(userTracks);
-  const active = tracks.filter((track) => !track.eliminated_by_pick_id && !track.wrong_pick).length;
-  document.getElementById("adminStatistics").innerHTML = `<div class="admin-stat-grid"><article><strong>${users.length}</strong><span>Users</span></article><article><strong>${tracks.length}</strong><span>Total Tracks</span></article><article><strong>${active}</strong><span>Active Tracks</span></article></div>`;
-}
-
 async function refreshUsers() {
   await loadUsers();
-  renderUserList(); renderBulkUsers(); renderWinnerChoices(); renderStatistics();
+  renderUserList(); renderBulkUsers(); renderWinnerChoices();
+}
+
+let statisticsLeagueSeasonId = null;
+
+function renderStatistics(statistics) {
+  document.getElementById("statMostPopular").textContent = statistics.mostPopular;
+  document.getElementById("statLeastPopular").textContent = statistics.leastPopular;
+  document.getElementById("statUsersEliminated").textContent = statistics.usersEliminated;
+  document.getElementById("statUsersLeft").textContent = statistics.usersLeft;
+  document.getElementById("statTracksLeft").textContent = statistics.tracksLeft;
+  document.getElementById("statMostTracks").textContent = statistics.usersWithMostTracks;
+  document.getElementById("statLeastTracks").textContent = statistics.usersWithLeastTracks;
+}
+
+async function showStatisticsModal() {
+  await refreshUsers();
+  const response = await fetch("/api/admin/league-season", { cache: "no-store" });
+  if (!response.ok) throw new Error("Unable to load League Season status");
+  const { leagueSeason } = await response.json();
+  statisticsLeagueSeasonId = leagueSeason?.id ?? null;
+  renderStatistics(computeAdminStatistics(users, statisticsLeagueSeasonId));
+  document.getElementById("statRiskiestRow").hidden = true;
+  document.getElementById("statisticsOddsStatus").textContent = "";
+  window.bootstrap.Modal.getOrCreateInstance(document.getElementById("weeklyStatisticsModal")).show();
+}
+
+async function reloadStatisticsOdds() {
+  const status = document.getElementById("statisticsOddsStatus");
+  const button = document.getElementById("reloadStatisticsOdds");
+  status.textContent = "Loading game odds…";
+  button.disabled = true;
+  try {
+    const response = await fetch("/api/proxy/nfl-odds", { cache: "no-store" });
+    if (!response.ok) throw new Error("Odds unavailable");
+    const result = computeRiskiestPick(users, statisticsLeagueSeasonId, await response.json());
+    if (!result) throw new Error("Odds unavailable — no current Picks matched the game odds.");
+    document.getElementById("statRiskiestPick").textContent = `${result.users.join(", ")}: ${result.team} (Spread: ${result.spread})`;
+    document.getElementById("statRiskiestRow").hidden = false;
+    status.textContent = "Game odds updated.";
+  } catch (error) {
+    status.textContent = error.message?.startsWith("Odds unavailable") ? error.message : "Odds unavailable.";
+  } finally {
+    button.disabled = false;
+  }
 }
 
 async function loadMatchups() {
@@ -374,6 +413,10 @@ export async function initializeAdminWorkflows() {
     helpReturnFocus = null;
   });
   document.querySelectorAll("[data-open-workflow]").forEach((button) => button.addEventListener("click", async () => { await refreshUsers(); await showWorkflow(button.dataset.openWorkflow); }));
+  document.getElementById("viewStatistics").addEventListener("click", async () => {
+    try { await showStatisticsModal(); } catch (error) { window.alert(error.message || "Unable to load statistics"); }
+  });
+  document.getElementById("reloadStatisticsOdds").addEventListener("click", reloadStatisticsOdds);
   document.querySelectorAll("[data-admin-home]").forEach((button) => button.addEventListener("click", showHome));
   document.getElementById("adminUserSearch").addEventListener("input", renderUserList);
   document.querySelectorAll("[data-help]").forEach((button) => button.addEventListener("click", () => {
