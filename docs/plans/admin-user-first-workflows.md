@@ -27,7 +27,7 @@
 - Bulk Track creation shows every User with one quantity field, accepts whole numbers from zero through 100 per User, previews the complete batch, and commits all requested Tracks in one transaction or none.
 - Week/Season tools use scheduled-matchup selection, visible winner Track selection, and a collapsed Advanced League Repairs section.
 - Buybacks remain available per User and in a cross-User queue; raw direct-buyback inputs are removed.
-- Statistics is a separate read-only workflow.
+- Statistics opens a read-only weekly modal from Admin Home. It shows current-season Pick popularity, eliminated and remaining Users, remaining Tracks, Users with the most and least remaining Tracks, and an on-demand riskiest-Pick calculation from game odds.
 - Current data is refreshed when a workflow opens and before mutation preview. Stale selections fail safely with plain-language guidance.
 - Only the current League Season is exposed. “Historical Pick” means an earlier week in the current League Season.
 
@@ -57,7 +57,7 @@
 
 ## Verification
 
-- Browser smoke tests cover Admin Home navigation, responsive User selection, Track-card selection, contextual help, absence of raw-ID inputs, bulk preview, and statistics isolation.
+- Browser smoke tests cover Admin Home navigation, responsive User selection, Track-card selection, contextual help, absence of raw-ID inputs, bulk preview, and the statistics modal.
 - Unit route/service tests cover admin authorization, normalization, quantity limits, invalid Users, and all-or-nothing behavior.
 - Integration tests cover transactional multi-User Track creation against a disposable test database.
 - Run unit coverage, browser lint, integration tests, and the complete browser smoke suite before PR creation.

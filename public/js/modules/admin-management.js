@@ -219,7 +219,7 @@ export async function displayUsers() {
 
           let closeBtn = document.createElement("button");
           closeBtn.setAttribute("type", "button");
-          closeBtn.setAttribute("class", "btn btn-outline-primary");
+          closeBtn.setAttribute("class", "btn btn-primary");
           closeBtn.setAttribute("data-bs-dismiss", "modal");
           closeBtn.innerText = "Close";
 
@@ -565,7 +565,7 @@ function createStatisticsModal(adminViewUserDiv, data) {
 
   let statisticsCloseButton = document.createElement("button");
   statisticsCloseButton.setAttribute("type", "button");
-  statisticsCloseButton.setAttribute("class", "btn btn-outline-primary");
+  statisticsCloseButton.setAttribute("class", "btn btn-primary");
   statisticsCloseButton.setAttribute("data-bs-dismiss", "modal");
   statisticsCloseButton.innerText = "Close";
 
