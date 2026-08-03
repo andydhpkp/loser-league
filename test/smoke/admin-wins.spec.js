@@ -4,6 +4,7 @@ test("admin records a confirmed solo win from the selected User workspace", asyn
   page,
 }) => {
   const writes = [];
+  let winRecorded = false;
   await page.route("**/api/admin/actions/ADD_USER_WIN/**", async (route) => {
     const payload = route.request().postDataJSON();
     if (route.request().url().endsWith("/preview")) {
@@ -11,7 +12,27 @@ test("admin records a confirmed solo win from the selected User workspace", asyn
       await route.fulfill({ status: 201, contentType: "application/json", body: JSON.stringify({ description: "Record solo win for User 3 in 2025", warnings: [], targets: [{}], confirmationKey: "a".repeat(64) }) });
       return;
     }
+    winRecorded = true;
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ targets: [{ target_type: "USER", after_state: { userRecord: [{ year: 2025, won: true, won_with_tie: false }], crownType: "solo_1" } }] }) });
+  });
+  await page.route("**/api/admin/users/3/workspace", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        user: {
+          id: 3,
+          first_name: "Example",
+          last_name: "User",
+          username: "example",
+          user_record: winRecorded
+            ? [{ year: 2025, won: true, won_with_tie: false }]
+            : null,
+          crown_type: winRecorded ? "solo_1" : null,
+        },
+        tracks: [],
+      }),
+    });
   });
   await page.route("**/api/users**", async (route) => {
     await route.fulfill({

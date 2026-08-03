@@ -8,6 +8,7 @@ const { createAdminRepairRouter } = require("./admin/repair-routes");
 const { createAdminBuybackRouter } = require("./admin/buyback-routes");
 const { createBulkTrackRouter } = require("./admin/bulk-track-routes");
 const { createAdminLeagueSeasonRouter } = require("./admin/league-season-routes");
+const { createAdminUserWorkspaceRouter } = require("./admin/user-workspace-routes");
 const { createPickSubmissionRouter } = require("./user/pick-submission-routes");
 const { createDashboardRouter } = require("./user/dashboard-routes");
 const dashboardService = require("./modules/dashboard/dashboard-service");
@@ -18,7 +19,7 @@ const { createErrorHandler } = require("./middleware/error-handler");
 const { requestContext } = require("./middleware/request-context");
 const { createNflRouter } = require("./nfl/routes");
 const { createDefaultManualClosureContextLoader } = require("./modules/week-closure/manual-closure-context");
-const { inspectTrack } = require("./modules/admin-repairs/inspector-service");
+const { inspectTrack, inspectUserWorkspace } = require("./modules/admin-repairs/inspector-service");
 const { createDefaultHistoricalResultsLoader } = require("./modules/admin-repairs/historical-results-context");
 const { fetchFixtureSchedule } = require("./nfl/fixture-download-client");
 const { LeagueSeason } = require("../models");
@@ -37,6 +38,7 @@ function createApp({
   requestClosureEvaluation,
   requestAutoPickEvaluation,
   inspectAdminTrack = inspectTrack,
+  inspectAdminUserWorkspace = inspectUserWorkspace,
   userDashboardService = dashboardService,
   loadLeagueSeasonYear = async () => {
     const season = await LeagueSeason.findOne({ where: { open_slot: 1 }, attributes: ["year"] });
@@ -102,6 +104,7 @@ function createApp({
   }));
   app.use("/api/admin/league-season", createAdminLeagueSeasonRouter());
   app.use("/api/admin/repairs", createAdminRepairRouter({ inspectTrack: inspectAdminTrack }));
+  app.use("/api/admin/users", createAdminUserWorkspaceRouter({ inspectUserWorkspace: inspectAdminUserWorkspace }));
   app.use("/api/admin/buybacks", createAdminBuybackRouter(buybackService, { requestAutoPickEvaluation }));
   app.use("/api/admin/tracks/bulk", createBulkTrackRouter());
   app.use("/api/user/league", createPickSubmissionRouter({

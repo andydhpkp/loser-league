@@ -114,6 +114,13 @@ Selecting a card loads normalized Pick history, current scheduled eligibility,
 inconsistencies, buyback reactivations, and recent audit operations without
 showing or asking for a Track or Pick ID.
 
+The selected User workspace loads and refreshes through one authenticated
+User-scoped request. After a successful per-User action, the same User remains
+open and the selected Track remains open when it still exists. Deleting a Track
+removes it from the workspace after confirmation; deleting a User returns to
+the existing filtered User list. While an action is pending, its controls are
+disabled and the workspace announces its update state.
+
 The guided operations can reset, assign, or replace a current-week Pick. Normal
 Week 2 buybacks use the dedicated pending/eligible queue and exact paid-subset
 completion described in [`week-2-buyback.md`](week-2-buyback.md). Standalone

@@ -3,7 +3,6 @@ import {
   assignCurrentPick,
   correctHistoricalPick,
   formatUserWinHistory,
-  inspectAdminTrack,
   reactivateTrack,
   replaceCurrentPick,
   resetCurrentPicks,
@@ -80,6 +79,8 @@ function renderHelpGuide(container, guide) {
 }
 
 let users = [];
+let selectedUserId = null;
+let selectedTrackId = null;
 
 function displayName(user) {
   return `${user.first_name || ""} ${user.last_name || ""}`.trim();
@@ -152,6 +153,7 @@ function option(value, label) {
 }
 
 function renderTrackActions(target, view, ordinal) {
+  selectedTrackId = view.track.id;
   target.replaceChildren();
   const heading = document.createElement("h4");
   heading.textContent = `Track ${ordinal} actions`;
@@ -159,10 +161,23 @@ function renderTrackActions(target, view, ordinal) {
   status.setAttribute("role", "status");
   const team = document.createElement("select");
   team.className = "form-select mb-2";
+  team.setAttribute("aria-label", `Valid Team for Track ${ordinal}`);
   team.append(option("", "Choose a valid Team"), ...view.eligibleCurrentWeekTeams.map((name) => option(name, name)));
   const actions = document.createElement("div");
   actions.className = "d-flex gap-2 flex-wrap mb-3";
-  const run = async (work, message) => { try { const result = await work(); if (result) status.textContent = message; } catch (error) { status.textContent = error.message; } };
+  const run = async (work, message, { preserveTrack = true } = {}) => {
+    const controls = [...target.querySelectorAll("button, select, input")];
+    controls.forEach((control) => { control.disabled = true; });
+    status.textContent = "Updating…";
+    try {
+      const result = await work();
+      if (result) await renderUserWorkspace(selectedUserId, { preferredTrackId: preserveTrack ? view.track.id : null, message });
+      else { status.textContent = ""; controls.forEach((control) => { control.disabled = false; }); }
+    } catch (error) {
+      status.textContent = error.message;
+      controls.forEach((control) => { control.disabled = false; });
+    }
+  };
   if (view.track.active) {
     const assign = document.createElement("button");
     assign.className = "btn btn-primary";
@@ -191,7 +206,7 @@ function renderTrackActions(target, view, ordinal) {
   const remove = document.createElement("button");
   remove.className = "btn btn-danger";
   remove.textContent = `Delete Track ${ordinal}`;
-  remove.addEventListener("click", () => run(() => runAdminAction("DELETE_TRACK", { trackId: view.track.id }), `Track ${ordinal} deleted.`));
+  remove.addEventListener("click", () => run(() => runAdminAction("DELETE_TRACK", { trackId: view.track.id }), `Track ${ordinal} deleted.`, { preserveTrack: false }));
   actions.append(remove);
 
   const history = document.createElement("section");
@@ -236,9 +251,28 @@ function renderTrackActions(target, view, ordinal) {
   target.append(heading, team, actions, history, status);
 }
 
-async function renderUserWorkspace(user) {
+async function loadUserWorkspace(userId) {
+  const response = await fetch(`/api/admin/users/${Number(userId)}/workspace`, { cache: "no-store" });
+  if (!response.ok) throw new Error("Unable to load User workspace");
+  return response.json();
+}
+
+async function renderUserWorkspace(userId, { preferredTrackId = null, message = "" } = {}) {
+  selectedUserId = Number(userId);
+  selectedTrackId = preferredTrackId;
+  const { user, tracks: inspected } = await loadUserWorkspace(selectedUserId);
+  const userIndex = users.findIndex((item) => item.id === user.id);
+  const userSummary = { ...users[userIndex], ...user, tracks: inspected.map((view) => ({
+    id: view.track.id,
+    league_season_id: view.leagueSeason.id,
+    current_pick: view.projections.currentPick,
+    wrong_pick: view.projections.wrongPick,
+    eliminated_by_pick_id: view.track.eliminatingPickId,
+  })) };
+  if (userIndex >= 0) users[userIndex] = userSummary;
+  renderUserList();
   const workspace = document.getElementById("adminUserWorkspace");
-  workspace.innerHTML = `<button class="btn btn-link admin-mobile-back" type="button">← Back to Users</button><h3>${displayName(user)} <small>@${user.username}</small></h3>`;
+  workspace.innerHTML = `<button class="btn btn-link admin-mobile-back" type="button">← Back to Users</button><h3>${displayName(userSummary)} <small>@${userSummary.username}</small></h3><p id="adminUserWorkspaceStatus" role="status" aria-live="polite">${message}</p>`;
   workspace.querySelector(".admin-mobile-back").addEventListener("click", () => document.getElementById("adminUserPicker").classList.remove("admin-picker-hidden"));
   const addForm = document.createElement("form");
   addForm.className = "admin-inline-form mb-3";
@@ -248,16 +282,17 @@ async function renderUserWorkspace(user) {
     event.preventDefault();
     const quantity = Number(addForm.querySelector("input").value);
     if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) return window.alert("Enter a whole number from 1 through 100");
-    if (!window.confirm(`Add ${quantity} Tracks for ${displayName(user)}?`)) return;
+    if (!window.confirm(`Add ${quantity} Tracks for ${displayName(userSummary)}?`)) return;
+    const controls = [...addForm.querySelectorAll("button, input")]; controls.forEach((control) => { control.disabled = true; });
+    document.getElementById("adminUserWorkspaceStatus").textContent = "Updating…";
     const response = await fetch("/api/admin/tracks/bulk", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ additions: [{ userId: user.id, quantity }] }) });
-    if (!response.ok) return window.alert((await response.json()).message || "Unable to add Tracks");
-    window.alert(`${quantity} Tracks added for ${displayName(user)}.`);
-    await refreshUsers();
+    if (!response.ok) { controls.forEach((control) => { control.disabled = false; }); document.getElementById("adminUserWorkspaceStatus").textContent = (await response.json()).message || "Unable to add Tracks"; return; }
+    await renderUserWorkspace(user.id, { message: `${quantity} Tracks added.` });
   });
   const wins = document.createElement("section");
   wins.className = "mb-3";
-  const winHistory = document.createElement("p"); winHistory.textContent = `Win history: ${formatUserWinHistory(user.user_record)}`;
-  const crownType = document.createElement("p"); crownType.textContent = `Crown type: ${user.crown_type || "none"}`;
+  const winHistory = document.createElement("p"); winHistory.textContent = `Win history: ${formatUserWinHistory(userSummary.user_record)}`;
+  const crownType = document.createElement("p"); crownType.textContent = `Crown type: ${userSummary.crown_type || "none"}`;
   const yearLabel = document.createElement("label"); yearLabel.className = "form-label"; yearLabel.textContent = "League Season year";
   const yearInput = document.createElement("input"); yearInput.className = "form-control mb-2"; yearInput.type = "text"; yearInput.inputMode = "numeric"; yearInput.pattern = "[0-9]{4}"; yearInput.maxLength = 4; yearLabel.append(yearInput);
   const winButtons = document.createElement("div"); winButtons.className = "d-flex gap-2";
@@ -266,13 +301,11 @@ async function renderUserWorkspace(user) {
     const button = document.createElement("button"); button.className = "btn btn-primary"; button.textContent = label;
     button.addEventListener("click", async () => {
       try {
-        const result = await addUserWin({ userId: user.id, displayName: displayName(user), year: yearInput.value, wonWithTie: tied });
-        if (!result) return;
-        user.user_record = result.user_record; user.crown_type = result.crown_type;
-        winHistory.textContent = `Win history: ${formatUserWinHistory(result.user_record)}`;
-        crownType.textContent = `Crown type: ${result.crown_type || "none"}`;
-        yearInput.value = ""; winStatus.textContent = "Win recorded";
-      } catch (error) { winStatus.textContent = error.message; }
+        button.disabled = true; winStatus.textContent = "Updating…";
+        const result = await addUserWin({ userId: userSummary.id, displayName: displayName(userSummary), year: yearInput.value, wonWithTie: tied });
+        if (!result) { button.disabled = false; winStatus.textContent = ""; return; }
+        await renderUserWorkspace(userSummary.id, { message: "Win recorded." });
+      } catch (error) { button.disabled = false; winStatus.textContent = error.message; }
     });
     winButtons.append(button);
   }
@@ -282,21 +315,29 @@ async function renderUserWorkspace(user) {
   buyback.textContent = "Manage this User's buyback";
   buyback.addEventListener("click", () => showWorkflow("buybacks"));
   workspace.append(addForm, wins, buyback);
-  const rawTracks = userTracks(user);
-  if (!rawTracks.length) workspace.insertAdjacentHTML("beforeend", "<p>No Tracks in the current League Season.</p>");
+  if (!inspected.length) workspace.insertAdjacentHTML("beforeend", "<p>No Tracks in the current League Season.</p>");
   const cards = document.createElement("div"); cards.className = "admin-track-grid";
   const detail = document.createElement("section"); detail.className = "admin-track-actions";
-  const inspected = await Promise.all(rawTracks.map((track) => inspectAdminTrack(track.id)));
   const current = inspected.filter((view) => ["SETUP", "ACTIVE"].includes(view.leagueSeason.state));
-  current.forEach((view, index) => { const card = trackSummary(view, index + 1); card.addEventListener("click", () => renderTrackActions(detail, view, index + 1)); cards.append(card); });
+  current.forEach((view, index) => { const card = trackSummary(view, index + 1); card.dataset.trackId = view.track.id; card.addEventListener("click", () => renderTrackActions(detail, view, index + 1)); cards.append(card); });
   const danger = document.createElement("details");
   danger.className = "admin-danger-zone mt-4";
   danger.innerHTML = "<summary>Danger Zone</summary><p>Select a Track above before deleting it. User deletion permanently removes the User and every owned Track.</p>";
-  const deleteUser = document.createElement("button"); deleteUser.className = "btn btn-danger"; deleteUser.textContent = `Delete ${displayName(user)}`;
-  deleteUser.addEventListener("click", () => runAdminAction("DELETE_USER", { userId: user.id })); danger.append(deleteUser);
+  const deleteUser = document.createElement("button"); deleteUser.className = "btn btn-danger"; deleteUser.textContent = `Delete ${displayName(userSummary)}`;
+  deleteUser.addEventListener("click", async () => {
+    deleteUser.disabled = true; document.getElementById("adminUserWorkspaceStatus").textContent = "Updating…";
+    try {
+      const result = await runAdminAction("DELETE_USER", { userId: userSummary.id });
+      if (!result) { deleteUser.disabled = false; document.getElementById("adminUserWorkspaceStatus").textContent = ""; return; }
+      selectedUserId = null; selectedTrackId = null; await refreshUsers();
+      workspace.innerHTML = '<p role="status" aria-live="polite">User deleted.</p>';
+      document.getElementById("adminUserPicker").classList.remove("admin-picker-hidden");
+    } catch (error) { deleteUser.disabled = false; document.getElementById("adminUserWorkspaceStatus").textContent = error.message; }
+  }); danger.append(deleteUser);
   workspace.append(cards, detail, danger);
   document.getElementById("adminUserPicker").classList.add("admin-picker-hidden");
   workspace.focus();
+  if (preferredTrackId) cards.querySelector(`[data-track-id="${preferredTrackId}"]`)?.click();
 }
 
 function renderUserList() {
@@ -307,7 +348,7 @@ function renderUserList() {
     button.type = "button"; button.className = "admin-user-choice";
     const tracks = userTracks(user); const active = tracks.filter((track) => !track.eliminated_by_pick_id && !track.wrong_pick).length;
     button.innerHTML = `<strong>${displayName(user)}</strong><span>@${user.username}</span><span>${active} active / ${tracks.length} total Tracks</span>`;
-    button.addEventListener("click", () => renderUserWorkspace(user));
+    button.addEventListener("click", () => renderUserWorkspace(user.id));
     return button;
   }));
 }
