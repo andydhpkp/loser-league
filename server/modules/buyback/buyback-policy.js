@@ -4,11 +4,17 @@ const BUYBACK_PRICE_CENTS = 1000;
 const BLOCKING_STATUSES = new Set(["ELIGIBLE", "PENDING_USER_REQUEST", "UNAVAILABLE"]);
 
 function eligibleWeekOneTracks(tracks) {
+  return eligibleBuybackTracks({ tracks, schedulePhase: "REGULAR" })
+    .map(({ eliminatingWeek: _eliminatingWeek, ...track }) => track);
+}
+
+function eligibleBuybackTracks({ tracks, schedulePhase }) {
+  const preseason = schedulePhase === "PRESEASON";
   return tracks.filter((track) => track.eliminatedByPickId
     && track.eliminatingPick?.id === track.eliminatedByPickId
-    && track.eliminatingPick.week === 1
+    && (preseason || track.eliminatingPick.week === 1)
     && track.eliminatingPick.outcome === "WRONG_PICK")
-    .map((track) => ({ trackId: track.id, pickId: track.eliminatingPick.id, teamName: track.eliminatingPick.teamName }))
+    .map((track) => ({ trackId: track.id, pickId: track.eliminatingPick.id, teamName: track.eliminatingPick.teamName, eliminatingWeek: track.eliminatingPick.week }))
     .sort((a, b) => a.trackId - b.trackId);
 }
 
@@ -28,7 +34,7 @@ function partitionResolution({ requestedTrackIds, fulfilledTrackIds }) {
   return { fulfilledTrackIds: fulfilled, unfulfilledTrackIds: requested.filter((id) => !fulfilled.includes(id)), totalCents: fulfilled.length * BUYBACK_PRICE_CENTS };
 }
 
-function buybackView({ decision, tracks = [], presentation = {}, deadlineAvailable = true }) {
+function buybackView({ decision, tracks = [], presentation = {}, deadlineAvailable = true, schedulePhase }) {
   if (!decision) return null;
   const status = deadlineAvailable ? decision.status : "UNAVAILABLE";
   const selectedCount = decision.status === "ELIGIBLE" ? 0 : tracks.length;
@@ -40,9 +46,10 @@ function buybackView({ decision, tracks = [], presentation = {}, deadlineAvailab
     selectedCount,
     totalCents: selectedCount * BUYBACK_PRICE_CENTS,
     tracks: tracks.map((track) => ({ trackId: track.trackId, weekOnePick: track.teamName, resolution: track.resolution || null })),
+    ...(schedulePhase ? { schedulePhase } : {}),
     contacts: Array.isArray(presentation.contacts) ? presentation.contacts : [],
     payment: presentation.payment || null,
   };
 }
 
-module.exports = { BUYBACK_PRICE_CENTS, BLOCKING_STATUSES, eligibleWeekOneTracks, normalizeTrackIds, partitionResolution, buybackView };
+module.exports = { BUYBACK_PRICE_CENTS, BLOCKING_STATUSES, eligibleBuybackTracks, eligibleWeekOneTracks, normalizeTrackIds, partitionResolution, buybackView };

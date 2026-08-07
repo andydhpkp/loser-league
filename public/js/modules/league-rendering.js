@@ -21,6 +21,10 @@ export async function leagueUserTableHandler() {
   headerHelp.appendChild(currentWeekDiv);
 
   fetch("/api/user/league/view").then(function (response) {
+    if (response.status === 409) {
+      window.location.replace("/dashboard.html?leagueView=blocked");
+      return;
+    }
     if (response.ok) {
       response.json().then(function (leagueView) {
         const currentWeekNumber = Number(leagueView.leagueSeason.week);

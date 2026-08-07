@@ -102,4 +102,25 @@ if (!databaseUrl) {
     assert.equal(view.status, "CLOSED_BY_PICK");
     assert.equal(view.pickBlocked, false);
   });
+
+  test("later-week preseason buyback has no deadline and reactivates through the ordinary workflow", async () => {
+    const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 4, schedule_phase: "PRESEASON", state_version: 4, open_slot: 1 });
+    const user = await User.create({ first_name: "Preseason", last_name: "Tester", username: "preseason-buyback", email: "preseason-buyback@example.test", password: "safe-test-password" });
+    const active = await Track.create({ user_id: user.id, league_season_id: season.id, available_picks: ["Broncos", "Raiders"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 });
+    const eliminated = await Track.create({ user_id: user.id, league_season_id: season.id, available_picks: ["Broncos", "Raiders"], used_picks: ["Bears"], current_pick: null, wrong_pick: "Bears", state_version: 1 });
+    const wrongPick = await Pick.create({ track_id: eliminated.id, league_season_id: season.id, week: 3, pick_cycle: 1, team_name: "Bears", origin: "USER_SUBMISSION", outcome: "WRONG_PICK", committed_at: before, state_version: 0 });
+    await eliminated.update({ eliminated_by_pick_id: wrongPick.id });
+    const preseasonSchedule = { ...schedule, week: 4, provider: "ESPN", contentHash: "c".repeat(64), normalizedSchedule: { week: 4, games: schedule.normalizedSchedule.games }, fetchedAt: before };
+
+    const initial = await getUserBuyback({ userId: user.id, deadlineAvailable: false, deadline: new Date("2026-08-01T00:00:00.000Z"), now: before });
+    assert.equal(initial.status, "ELIGIBLE");
+    assert.equal(initial.schedulePhase, "PRESEASON");
+    const pending = await decide({ userId: user.id, action: "REQUEST", trackIds: [eliminated.id], stateVersion: initial.stateVersion, deadline: null, now: before });
+    await assert.rejects(submitPicks({ userId: user.id, selections: [{ trackId: active.id, stateVersion: active.state_version, teamName: "Broncos" }], schedule: preseasonSchedule, now: before }), /preseason buyback/i);
+
+    const completed = await resolveAdmin({ decisionId: (await BuybackDecision.findOne()).id, stateVersion: pending.stateVersion, fulfilledTrackIds: [eliminated.id], paymentConfirmed: true, now: before });
+    assert.equal(completed.status, "COMPLETED_USER_REQUEST");
+    assert.equal((await eliminated.reload()).eliminated_by_pick_id, null);
+    assert.equal(await TrackReactivation.count(), 1);
+  });
 }

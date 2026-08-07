@@ -8,6 +8,12 @@ shows a minimal server-authoritative League Season summary and links, in order,
 to View League, Make Picks, and Help. Pick status comes from the server; the
 browser only formats the ISO deadline in the User's locale and time zone.
 
+During Week 1 or later, View League is disabled until every active Track owned
+by the User has a normalized current-week Pick. The league-view API enforces the
+same rule before returning standings, so a direct League page visit returns to
+the dashboard with an explanation. Users with no active Tracks may view the
+League immediately, and Week 0 remains viewable because no Picks are due.
+
 `/help.html` explains active User-facing Pick, visibility, elimination, and
 Week 2 buyback rules and loads sanitized configured support contacts. Phase 1
 contains no Text Pick Reminder control or Help copy. Issue #45 owns that later

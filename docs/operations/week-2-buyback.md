@@ -5,6 +5,13 @@ Loser League stores only workflow state and the fact that shared admin confirmed
 payment externally. Never enter Venmo transactions, messages, phone numbers,
 emails, or payment details into notes or requests.
 
+In preseason testing, the same workflow is available during any preseason
+week for a Track currently eliminated by a Wrong Pick from any preseason week.
+Preseason decisions have no kickoff deadline and remain available after the
+final preseason week closes. Each User still receives only one decision in the
+preseason session. Regular-season behavior below remains strictly Week 1 to
+Week 2.
+
 ## User workflow
 
 An authenticated User sees the offer only in active Week 2 before the earliest
@@ -40,6 +47,11 @@ Completion revalidates the season, Week 2 window, decision version, ownership,
 Week 1 Wrong Pick, and elimination under locks. It records the terminal
 decision, each membership resolution, reactivation evidence, and sanitized
 actorless audit in one transaction. Any failure rolls back all of them.
+
+During preseason, the corresponding checks validate the active preseason
+phase, the actual eliminating Wrong Pick from any preseason week, and current
+elimination. There is no stored-schedule deadline check for preseason admin
+resolution.
 
 The separate **Exceptional Track correction** requires a written audit note.
 It changes Track/reactivation state only and never changes buyback decision
