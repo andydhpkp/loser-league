@@ -34,15 +34,17 @@ th[scope="row"]:has(.crown-icon) div::after {
 }
 
 .crown-icon {
-  width: 30px;
+  width: auto;
   height: 23px;
+  max-width: none;
   transition: transform 0.2s ease;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
   flex-shrink: 0;
 }
 
 .crown-column {
-  width: 30px;
+  width: 46px;
+  min-width: 46px;
 }
 
 /* Fix vertical alignment for all table cells */
