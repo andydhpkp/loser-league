@@ -104,20 +104,24 @@ async function loadLeagueSeasonContext() {
   const season = context.leagueSeason;
   const create = document.getElementById("createLeagueSeasonForm");
   const start = document.getElementById("startLeagueSeasonForm");
+  const enablePreseason = document.getElementById("enablePreseasonForm");
+  const startRegular = document.getElementById("startRegularSeasonForm");
   const activeControlIds = ["officialResultForm", "manualCloseForm", "completeSeasonForm"];
   const activeControls = activeControlIds.map((id) => document.getElementById(id));
   const rollover = document.getElementById("rolloverSeasonForm");
   const advanced = document.querySelector("#leagueWorkflow .admin-danger-zone");
   create.hidden = Boolean(season);
   start.hidden = !(season?.state === "SETUP" && season.week === 0);
+  enablePreseason.hidden = !season || season.schedulePhase === "PRESEASON" || !((season.state === "SETUP" && season.week === 0) || (season.state === "ACTIVE" && season.week === 1));
+  startRegular.hidden = season?.schedulePhase !== "PRESEASON";
   const active = season?.state === "ACTIVE";
   activeControls.forEach((control) => { control.hidden = !active; });
   rollover.hidden = season?.state !== "COMPLETE";
   if (advanced) advanced.hidden = !active;
   const status = document.getElementById("leagueSeasonContextStatus");
   if (!season) status.textContent = context.unassignedTrackCount ? `${context.unassignedTrackCount} legacy Tracks must be handled with the guarded bootstrap command before a League Season can be created here.` : "No League Season exists. Enter its year to create SETUP Week 0.";
-  else status.textContent = `${season.year} League Season — ${season.state}, Week ${season.week}`;
-  if (active) await loadMatchups();
+  else status.textContent = `${season.year} League Season — ${season.schedulePhase === "PRESEASON" ? "Preseason" : "Regular season"}, ${season.preseasonComplete ? "complete" : `Week ${season.week}`}`;
+  if (active) await loadMatchups(season);
   return context;
 }
 
@@ -420,15 +424,20 @@ async function reloadStatisticsOdds() {
   }
 }
 
-async function loadMatchups() {
+async function loadMatchups(season) {
   try {
-    const response = await fetch("/api/proxy/nfl", { cache: "no-store" });
+    const query = new globalThis.URLSearchParams({ year: String(season.year), week: String(season.week) });
+    if (season.schedulePhase === "PRESEASON") query.set("seasonType", "preseason");
+    const response = await fetch(`/api/nfl/schedule?${query}`, { cache: "no-store" });
     if (!response.ok) return;
-    const games = await response.json();
+    const payload = await response.json();
+    const games = Object.values(payload.content?.schedule || {}).flatMap((day) => day.games || []);
     const select = document.getElementById("overrideMatchup");
-    (Array.isArray(games) ? games : []).forEach((game) => {
-      const home = game.HomeTeam || game.homeTeam || game.home_team;
-      const away = game.AwayTeam || game.awayTeam || game.away_team;
+    select.replaceChildren(option("", "Select a matchup"));
+    games.forEach((game) => {
+      const competitors = game.competitions?.[0]?.competitors || [];
+      const home = competitors.find((team) => team.homeAway === "home")?.team?.displayName;
+      const away = competitors.find((team) => team.homeAway === "away")?.team?.displayName;
       if (home && away) select.append(option(JSON.stringify({ home, away }), `${away} at ${home}`));
     });
   } catch (_error) { /* The form remains unavailable when the schedule cannot load. */ }
@@ -499,6 +508,16 @@ export async function initializeAdminWorkflows() {
     const context = await loadLeagueSeasonContext();
     const status = document.getElementById("leagueSeasonContextStatus");
     try { if (await runAdminAction("START_LEAGUE_SEASON", { year: context.leagueSeason.year })) await loadLeagueSeasonContext(); } catch (error) { status.textContent = error.message; }
+  });
+  document.getElementById("enablePreseasonForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const status = document.getElementById("leagueSeasonContextStatus");
+    try { if (await runAdminAction("ENABLE_PRESEASON", {})) await loadLeagueSeasonContext(); } catch (error) { status.textContent = error.message; }
+  });
+  document.getElementById("startRegularSeasonForm").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const status = document.getElementById("leagueSeasonContextStatus");
+    try { if (await runAdminAction("START_REGULAR_SEASON", {})) await loadLeagueSeasonContext(); } catch (error) { status.textContent = error.message; }
   });
   await refreshUsers();
 }

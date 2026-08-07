@@ -2,11 +2,12 @@ export function fetchNflTeams(fetchImpl = globalThis.fetch) {
   return fetchImpl("/api/nfl/teams");
 }
 
-export function fetchNflSchedule(year, week, fetchImpl = globalThis.fetch) {
+export function fetchNflSchedule(year, week, fetchImpl = globalThis.fetch, seasonType = "regular") {
   const query = new globalThis.URLSearchParams({
     year: String(year),
     week: String(week),
   });
+  if (seasonType === "preseason") query.set("seasonType", "preseason");
   return fetchImpl(`/api/nfl/schedule?${query}`);
 }
 

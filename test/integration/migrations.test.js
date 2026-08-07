@@ -54,6 +54,9 @@ if (!databaseUrl) {
     assert.ok(pick.pick_cycle);
     const season = await queryInterface.describeTable("league_season");
     assert.ok(season.pick_cycle);
+    assert.ok(season.schedule_phase);
+    assert.ok(season.preseason_complete);
+    assert.ok(season.late_week_one_enrollment);
     const reactivation = await queryInterface.describeTable("track_reactivation");
     assert.ok(reactivation.waived_pick_id);
     assert.ok(reactivation.admin_audit_operation_id);

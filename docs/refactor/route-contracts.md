@@ -108,6 +108,12 @@ Static/named paths must be registered before `/:id` so they are reachable.
 when no open season or unassigned legacy Tracks exist. `START_LEAGUE_SEASON`
 requires that same year at SETUP Week 0 plus revalidated future Week 1 Fixture
 evidence, persists its schedule, and activates Week 1 transactionally.
+`ENABLE_PRESEASON` infers the earliest unfinished preseason week and
+transactionally deletes current-season Tracks and disposable gameplay data
+before activation. `START_REGULAR_SEASON` remains available throughout
+preseason and transactionally deletes temporary Tracks/gameplay data before
+activating regular Week 1. Both preserve Users and winner history and require
+one-use destructive previews.
 
 `GET /api/admin/league-season` requires the shared-admin session and returns
 the current open League Season, or the latest completed season awaiting

@@ -145,9 +145,11 @@ test("admin action registry requires the shared-admin session and exposes no act
   const response = await agent.get("/api/admin/actions");
   assert.equal(response.status, 200);
   assert.deepEqual(response.body.actions.map((action) => action.name), [
-    "CREATE_LEAGUE_SEASON",
-    "START_LEAGUE_SEASON",
-    "ADD_USER_WIN",
+      "CREATE_LEAGUE_SEASON",
+      "START_LEAGUE_SEASON",
+      "ENABLE_PRESEASON",
+      "START_REGULAR_SEASON",
+      "ADD_USER_WIN",
     "CREATE_TRACK",
     "DELETE_TRACK",
     "DELETE_USER",
@@ -296,6 +298,13 @@ test("NFL Schedule route normalizes approved ESPN scoreboard JSON", async () => 
   assert.equal(regularSeasonResponse.status, 200);
   assert.equal(upstreamUrl.searchParams.get("seasontype"), "2");
   assert.equal(upstreamUrl.searchParams.get("week"), "12");
+
+  const preseasonResponse = await request(app).get(
+    "/api/nfl/schedule?year=2025&week=2&seasonType=preseason"
+  );
+  assert.equal(preseasonResponse.status, 200);
+  assert.equal(upstreamUrl.searchParams.get("seasontype"), "1");
+  assert.equal(upstreamUrl.searchParams.get("week"), "2");
 });
 
 test("NFL Schedule route rejects unsafe or unsupported query values", async () => {

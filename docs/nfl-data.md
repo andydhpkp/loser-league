@@ -12,6 +12,9 @@ The browser reads ESPN NFL data only through these public, same-origin routes:
 | `GET /api/nfl/teams` | ESPN NFL Teams | Upstream JSON unchanged |
 | `GET /api/nfl/schedule?year=<year>&week=<week>` | ESPN NFL Scoreboard | Normalized schedule JSON |
 
+Schedule requests may add `seasonType=preseason`. Preseason maps to ESPN season
+type 1; omitting the parameter preserves the regular/postseason behavior.
+
 The Schedule route accepts one canonical integer `year` from 2000 through the
 server's current UTC year plus one and one canonical integer `week` from 1
 through 22. Invalid or repeated values return `400 VALIDATION_ERROR`.
@@ -20,6 +23,12 @@ The Schedule response preserves `content.schedule[date].games` for browser
 consumers. The server builds that shape from ESPN scoreboard events. League
 Season weeks 1–18 map to ESPN regular-season weeks; weeks 19–22 map to ESPN
 postseason weeks 1–4.
+
+The active League Season's schedule phase is authoritative for Picks,
+automatic Picks, results, and closure. In a preseason or late-cutover round,
+games already underway remain in the response for display and results, but
+only Teams with a future kickoff are eligible for a new Pick. The deadline is
+the earliest remaining kickoff.
 
 `GET /api/proxy/nfl` is the browser's Fixture Download feed. It
 resolves the stored open League Season year on the server; the browser cannot

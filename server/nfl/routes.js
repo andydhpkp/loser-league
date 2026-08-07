@@ -6,7 +6,7 @@ const { createEspnClient } = require("./espn-client");
 const INTEGER_PATTERN = /^[1-9]\d*$/;
 
 function parseScheduleQuery(query, currentYear = new Date().getUTCFullYear()) {
-  const { year, week } = query;
+  const { year, week, seasonType } = query;
   const validStrings =
     typeof year === "string" &&
     typeof week === "string" &&
@@ -28,7 +28,10 @@ function parseScheduleQuery(query, currentYear = new Date().getUTCFullYear()) {
     );
   }
 
-  return { year: parsedYear, week: parsedWeek };
+  if (seasonType !== undefined && seasonType !== "preseason" && seasonType !== "regular") {
+    throw new ValidationError("A valid NFL season year and week are required");
+  }
+  return { year: parsedYear, week: parsedWeek, seasonType: seasonType || "regular" };
 }
 
 function createNflRouter({ fetchImpl = global.fetch } = {}) {

@@ -47,12 +47,13 @@ function createEspnClient({ fetchImpl = global.fetch, timeoutMs = 5000 } = {}) {
       return fetchJson(TEAMS_URL);
     },
 
-    async fetchSchedule({ year, week }) {
+    async fetchSchedule({ year, week, seasonType = "regular" }) {
       const url = new URL(SCHEDULE_URL);
-      const postseason = week > 18;
+      const preseason = seasonType === "preseason";
+      const postseason = !preseason && week > 18;
       url.search = new URLSearchParams({
         dates: String(year),
-        seasontype: postseason ? "3" : "2",
+        seasontype: preseason ? "1" : postseason ? "3" : "2",
         week: String(postseason ? week - 18 : week),
       });
       return normalizeSchedule(await fetchJson(url));

@@ -229,7 +229,7 @@ export async function leagueUserTableHandler() {
         viewUsersTable.appendChild(mainTable);
         displayTeamLogo();
         // @ts-ignore
-        finalScores({ year: leagueView.leagueSeason.year, week: currentWeekNumber });
+        finalScores({ year: leagueView.leagueSeason.year, week: currentWeekNumber, seasonType: leagueView.leagueSeason.schedulePhase === "PRESEASON" ? "preseason" : "regular" });
       });
     } else {
       alert("Sorry, could not connect to database");

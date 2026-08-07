@@ -34,6 +34,22 @@ LeagueSeason.init(
       allowNull: false,
       validate: { min: 0, max: 22 },
     },
+    schedule_phase: {
+      type: DataTypes.ENUM("REGULAR", "PRESEASON"),
+      allowNull: false,
+      defaultValue: "REGULAR",
+      validate: { isIn: [["REGULAR", "PRESEASON"]] },
+    },
+    preseason_complete: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
+    late_week_one_enrollment: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
     pick_cycle: {
       type: DataTypes.TINYINT.UNSIGNED,
       allowNull: false,

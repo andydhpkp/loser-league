@@ -21,7 +21,7 @@ const { createNflRouter } = require("./nfl/routes");
 const { createDefaultManualClosureContextLoader } = require("./modules/week-closure/manual-closure-context");
 const { inspectTrack, inspectUserWorkspace } = require("./modules/admin-repairs/inspector-service");
 const { createDefaultHistoricalResultsLoader } = require("./modules/admin-repairs/historical-results-context");
-const { fetchFixtureSchedule } = require("./nfl/fixture-download-client");
+const { fetchFixtureSchedule, fetchPreseasonWeeks } = require("./nfl/fixture-download-client");
 const { LeagueSeason } = require("../models");
 const { buildOnboardingConfiguration } = require("./onboarding/configuration");
 const buybackService = require("./modules/buyback/buyback-service");
@@ -101,6 +101,7 @@ function createApp({
     loadManualClosureContext: createDefaultManualClosureContextLoader({ fetchImpl }),
     loadHistoricalResults: createDefaultHistoricalResultsLoader({ fetchImpl }),
     loadRolloverTargetSchedule: ({ year, week }) => fetchFixtureSchedule({ year, week, fetchImpl }),
+    loadPreseasonWeeks: ({ year, now }) => fetchPreseasonWeeks({ year, now, fetchImpl }),
   }));
   app.use("/api/admin/league-season", createAdminLeagueSeasonRouter());
   app.use("/api/admin/repairs", createAdminRepairRouter({ inspectTrack: inspectAdminTrack }));

@@ -42,7 +42,7 @@ async function inspectTrack(trackId) {
   ]);
   if (!user || !season) throw new NotFoundError("Track league state not found");
   const schedule = season.state === "ACTIVE" ? await ScheduleSnapshot.findOne({
-    where: { league_season_id: season.id, week: season.current_week, provider: "FIXTURE_DOWNLOAD" },
+    where: { league_season_id: season.id, week: season.current_week, provider: season.schedule_phase === "PRESEASON" ? "ESPN" : "FIXTURE_DOWNLOAD" },
     order: [["fetched_at", "DESC"]],
   }) : null;
   const scheduledTeams = new Set((schedule?.normalized_schedule?.games || []).flatMap((game) => [game.homeTeam, game.awayTeam]));

@@ -6,8 +6,6 @@ import { browserLogger } from "./logger.js";
 import {
   fetchNflSchedule,
   fetchNflTeams,
-  filterFixtureWeek,
-  getLeagueSeasonYear,
 } from "./modules/nfl-data.js";
 import { renderOnboardingPanel } from "./modules/zero-track-onboarding.js";
 import { renderBuyback } from "./modules/week-two-buyback.js";
@@ -108,7 +106,7 @@ async function loadMatchupPage() {
     if (picksCompleteChecker) {
       //location.href = "../league-page.html"
     }
-    const result = await matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap, trackStateMap, state.submissionOpen && !state.buyback?.pickBlocked, currentWeek, state.buyback?.pickBlocked === true);
+    const result = await matchup(totalTracks, trackIdArray, trackIdToUsedPicksMap, trackStateMap, state.submissionOpen && !state.buyback?.pickBlocked, currentWeek, state.buyback?.pickBlocked === true, state.leagueSeason.year, state.leagueSeason.schedulePhase);
     if (result === "empty") {
       showMatchupEmpty(`No matchups are available for Week ${currentWeek}.`);
       return;
@@ -120,9 +118,9 @@ async function loadMatchupPage() {
   }
 }
 
-async function getRecords(seasonYear, currentWeek, root = document) {
+async function getRecords(seasonYear, currentWeek, root = document, seasonType = "regular") {
   try {
-    const response = await fetchNflSchedule(seasonYear, currentWeek);
+    const response = await fetchNflSchedule(seasonYear, currentWeek, globalThis.fetch, seasonType);
     if (!response.ok) {
       throw new Error("Failed to fetch data.");
     }
@@ -210,7 +208,7 @@ async function deleteAllTeams() {
   }
 }
 
-async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submissionOpen, currentWeek, buybackBlocked = false) {
+async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submissionOpen, currentWeek, buybackBlocked = false, seasonYear, schedulePhase = "REGULAR") {
   let nflObj = {};
   try {
     const response = await fetchNflTeams();
@@ -235,8 +233,8 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
 
   container.innerHTML = "";
 
-  var nflScoreApi = "/api/proxy/nfl";
-  return new Promise((resolve, reject) => fetch(nflScoreApi)
+  const seasonType = schedulePhase === "PRESEASON" ? "preseason" : "regular";
+  return new Promise((resolve, reject) => fetchNflSchedule(seasonYear, currentWeek, globalThis.fetch, seasonType)
     .then(function (response) {
       if (response.ok) {
         response.json().then(async function (data) {
@@ -248,7 +246,15 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
           currentWeekH1.innerHTML = `Week ${currentWeek}`;
           currentWeekDiv.appendChild(currentWeekH1);
 
-          const thisWeeksGames = filterFixtureWeek(data, currentWeek);
+          const thisWeeksGames = Object.values(data.content?.schedule || {}).flatMap((day) => day.games || []).map((game) => {
+            const competitors = game.competitions?.[0]?.competitors || [];
+            return {
+              RoundNumber: currentWeek,
+              HomeTeam: competitors.find((team) => team.homeAway === "home")?.team?.displayName,
+              AwayTeam: competitors.find((team) => team.homeAway === "away")?.team?.displayName,
+              DateUtc: game.date,
+            };
+          }).filter((game) => game.HomeTeam && game.AwayTeam);
 
           if (thisWeeksGames.length === 0) {
             resolve("empty");
@@ -397,7 +403,8 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
               const firstTeamRecordStr = info[logoCounter];
 
               firstTeamButton.setAttribute("class", "teamSelection");
-              firstTeamButton.disabled = committedTrack || buybackBlocked;
+              const gameStarted = new Date(thisWeeksGames[l].DateUtc) <= new Date();
+              firstTeamButton.disabled = committedTrack || buybackBlocked || gameStarted;
               firstTeamButton.setAttribute(
                 "data-value",
                 `${trackIds[i]},${firstTeamNameStr}`
@@ -446,7 +453,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
               const secondTeamRecordStr = info[logoCounter];
 
               secondTeamButton.setAttribute("class", "teamSelection");
-              secondTeamButton.disabled = committedTrack || buybackBlocked;
+              secondTeamButton.disabled = committedTrack || buybackBlocked || gameStarted;
               secondTeamButton.setAttribute(
                 "data-value",
                 `${trackIds[i]},${secondTeamNameStr}`
@@ -520,9 +527,8 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
           submitBtn.disabled = !submissionOpen;
           submitBtn.addEventListener("click", handleSubmitPicks);
 
-          const seasonYear = getLeagueSeasonYear(data);
           if (seasonYear) {
-            await getRecords(seasonYear, currentWeek, stagingContainer);
+            await getRecords(seasonYear, currentWeek, stagingContainer, seasonType);
           } else {
             throw new Error("Unable to determine the League Season year");
           }

@@ -12,11 +12,11 @@ function createAutoPickEvaluator({ findSeason, fetchSchedule, persistSchedule, e
     const season = await findSeason();
     if (!season || season.state !== "ACTIVE" || season.current_week === 0) return { status: "NOT_DUE", deadline: null };
     const currentTime = now();
-    if (cachedSchedule && (cachedSchedule.year !== season.year || cachedSchedule.week !== season.current_week)) cachedSchedule = undefined;
+    if (cachedSchedule && (cachedSchedule.year !== season.year || cachedSchedule.week !== season.current_week || cachedSchedule.seasonPhase !== season.schedule_phase)) cachedSchedule = undefined;
     const untilDeadline = cachedSchedule ? cachedSchedule.earliestKickoff.getTime() - currentTime.getTime() : Infinity;
     const refreshMs = untilDeadline <= FINAL_WINDOW_MS ? FINAL_REFRESH_MS : NORMAL_REFRESH_MS;
     if (!cachedSchedule || currentTime.getTime() - cachedSchedule.fetchedAt.getTime() >= refreshMs) {
-      cachedSchedule = await fetchSchedule({ year: season.year, week: season.current_week, now: currentTime });
+      cachedSchedule = await fetchSchedule({ year: season.year, week: season.current_week, seasonPhase: season.schedule_phase, allowStartedGames: season.schedule_phase === "PRESEASON" || season.late_week_one_enrollment, now: currentTime });
       await persistSchedule({ season, schedule: cachedSchedule, now: currentTime });
     }
     const result = await execute({ schedule: cachedSchedule, now: currentTime });

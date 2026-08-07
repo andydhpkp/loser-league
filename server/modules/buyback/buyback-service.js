@@ -128,7 +128,7 @@ async function auditAdmin({ action, season, decision, summary, now, transaction 
 }
 
 async function requireStoredAdminWindow({ season, now, transaction }) {
-  const schedule = await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: 2, provider: "FIXTURE_DOWNLOAD" }, order: [["fetched_at", "DESC"]], transaction });
+  const schedule = await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: 2, provider: season.schedule_phase === "PRESEASON" ? "ESPN" : "FIXTURE_DOWNLOAD" }, order: [["fetched_at", "DESC"]], transaction });
   const kickoffs = schedule?.normalized_schedule?.games?.map((game) => new Date(game.kickoff)).filter((date) => !Number.isNaN(date.getTime())) || [];
   if (!kickoffs.length || now >= new Date(Math.min(...kickoffs.map((date) => date.getTime())))) throw new ConflictError("Week 2 buyback administration is closed");
 }
@@ -212,7 +212,7 @@ async function listAdmin({ view = "pending" }) {
   const season = await LeagueSeason.findOne({ where: { open_slot: 1 } });
   if (!season) return [];
   if (view === "eligible") {
-    const schedule = await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: 2, provider: "FIXTURE_DOWNLOAD" }, order: [["fetched_at", "DESC"]] });
+    const schedule = await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: 2, provider: season.schedule_phase === "PRESEASON" ? "ESPN" : "FIXTURE_DOWNLOAD" }, order: [["fetched_at", "DESC"]] });
     const kickoffs = schedule?.normalized_schedule?.games?.map((game) => new Date(game.kickoff)).filter((date) => !Number.isNaN(date.getTime())) || [];
     const deadline = kickoffs.length ? new Date(Math.min(...kickoffs.map((date) => date.getTime()))) : null;
     const users = await User.findAll({ attributes: ["id"] });

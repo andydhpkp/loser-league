@@ -21,7 +21,9 @@ async function getSubmissionState({ userId, now = new Date(), onboardingPresenta
   const latest = season.current_week > 0 ? await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: season.current_week }, order: [["fetched_at", "DESC"]] }) : null;
   const autoPickOperation = season.current_week > 0 ? await LeagueWeekOperation.findOne({ where: { league_season_id: season.id, week: season.current_week, phase: "AUTO_PICK" } }) : null;
   const scheduledTeams = latest ? [...new Set(latest.normalized_schedule.games.flatMap((game) => [game.homeTeam, game.awayTeam]))].sort() : [];
-  const deadline = earliestScheduleKickoff(latest);
+  const rollingDeadline = season.schedule_phase === "PRESEASON" || season.late_week_one_enrollment;
+  const futureKickoffs = latest?.normalized_schedule?.games?.map((game) => new Date(game.kickoff)).filter((kickoff) => !Number.isNaN(kickoff.getTime()) && kickoff > now) || [];
+  const deadline = rollingDeadline && futureKickoffs.length ? new Date(Math.min(...futureKickoffs.map((kickoff) => kickoff.getTime()))) : earliestScheduleKickoff(latest);
   const submissionOpen = season.state === "ACTIVE" && deadline instanceof Date && !Number.isNaN(deadline.getTime()) && now < deadline;
   const autoPickStatus = season.state !== "ACTIVE" || season.current_week === 0
     ? "NOT_DUE"
@@ -38,7 +40,7 @@ async function getSubmissionState({ userId, now = new Date(), onboardingPresenta
     : null;
   const buyback = await buybackService.getUserBuyback({ userId, deadlineAvailable: deadline instanceof Date && !Number.isNaN(deadline.getTime()), deadline, presentation: onboardingPresentation, now });
   return {
-    leagueSeason: { id: season.id, year: season.year, week: season.current_week, state: season.state },
+    leagueSeason: { id: season.id, year: season.year, week: season.current_week, state: season.state, schedulePhase: season.schedule_phase },
     scheduleAvailable: Boolean(latest),
     deadline: deadline?.toISOString() || null,
     submissionOpen,
@@ -60,7 +62,7 @@ async function decideBuyback({ userId, action, trackIds, stateVersion, fetchImpl
   const season = await openSeason();
   const clock = typeof now === "function" ? now : () => now;
   if (season.state !== "ACTIVE" || season.current_week !== 2) throw new ConflictError("Week 2 buyback decisions are unavailable");
-  const schedule = await fetchFixtureSchedule({ year: season.year, week: 2, fetchImpl, now: clock() });
+  const schedule = await fetchFixtureSchedule({ year: season.year, week: 2, seasonPhase: season.schedule_phase, fetchImpl, now: clock() });
   return buybackService.decide({ userId, action, trackIds, stateVersion, deadline: schedule.earliestKickoff, now: clock() });
 }
 
@@ -80,14 +82,14 @@ async function getLeagueView({ userId }) {
     }
   }
   const result = [...users.values()].map((user) => ({ ...user, tracksRemaining: user.tracks.length, picksSubmitted: user.tracks.every((track) => track.currentPick.status !== "NOT_SUBMITTED" && track.currentPick.status !== "HIDDEN") || user.tracks.every((track) => pickByTrack.has(track.id)) }));
-  return { leagueSeason: { id: season.id, year: season.year, week: season.current_week }, pickVisibility, users: result, pickStatistics: pickVisibility === "HIDDEN" ? null : undefined };
+  return { leagueSeason: { id: season.id, year: season.year, week: season.current_week, schedulePhase: season.schedule_phase }, pickVisibility, users: result, pickStatistics: pickVisibility === "HIDDEN" ? null : undefined };
 }
 
 async function submit({ userId, selections, fetchImpl, now = () => new Date() }) {
   const season = await openSeason();
   if (season.state !== "ACTIVE") throw new ConflictError("Pick submission is not open");
   const fetchedAt = typeof now === "function" ? now() : now;
-  const schedule = await fetchFixtureSchedule({ year: season.year, week: season.current_week, fetchImpl, now: fetchedAt });
+  const schedule = await fetchFixtureSchedule({ year: season.year, week: season.current_week, seasonPhase: season.schedule_phase, allowStartedGames: season.schedule_phase === "PRESEASON" || season.late_week_one_enrollment, fetchImpl, now: fetchedAt });
   if (season.current_week === 2) {
     const buyback = await buybackService.getUserBuyback({ userId, deadlineAvailable: true, deadline: schedule.earliestKickoff, now: fetchedAt });
     if (buyback?.pickBlocked) throw new ConflictError("Resolve the Week 2 buyback decision before submitting Picks");

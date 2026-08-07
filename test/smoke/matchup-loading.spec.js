@@ -63,9 +63,9 @@ test("spinner remains until schedule, records, rendering, and logos are ready", 
   await page.route("**/api/nfl/schedule?*", async (route) => {
     await recordsPending;
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ content: { schedule: {
-      day: { games: [{ competitions: [{ competitors: [
-        { team: { displayName: "Bears" }, records: [{ summary: "1-0" }] },
-        { team: { displayName: "Packers" }, records: [{ summary: "0-1" }] },
+      day: { games: [{ date: "2026-09-10T00:00:00Z", competitions: [{ competitors: [
+        { homeAway: "home", team: { displayName: "Bears" }, records: [{ summary: "1-0" }] },
+        { homeAway: "away", team: { displayName: "Packers" }, records: [{ summary: "0-1" }] },
       ] }] }] },
     } } }) });
   });
@@ -102,8 +102,8 @@ test("an authoritative week without matchups ends in a valid empty state", async
   await page.route("**/api/nfl/teams", (route) => route.fulfill({
     status: 200, contentType: "application/json", body: '{"sports":[{"leagues":[{"teams":[]}]}]}',
   }));
-  await page.route("**/api/proxy/nfl", (route) => route.fulfill({
-    status: 200, contentType: "application/json", body: "[]",
+  await page.route("**/api/nfl/schedule?*", (route) => route.fulfill({
+    status: 200, contentType: "application/json", body: '{"content":{"schedule":{}}}',
   }));
 
   await page.goto("/profile.html");
