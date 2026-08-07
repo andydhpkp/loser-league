@@ -67,6 +67,44 @@ if (!databaseUrl) {
     await assert.rejects(createPreview("START_LEAGUE_SEASON", { year: 2026 }, { loadRolloverTargetSchedule: loader, now: new Date("2026-09-10T00:00:00.000Z") }), /earliest kickoff/);
   });
 
+  test("admin enables inferred preseason and deletes current gameplay transactionally", async () => {
+    const season = await LeagueSeason.findOne();
+    const user = await User.create({ first_name: "Pre", last_name: "Season", username: "preseason", email: "preseason@example.test", password: "safe-test-password" });
+    await Track.create({ user_id: user.id, league_season_id: season.id, available_picks: ["Broncos"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 });
+    const options = {
+      now: new Date("2026-08-05T00:00:00Z"),
+      loadRolloverTargetSchedule: async ({ year, week }) => ({ year, week, contentHash: "1".repeat(64), earliestKickoff: new Date("2026-09-10T00:00:00Z"), normalizedSchedule: { week, games: [] } }),
+      loadPreseasonWeeks: async () => [
+        { week: 1, games: [{ completed: true }] },
+        { week: 2, games: [{ completed: false }] },
+      ],
+    };
+    const preview = await createPreview("ENABLE_PRESEASON", {}, options);
+    assert.match(preview.description, /preseason Week 2/);
+    await confirmPreview("ENABLE_PRESEASON", preview.confirmationKey, null, options);
+    await season.reload();
+    assert.deepEqual({ phase: season.schedule_phase, week: season.current_week, state: season.state }, { phase: "PRESEASON", week: 2, state: "ACTIVE" });
+    assert.equal(await Track.count({ where: { league_season_id: season.id } }), 0);
+    assert.equal(await AdminAuditOperation.count({ where: { action: "ENABLE_PRESEASON" } }), 1);
+  });
+
+  test("admin starts regular Week 1 late and retains the enrollment recovery flag", async () => {
+    const season = await LeagueSeason.findOne();
+    await season.update({ state: "ACTIVE", current_week: 3, schedule_phase: "PRESEASON", state_version: 1 });
+    const user = await User.create({ first_name: "Temp", last_name: "Track", username: "temp-track", email: "temp-track@example.test", password: "safe-test-password" });
+    await Track.create({ user_id: user.id, league_season_id: season.id, available_picks: ["Raiders"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 });
+    const options = {
+      now: new Date("2026-09-11T00:00:00Z"),
+      loadRolloverTargetSchedule: async ({ year, week }) => ({ year, week, provider: "FIXTURE_DOWNLOAD", contentHash: "2".repeat(64), earliestKickoff: new Date("2026-09-10T00:00:00Z"), normalizedSchedule: { week, games: [{ kickoff: "2026-09-10T00:00:00Z", homeTeam: "Broncos", awayTeam: "Raiders" }] }, fetchedAt: new Date() }),
+    };
+    const preview = await createPreview("START_REGULAR_SEASON", {}, options);
+    await confirmPreview("START_REGULAR_SEASON", preview.confirmationKey, null, options);
+    await season.reload();
+    assert.deepEqual({ phase: season.schedule_phase, week: season.current_week, late: season.late_week_one_enrollment }, { phase: "REGULAR", week: 1, late: true });
+    assert.equal(await Track.count({ where: { league_season_id: season.id } }), 0);
+    assert.equal(await ScheduleSnapshot.count({ where: { league_season_id: season.id, week: 1 } }), 1);
+  });
+
   test("Track creation defaults open without a Week 1 schedule and closes at a known kickoff", async () => {
     const user = await User.create({ first_name: "Deadline", last_name: "Target", username: "enrollment-deadline", email: "enrollment-deadline@example.test", password: "safe-test-password" });
     const season = await LeagueSeason.findOne();

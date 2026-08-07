@@ -16,6 +16,7 @@ function createAdminActionRouter({
   loadManualClosureContext,
   loadHistoricalResults,
   loadRolloverTargetSchedule,
+  loadPreseasonWeeks,
   createActionPreview = defaultCreatePreview,
   confirmActionPreview = defaultConfirmPreview,
 } = {}) {
@@ -36,14 +37,14 @@ function createAdminActionRouter({
   router.post("/:action/preview", async (req, res, next) => {
     try {
       const manualClosureContext = req.params.action === "CLOSE_WEEK" ? await loadManualClosureContext() : undefined;
-      res.status(201).json(await createActionPreview(req.params.action, req.body, { manualClosureContext, loadHistoricalResults, loadRolloverTargetSchedule }));
+      res.status(201).json(await createActionPreview(req.params.action, req.body, { manualClosureContext, loadHistoricalResults, loadRolloverTargetSchedule, loadPreseasonWeeks }));
     }
     catch (error) { next(error); }
   });
   router.post("/:action/confirm", async (req, res, next) => {
     try {
       const manualClosureContext = req.params.action === "CLOSE_WEEK" ? await loadManualClosureContext() : undefined;
-      const result = await confirmActionPreview(req.params.action, req.body.confirmationKey, req.body.note, { manualClosureContext, loadHistoricalResults, loadRolloverTargetSchedule, confirmationPhrase: req.body.confirmationPhrase });
+      const result = await confirmActionPreview(req.params.action, req.body.confirmationKey, req.body.note, { manualClosureContext, loadHistoricalResults, loadRolloverTargetSchedule, loadPreseasonWeeks, confirmationPhrase: req.body.confirmationPhrase });
       res.json(result);
       if (req.params.action === "OVERRIDE_GAME_RESULT") void requestClosureEvaluation();
     }

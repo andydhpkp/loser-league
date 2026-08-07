@@ -10,6 +10,8 @@ test("registry documents every existing browser admin mutation without actor att
     [
       "CREATE_LEAGUE_SEASON",
       "START_LEAGUE_SEASON",
+      "ENABLE_PRESEASON",
+      "START_REGULAR_SEASON",
       "ADD_USER_WIN",
       "CREATE_TRACK",
       "DELETE_TRACK",

@@ -61,6 +61,7 @@ test("submission state derives the current deadline and eligible Teams for each 
       year: 2026,
       week: 2,
       state: "ACTIVE",
+      schedulePhase: undefined,
     },
     scheduleAvailable: true,
     deadline: "2026-09-20T18:00:00.000Z",

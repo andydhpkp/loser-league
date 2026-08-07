@@ -34,12 +34,13 @@ function terminalTeams(schedule) {
 export async function finalScores({
   year,
   week,
+  seasonType = "regular",
   root = document,
   fetchScheduleImpl = fetchNflSchedule,
 } = {}) {
   if (!Number.isInteger(year) || !Number.isInteger(week)) return;
   try {
-    const response = await fetchScheduleImpl(year, week);
+    const response = await fetchScheduleImpl(year, week, globalThis.fetch, seasonType);
     if (!response.ok) throw new Error("NFL results are unavailable");
     const { winners, losers } = terminalTeams(await response.json());
     const pickCells = root.getElementsByClassName("teamNames");

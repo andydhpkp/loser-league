@@ -17,7 +17,7 @@ const scheduleMatchups = (normalizedSchedule) => (normalizedSchedule?.games || [
   .map((game) => [game.homeTeam, game.awayTeam].sort().join("|"))
   .sort();
 
-async function performCloseWeek({ leagueSeasonId, week, scheduleHash, mode, games, now, adminNote }, transaction) {
+async function performCloseWeek({ leagueSeasonId, week, scheduleHash, mode, games, now, adminNote, nextWeek: requestedNextWeek }, transaction) {
     const season = await LeagueSeason.findByPk(leagueSeasonId, { transaction, lock: transaction.LOCK.UPDATE });
     if (!season) throw new ConflictError("League Season changed; retry closure");
     const completed = await LeagueWeekOperation.findOne({
@@ -30,7 +30,7 @@ async function performCloseWeek({ leagueSeasonId, week, scheduleHash, mode, game
       throw new ConflictError("League Season changed; retry closure");
     }
     const schedule = await ScheduleSnapshot.findOne({
-      where: { league_season_id: leagueSeasonId, week, provider: "FIXTURE_DOWNLOAD", content_hash: scheduleHash },
+      where: { league_season_id: leagueSeasonId, week, provider: season.schedule_phase === "PRESEASON" ? "ESPN" : "FIXTURE_DOWNLOAD", content_hash: scheduleHash },
       transaction,
       lock: transaction.LOCK.UPDATE,
     });
@@ -41,7 +41,7 @@ async function performCloseWeek({ leagueSeasonId, week, scheduleHash, mode, game
       lock: transaction.LOCK.UPDATE,
     });
     if (!autoPick) throw new ConflictError("Automatic Picks must complete before week closure");
-    const autoPickSchedule = await ScheduleSnapshot.findOne({ where: { league_season_id: leagueSeasonId, week, provider: "FIXTURE_DOWNLOAD", content_hash: autoPick.schedule_hash }, transaction, lock: transaction.LOCK.UPDATE });
+    const autoPickSchedule = await ScheduleSnapshot.findOne({ where: { league_season_id: leagueSeasonId, week, provider: season.schedule_phase === "PRESEASON" ? "ESPN" : "FIXTURE_DOWNLOAD", content_hash: autoPick.schedule_hash }, transaction, lock: transaction.LOCK.UPDATE });
     if (!autoPickSchedule || !isSameScheduleMatchups(autoPickSchedule.normalized_schedule, schedule.normalized_schedule)) {
       throw new ConflictError("Weekly schedule matchups changed; retry closure");
     }
@@ -84,8 +84,9 @@ async function performCloseWeek({ leagueSeasonId, week, scheduleHash, mode, game
       }, { transaction });
     }
     const priorStateVersion = season.state_version;
-    const nextWeek = week < 22 ? week + 1 : 22;
-    await season.update({ current_week: nextWeek, state_version: priorStateVersion + 1 }, { transaction });
+    const nextWeek = season.schedule_phase === "PRESEASON" ? (requestedNextWeek || week) : (week < 22 ? week + 1 : 22);
+    const preseasonComplete = season.schedule_phase === "PRESEASON" && !requestedNextWeek;
+    await season.update({ current_week: nextWeek, preseason_complete: preseasonComplete, state_version: priorStateVersion + 1 }, { transaction });
     const eliminatedCount = outcomes.filter((outcome) => outcome.eliminated).length;
     const operation = await LeagueWeekOperation.create({
       league_season_id: leagueSeasonId,
@@ -109,14 +110,14 @@ function isSameScheduleMatchups(left, right) {
   return JSON.stringify(scheduleMatchups(left)) === JSON.stringify(scheduleMatchups(right));
 }
 
-async function closeWeek({ leagueSeasonId, week, scheduleHash, mode, games, now = new Date(), transaction, adminNote }) {
+async function closeWeek({ leagueSeasonId, week, scheduleHash, mode, games, now = new Date(), transaction, adminNote, nextWeek }) {
   if (!Number.isInteger(leagueSeasonId) || !Number.isInteger(week) || !VALID_MODES.has(mode)) {
     throw new ValidationError("A valid League Season, week, and closure mode are required");
   }
   if (!/^[a-f0-9]{64}$/i.test(scheduleHash || "") || !Array.isArray(games)) {
     throw new ValidationError("A valid schedule and game results are required");
   }
-  const input = { leagueSeasonId, week, scheduleHash, mode, games, now, adminNote };
+  const input = { leagueSeasonId, week, scheduleHash, mode, games, now, adminNote, nextWeek };
   if (transaction) return performCloseWeek(input, transaction);
   return sequelize.transaction({ isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE }, (newTransaction) => performCloseWeek(input, newTransaction));
 }

@@ -1,6 +1,8 @@
 function isTrackEnrollmentOpen({ season, earliestKickoff, now = new Date() }) {
   if (!season) return false;
   if (season.state === "SETUP" && season.current_week === 0) return true;
+  if (season.state === "ACTIVE" && season.schedule_phase === "PRESEASON") return true;
+  if (season.state === "ACTIVE" && season.current_week === 1 && season.late_week_one_enrollment) return true;
   if (season.state !== "ACTIVE" || season.current_week !== 1) return false;
   if (!earliestKickoff) return true;
   const kickoff = new Date(earliestKickoff);

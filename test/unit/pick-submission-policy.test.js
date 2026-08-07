@@ -7,6 +7,8 @@ const {
 } = require("../../server/modules/picks/submission-policy");
 const {
   fetchFixtureSchedule,
+  fetchPreseasonWeeks,
+  normalizeEspnFixtureSchedule,
   normalizeFixtureSchedule,
 } = require("../../server/nfl/fixture-download-client");
 
@@ -29,6 +31,17 @@ test("Fixture Download normalization supplies weekly Teams and earliest kickoff"
   assert.deepEqual(result.teams, ["Broncos", "Chargers", "Chiefs", "Raiders"]);
   assert.equal(result.earliestKickoff.toISOString(), "2026-09-10T20:00:00.000Z");
   assert.match(result.contentHash, /^[a-f0-9]{64}$/);
+});
+
+test("preseason normalization disables started games and uses the next kickoff", () => {
+  const result = normalizeEspnFixtureSchedule({ events: [
+    { date: "2026-08-01T00:00:00Z", status: { type: { completed: true } }, competitions: [{ competitors: [{ homeAway: "home", team: { displayName: "Broncos" } }, { homeAway: "away", team: { displayName: "Raiders" } }] }] },
+    { date: "2026-08-03T00:00:00Z", status: { type: { completed: false } }, competitions: [{ competitors: [{ homeAway: "home", team: { displayName: "Chiefs" } }, { homeAway: "away", team: { displayName: "Chargers" } }] }] },
+  ] }, 1, new Date("2026-08-02T00:00:00Z"));
+  assert.deepEqual(result.teams, ["Chargers", "Chiefs"]);
+  assert.equal(result.earliestKickoff.toISOString(), "2026-08-03T00:00:00.000Z");
+  assert.equal(result.completed, false);
+  assert.equal(result.normalizedSchedule.games.length, 2);
 });
 
 test("Fixture Download client returns normalized schedule metadata", async () => {
@@ -59,6 +72,19 @@ test("Fixture Download client returns normalized schedule metadata", async () =>
   assert.equal(result.provider, "FIXTURE_DOWNLOAD");
   assert.equal(result.fetchedAt, fetchedAt);
   assert.deepEqual(result.teams, ["Denver Broncos", "Las Vegas Raiders"]);
+});
+
+test("preseason client reads ESPN schedule metadata and tolerates an absent Week 4", async () => {
+  const event = (week) => ({ date: `2026-08-0${week}T00:00:00Z`, status: { type: { completed: week < 2 } }, competitions: [{ competitors: [{ homeAway: "home", team: { displayName: "Broncos" } }, { homeAway: "away", team: { displayName: "Raiders" } }] }] });
+  const fetchImpl = async (url) => {
+    const week = Number(new URL(url).searchParams.get("week"));
+    return week === 4 ? { ok: false } : { ok: true, async json() { return { events: [event(week)] }; } };
+  };
+  const schedule = await fetchFixtureSchedule({ year: 2026, week: 2, seasonPhase: "PRESEASON", fetchImpl, now: new Date("2026-08-01T00:00:00Z") });
+  assert.equal(schedule.provider, "ESPN");
+  assert.equal(schedule.week, 2);
+  const weeks = await fetchPreseasonWeeks({ year: 2026, fetchImpl, now: new Date("2026-08-01T00:00:00Z") });
+  assert.deepEqual(weeks.map((item) => item.week), [1, 2, 3]);
 });
 
 test("Fixture Download client maps transport failure to a safe upstream error", async () => {

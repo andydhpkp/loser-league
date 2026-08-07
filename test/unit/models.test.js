@@ -168,6 +168,15 @@ test("League Season validates setup and active week boundaries", async () => {
   );
 });
 
+test("League Season supports explicit preseason and regular schedule phases", async () => {
+  const preseason = LeagueSeason.build({ year: 2026, state: "ACTIVE", current_week: 2, schedule_phase: "PRESEASON", open_slot: 1 });
+  await preseason.validate();
+  assert.equal(preseason.schedule_phase, "PRESEASON");
+
+  const regular = LeagueSeason.build({ year: 2027, state: "SETUP", current_week: 0, schedule_phase: "REGULAR", open_slot: 1 });
+  await regular.validate();
+});
+
 test("Pick validates explicit week, origin, and outcome", async () => {
   await Pick.build({
     track_id: 10,

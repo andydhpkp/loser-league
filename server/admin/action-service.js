@@ -7,6 +7,7 @@ const {
   Track,
   Pick,
   TrackReactivation,
+  BuybackDecision,
   Team,
   LeagueSeason,
   LeagueWeekOperation,
@@ -22,6 +23,7 @@ const { closeWeek } = require("../modules/week-closure/week-closure-service");
 const { planAssignCurrentPick, planBuybackReactivation, planHistoricalPickCorrection, planOutcomeReconciliation, planPlayoffPoolReset, planReplaceCurrentPick, planResetCurrentPick, planTrackProjection } = require("../modules/admin-repairs/repair-policy");
 const { buildRolloverExport, deriveWinningUsers, normalizeTargetYear, normalizeWinnerTrackIds } = require("../modules/league-season/completion-rollover-policy");
 const { earliestScheduleKickoff, isTrackEnrollmentOpen } = require("../modules/league-season/enrollment-policy");
+const { inferPreseasonWeek } = require("../modules/league-season/preseason-policy");
 
 const PREVIEW_TTL_MS = 10 * 60 * 1000;
 const hashKey = (key) => crypto.createHash("sha256").update(key).digest("hex");
@@ -85,6 +87,30 @@ async function openSeason(transaction, lock = false) {
 
 const historicalActions = new Set(["CORRECT_HISTORICAL_PICK", "RECONCILE_PICK_OUTCOME"]);
 async function prepareActionOptions(action, input, options) {
+  if (action === "CLOSE_WEEK") {
+    const season = await LeagueSeason.findOne({ where: { open_slot: 1 } });
+    if (season?.schedule_phase === "PRESEASON" && typeof options.loadPreseasonWeeks === "function") {
+      const weeks = await options.loadPreseasonWeeks({ year: season.year, now: new Date() });
+      return { ...options, nextPreseasonWeek: inferPreseasonWeek(weeks.filter((item) => item.week > season.current_week)) };
+    }
+  }
+  if (action === "ENABLE_PRESEASON") {
+    const season = await LeagueSeason.findOne({ where: { open_slot: 1 } });
+    if (!season) throw new ConflictError("No open League Season exists");
+    if (typeof options.loadPreseasonWeeks !== "function" || typeof options.loadRolloverTargetSchedule !== "function") throw new ConflictError("NFL schedule validation is required");
+    const now = typeof options.now === "function" ? options.now() : options.now || new Date();
+    const [preseasonWeeks, regularSchedule] = await Promise.all([
+      options.loadPreseasonWeeks({ year: season.year, now }),
+      options.loadRolloverTargetSchedule({ year: season.year, week: 1 }),
+    ]);
+    return { ...options, preseasonWeeks, regularSchedule, now };
+  }
+  if (action === "START_REGULAR_SEASON") {
+    const season = await LeagueSeason.findOne({ where: { open_slot: 1 } });
+    if (!season) throw new ConflictError("No open League Season exists");
+    if (typeof options.loadRolloverTargetSchedule !== "function") throw new ConflictError("Week 1 schedule validation is required");
+    return { ...options, regularSchedule: await options.loadRolloverTargetSchedule({ year: season.year, week: 1 }) };
+  }
   if (action === "START_LEAGUE_SEASON") {
     const year = Number(input.year);
     if (!Number.isInteger(year) || year < 1000 || year > 9999) throw new ValidationError("A four-digit League Season year is required");
@@ -141,6 +167,16 @@ function pickWriteState(state) {
   return { track_id: state.trackId, league_season_id: state.leagueSeasonId, week: state.week, pick_cycle: state.pickCycle, team_name: state.teamName, origin: state.origin, outcome: state.outcome, schedule_hash: state.scheduleHash, state_version: state.stateVersion, committed_at: state.committedAt ? new Date(state.committedAt) : new Date() };
 }
 
+async function clearSeasonGameplay(leagueSeasonId, transaction) {
+  await BuybackDecision.destroy({ where: { league_season_id: leagueSeasonId }, transaction });
+  await TrackReactivation.destroy({ where: { league_season_id: leagueSeasonId }, transaction });
+  await OfficialGameResultOverride.destroy({ where: { league_season_id: leagueSeasonId }, transaction });
+  await Pick.destroy({ where: { league_season_id: leagueSeasonId }, transaction });
+  await Track.destroy({ where: { league_season_id: leagueSeasonId }, transaction });
+  await LeagueWeekOperation.destroy({ where: { league_season_id: leagueSeasonId }, transaction });
+  await ScheduleSnapshot.destroy({ where: { league_season_id: leagueSeasonId }, transaction });
+}
+
 async function buildActionPreview(action, input, transaction, lock = false, options = {}) {
   const { manualClosureContext, historicalResultsContext } = options;
   if (!getAdminAction(action)) throw new NotFoundError("Admin action not found");
@@ -163,6 +199,27 @@ async function buildActionPreview(action, input, transaction, lock = false, opti
     if (earliestKickoff <= now) throw new ConflictError("Week 1 cannot start after its earliest kickoff");
     const [userCount, trackCount] = await Promise.all([User.count({ transaction }), Track.count({ where: { league_season_id: season.id }, transaction })]);
     return { normalizedIntent: { year }, description: `Start Week 1 for ${year} with ${userCount} Users and ${trackCount} Tracks`, warnings: [], leagueSeason: season, scheduleHash: schedule.contentHash, targets: [{ targetType: "LEAGUE_SEASON", targetId: season.id, beforeState: { year, state: season.state, week: season.current_week, stateVersion: season.state_version, userCount, trackCount }, afterState: { year, state: "ACTIVE", week: 1, stateVersion: season.state_version + 1, userCount, trackCount } }], plan: { season, schedule }, undoable: false };
+  }
+  if (action === "ENABLE_PRESEASON") {
+    const season = await openSeason(transaction, lock);
+    if (!((season.state === "SETUP" && season.current_week === 0) || (season.state === "ACTIVE" && season.schedule_phase === "REGULAR" && season.current_week === 1))) throw new ConflictError("Preseason can be enabled only before regular Week 1 advances");
+    const now = options.now || new Date();
+    const regularKickoff = new Date(options.regularSchedule?.earliestKickoff);
+    if (Number.isNaN(regularKickoff.getTime()) || now >= regularKickoff) throw new ConflictError("Preseason cannot be enabled after regular Week 1 begins");
+    const preseasonWeek = inferPreseasonWeek(options.preseasonWeeks);
+    if (!preseasonWeek) throw new ConflictError("No unfinished preseason week is available");
+    const trackCount = await Track.count({ where: { league_season_id: season.id }, transaction });
+    return { normalizedIntent: { year: season.year, preseasonWeek }, description: `Delete ${trackCount} Tracks and enable preseason Week ${preseasonWeek}`, warnings: ["All current-season Tracks and gameplay data will be permanently deleted."], leagueSeason: season, targets: [{ targetType: "LEAGUE_SEASON", targetId: season.id, beforeState: { phase: season.schedule_phase, week: season.current_week, stateVersion: season.state_version, trackCount }, afterState: { phase: "PRESEASON", week: preseasonWeek, stateVersion: season.state_version + 1, trackCount: 0 } }], plan: { season, preseasonWeek }, undoable: false };
+  }
+  if (action === "START_REGULAR_SEASON") {
+    const season = await openSeason(transaction, lock);
+    if (season.state !== "ACTIVE" || season.schedule_phase !== "PRESEASON") throw new ConflictError("The League Season is not in preseason mode");
+    const trackCount = await Track.count({ where: { league_season_id: season.id }, transaction });
+    const now = typeof options.now === "function" ? options.now() : options.now || new Date();
+    const regularKickoff = new Date(options.regularSchedule?.earliestKickoff);
+    if (Number.isNaN(regularKickoff.getTime())) throw new ConflictError("A valid regular Week 1 schedule is required");
+    const late = now >= regularKickoff;
+    return { normalizedIntent: { year: season.year }, description: `Delete ${trackCount} preseason Tracks and start regular Week 1`, warnings: ["All preseason Tracks and gameplay data will be permanently deleted."], leagueSeason: season, scheduleHash: options.regularSchedule.contentHash, targets: [{ targetType: "LEAGUE_SEASON", targetId: season.id, beforeState: { phase: "PRESEASON", week: season.current_week, stateVersion: season.state_version, trackCount }, afterState: { phase: "REGULAR", week: 1, stateVersion: season.state_version + 1, trackCount: 0, lateWeekOneEnrollment: late } }], plan: { season, schedule: options.regularSchedule, late }, undoable: false };
   }
   if (action === "ADD_USER_WIN") {
     const userId = positiveId(input.userId, "User ID");
@@ -207,7 +264,7 @@ async function buildActionPreview(action, input, transaction, lock = false, opti
     const awayScore = score(input.awayScore, "Away score");
     const explanation = cleanText(input.explanation, "Explanation", 500);
     const sourceUrl = normalizeSourceUrl(input.sourceUrl);
-    const schedule = await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: season.current_week, provider: "FIXTURE_DOWNLOAD" }, order: [["fetched_at", "DESC"]], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+    const schedule = await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: season.current_week, provider: season.schedule_phase === "PRESEASON" ? "ESPN" : "FIXTURE_DOWNLOAD" }, order: [["fetched_at", "DESC"]], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
     if (!schedule) throw new ConflictError("A validated weekly schedule is required");
     const game = schedule.normalized_schedule?.games?.find((candidate) => candidate.homeTeam === homeTeam && candidate.awayTeam === awayTeam);
     if (!game) throw new ValidationError("Matchup does not match the current Fixture schedule");
@@ -241,15 +298,15 @@ async function buildActionPreview(action, input, transaction, lock = false, opti
       const game = context.games.find((candidate) => candidate.homeTeam === teamName || candidate.awayTeam === teamName);
       if (!game || game.status !== "FINAL") throw new ConflictError("Every active Track's selected game must be final");
     }
-    const nextWeek = season.current_week < 22 ? season.current_week + 1 : 22;
+    const nextWeek = season.schedule_phase === "PRESEASON" ? options.nextPreseasonWeek : season.current_week < 22 ? season.current_week + 1 : 22;
     return {
-      normalizedIntent: { leagueSeasonId: season.id, week: season.current_week, scheduleHash: context.scheduleHash, games: context.games, unfinishedUnselectedGames: context.unfinishedUnselectedGames },
+      normalizedIntent: { leagueSeasonId: season.id, week: season.current_week, scheduleHash: context.scheduleHash, games: context.games, unfinishedUnselectedGames: context.unfinishedUnselectedGames, nextWeek },
       description: `Manually close Week ${season.current_week} of the ${season.year} League Season`,
       warnings: context.unfinishedUnselectedGames.length ? ["Unfinished unselected games will not reopen this week."] : [],
       unfinishedUnselectedGames: context.unfinishedUnselectedGames,
       leagueSeason: season,
       scheduleHash: context.scheduleHash,
-      targets: [{ targetType: "LEAGUE_SEASON", targetId: season.id, beforeState: { week: season.current_week, stateVersion: season.state_version }, afterState: { week: nextWeek, stateVersion: season.state_version + 1 } }],
+      targets: [{ targetType: "LEAGUE_SEASON", targetId: season.id, beforeState: { week: season.current_week, stateVersion: season.state_version }, afterState: { week: nextWeek || season.current_week, preseasonComplete: !nextWeek, stateVersion: season.state_version + 1 } }],
     };
   }
 
@@ -393,7 +450,7 @@ async function buildActionPreview(action, input, transaction, lock = false, opti
     if (!track) throw new ConflictError("Track must be active in the current League Season");
     const existingPick = await Pick.findOne({ where: { track_id: trackId, league_season_id: season.id, week: season.current_week, pick_cycle: season.pick_cycle }, transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
     if (existingPick) throw new ConflictError("Track already has a current-week Pick");
-    const schedule = await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: season.current_week, provider: "FIXTURE_DOWNLOAD" }, order: [["fetched_at", "DESC"]], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+    const schedule = await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: season.current_week, provider: season.schedule_phase === "PRESEASON" ? "ESPN" : "FIXTURE_DOWNLOAD" }, order: [["fetched_at", "DESC"]], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
     if (!schedule) throw new ConflictError("A validated weekly schedule is required");
     const scheduledTeams = (schedule.normalized_schedule?.games || []).flatMap((game) => [game.homeTeam, game.awayTeam]);
     let plan;
@@ -429,7 +486,7 @@ async function buildActionPreview(action, input, transaction, lock = false, opti
     const track = await Track.findOne({ where: { id: trackId, league_season_id: season.id, eliminated_by_pick_id: null }, transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
     if (!track) throw new ConflictError("Track must be active in the current League Season");
     const pick = await Pick.findOne({ where: { track_id: trackId, league_season_id: season.id, week: season.current_week, pick_cycle: season.pick_cycle }, transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
-    const schedule = await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: season.current_week, provider: "FIXTURE_DOWNLOAD" }, order: [["fetched_at", "DESC"]], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+    const schedule = await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: season.current_week, provider: season.schedule_phase === "PRESEASON" ? "ESPN" : "FIXTURE_DOWNLOAD" }, order: [["fetched_at", "DESC"]], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
     if (!schedule) throw new ConflictError("A validated weekly schedule is required");
     const scheduledTeams = (schedule.normalized_schedule?.games || []).flatMap((game) => [game.homeTeam, game.awayTeam]);
     let plan;
@@ -722,7 +779,14 @@ async function confirmPreview(action, confirmationKey, note, options = {}) {
       targets = [{ ...built.targets[0], targetId: season.id }];
     } else if (action === "START_LEAGUE_SEASON") {
       await ScheduleSnapshot.findOrCreate({ where: { league_season_id: built.plan.season.id, week: 1, provider: built.plan.schedule.provider || "FIXTURE_DOWNLOAD", content_hash: built.plan.schedule.contentHash }, defaults: { normalized_schedule: built.plan.schedule.normalizedSchedule, fetched_at: built.plan.schedule.fetchedAt || new Date(), created_at: new Date() }, transaction });
-      await built.plan.season.update({ state: "ACTIVE", current_week: 1, state_version: built.plan.season.state_version + 1 }, { transaction });
+      await built.plan.season.update({ state: "ACTIVE", current_week: 1, schedule_phase: "REGULAR", state_version: built.plan.season.state_version + 1 }, { transaction });
+    } else if (action === "ENABLE_PRESEASON") {
+      await clearSeasonGameplay(built.plan.season.id, transaction);
+      await built.plan.season.update({ state: "ACTIVE", current_week: built.plan.preseasonWeek, schedule_phase: "PRESEASON", preseason_complete: false, late_week_one_enrollment: false, pick_cycle: 1, state_version: built.plan.season.state_version + 1 }, { transaction });
+    } else if (action === "START_REGULAR_SEASON") {
+      await clearSeasonGameplay(built.plan.season.id, transaction);
+      await ScheduleSnapshot.create({ league_season_id: built.plan.season.id, week: 1, provider: built.plan.schedule.provider || "FIXTURE_DOWNLOAD", content_hash: built.plan.schedule.contentHash, normalized_schedule: built.plan.schedule.normalizedSchedule, fetched_at: built.plan.schedule.fetchedAt || new Date(), created_at: new Date() }, { transaction });
+      await built.plan.season.update({ state: "ACTIVE", current_week: 1, schedule_phase: "REGULAR", preseason_complete: false, late_week_one_enrollment: built.plan.late, pick_cycle: 1, state_version: built.plan.season.state_version + 1 }, { transaction });
     } else if (action === "ADD_USER_WIN") {
       const user = await User.findByPk(built.normalizedIntent.userId, { transaction, lock: transaction.LOCK.UPDATE });
       await user.addWin(built.normalizedIntent.year, built.normalizedIntent.wonWithTie, { transaction });

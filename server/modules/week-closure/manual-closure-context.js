@@ -26,7 +26,7 @@ function createManualClosureContextLoader({
     const schedule = await findSchedule({ leagueSeasonId: season.id, week: season.current_week });
     if (!schedule) throw new ConflictError("A validated weekly schedule is required");
     const [espnSchedule, overrides, autoPick, tracks] = await Promise.all([
-      fetchResults({ year: season.year, week: season.current_week }),
+      fetchResults({ year: season.year, week: season.current_week, seasonType: season.schedule_phase === "PRESEASON" ? "preseason" : "regular" }),
       findOverrides({ leagueSeasonId: season.id, week: season.current_week }),
       findAutoPick({ leagueSeasonId: season.id, week: season.current_week, scheduleHash: schedule.content_hash }),
       findActiveTracks({ leagueSeasonId: season.id }),
@@ -55,7 +55,7 @@ function createDefaultManualClosureContextLoader({ fetchImpl = global.fetch } = 
   const espnClient = createEspnClient({ fetchImpl });
   return createManualClosureContextLoader({
     findSeason: () => LeagueSeason.findOne({ where: { open_slot: 1 } }),
-    findSchedule: ({ leagueSeasonId, week }) => ScheduleSnapshot.findOne({ where: { league_season_id: leagueSeasonId, week, provider: "FIXTURE_DOWNLOAD" }, order: [["fetched_at", "DESC"]] }),
+    findSchedule: ({ leagueSeasonId, week }) => ScheduleSnapshot.findOne({ where: { league_season_id: leagueSeasonId, week }, order: [["fetched_at", "DESC"]] }),
     fetchResults: (input) => espnClient.fetchSchedule(input),
     findOverrides: async ({ leagueSeasonId, week }) => {
       const rows = await OfficialGameResultOverride.findAll({ where: { league_season_id: leagueSeasonId, week } });
