@@ -1137,6 +1137,12 @@ label {
   color: inherit;
 }
 
+.dashboard-action[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.58;
+  pointer-events: none;
+}
+
 .dashboard-action:focus-visible,
 .authenticated-actions a:focus-visible,
 .authenticated-actions button:focus-visible {

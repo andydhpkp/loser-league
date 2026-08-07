@@ -4,6 +4,7 @@ const test = require("node:test");
 const {
   eligibleTeamsForTrack,
   currentPickVisibility,
+  leagueViewAccess,
 } = require("../../server/modules/picks/submission-policy");
 const {
   fetchFixtureSchedule,
@@ -11,6 +12,13 @@ const {
   normalizeEspnFixtureSchedule,
   normalizeFixtureSchedule,
 } = require("../../server/nfl/fixture-download-client");
+
+test("League view access requires every active Track Pick after Week 0", () => {
+  assert.equal(leagueViewAccess({ week: 4, activeTrackIds: [1, 2], pickedTrackIds: [1] }), "BLOCKED");
+  assert.equal(leagueViewAccess({ week: 4, activeTrackIds: [1, 2], pickedTrackIds: [1, 2] }), "ALLOWED");
+  assert.equal(leagueViewAccess({ week: 4, activeTrackIds: [], pickedTrackIds: [] }), "ALLOWED");
+  assert.equal(leagueViewAccess({ week: 0, activeTrackIds: [1, 2], pickedTrackIds: [] }), "ALLOWED");
+});
 
 test("eligible Teams are scheduled this week and unused by the Track", () => {
   assert.deepEqual(

@@ -14,6 +14,17 @@ export function renderDashboard(document, summary) {
   const counts = document.createElement("p"); counts.textContent = `Active Tracks: ${summary.tracks.active} · Missing Picks: ${summary.tracks.missingPicks}`;
   status.append(heading, deadline, counts);
   status.setAttribute("aria-busy", "false");
+  const viewLeague = document.getElementById("viewLeagueAction");
+  document.getElementById("viewLeagueStatus").textContent = summary.leagueView.label;
+  if (summary.leagueView.allowed) {
+    viewLeague.href = "/league-page.html";
+    viewLeague.removeAttribute("aria-disabled");
+    viewLeague.removeAttribute("tabindex");
+  } else {
+    viewLeague.removeAttribute("href");
+    viewLeague.setAttribute("aria-disabled", "true");
+    viewLeague.setAttribute("tabindex", "-1");
+  }
   document.getElementById("makePicksStatus").textContent = summary.makePicks.label;
 }
 

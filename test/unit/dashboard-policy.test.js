@@ -19,9 +19,16 @@ test("dashboard summary exposes minimal authoritative counts and capability", ()
     leagueSeason: { year: 2026, week: 4, state: "ACTIVE" },
     deadline: { available: true, timestamp: "2026-09-10T00:00:00.000Z" },
     tracks: { active: 2, missingPicks: 1 },
+    leagueView: { allowed: false, label: "Submit Picks for all active Tracks before viewing the League." },
     makePicks: { code: "PICKS_REQUIRED", label: "1 Pick still needed" },
     features: { textPickReminders: false },
   });
+});
+
+test("dashboard League view capability allows complete, zero-Track, and Week 0 Users", () => {
+  assert.equal(dashboardSummary(state({ tracks: [{ status: "SUBMITTED" }] })).leagueView.allowed, true);
+  assert.equal(dashboardSummary(state({ tracks: [] })).leagueView.allowed, true);
+  assert.equal(dashboardSummary(state({ leagueSeason: { year: 2026, week: 0, state: "SETUP" } })).leagueView.allowed, true);
 });
 
 test("dashboard Make Picks status follows lifecycle precedence", () => {
@@ -38,4 +45,10 @@ test("dashboard Make Picks status follows lifecycle precedence", () => {
   for (const [input, code, label] of cases) {
     assert.deepEqual(dashboardSummary(input).makePicks, { code, label });
   }
+});
+
+test("dashboard uses preseason buyback wording", () => {
+  const summary = dashboardSummary(state({ leagueSeason: { year: 2026, week: 4, state: "ACTIVE", schedulePhase: "PRESEASON" }, buyback: { pickBlocked: true } }));
+  assert.deepEqual(summary.makePicks, { code: "BUYBACK_BLOCKED", label: "Resolve your preseason buyback first" });
+  assert.equal(summary.leagueSeason.schedulePhase, "PRESEASON");
 });

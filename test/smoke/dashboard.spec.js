@@ -1,15 +1,32 @@
 const { expect, test } = require("@playwright/test");
 
-const summary = { leagueSeason: { year: 2026, week: 4, state: "ACTIVE" }, deadline: { available: true, timestamp: "2026-09-10T00:00:00.000Z" }, tracks: { active: 3, missingPicks: 2 }, makePicks: { code: "PICKS_REQUIRED", label: "2 Picks still needed" }, features: { textPickReminders: false } };
+const summary = { leagueSeason: { year: 2026, week: 4, state: "ACTIVE" }, deadline: { available: true, timestamp: "2026-09-10T00:00:00.000Z" }, tracks: { active: 3, missingPicks: 2 }, leagueView: { allowed: false, label: "Submit Picks for all active Tracks before viewing the League." }, makePicks: { code: "PICKS_REQUIRED", label: "2 Picks still needed" }, features: { textPickReminders: false } };
 
 test("dashboard renders authoritative summary and approved action order", async ({ page }) => {
   await page.route("**/api/user/dashboard", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(summary) }));
   await page.goto("/dashboard.html");
-  await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link")).toHaveText([/View League/, /Make Picks/, /Help/]);
+  await expect(page.getByRole("navigation", { name: "Primary" }).locator(".dashboard-action")).toHaveText([/View League/, /Make Picks/, /Help/]);
   await expect(page.getByText("Active Tracks: 3 · Missing Picks: 2")).toBeVisible();
   await expect(page.getByText("2 Picks still needed")).toBeVisible();
+  await expect(page.getByText("Submit Picks for all active Tracks before viewing the League.")).toBeVisible();
+  await expect(page.getByText("View League").locator("..")).toHaveAttribute("aria-disabled", "true");
   await expect(page.getByText(/Text Pick Reminder/i)).toHaveCount(0);
   await expect(page.getByText(/Next Pick deadline: .+\b(?:UTC|GMT|[A-Z]{2,5})\b/)).toBeVisible();
+});
+
+test("blocked direct League visits return to the dashboard with an explanation", async ({ page }) => {
+  await page.route("**/api/user/league/view", (route) => route.fulfill({ status: 409, contentType: "application/json", body: JSON.stringify({ error: "CONFLICT", message: "Submit Picks for all active Tracks before viewing the League." }) }));
+  await page.route("**/api/user/dashboard", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(summary) }));
+  await page.goto("/league-page.html");
+  await expect(page).toHaveURL(/\/dashboard\.html\?leagueView=blocked$/);
+  await expect(page.getByText("Submit Picks for all active Tracks before viewing the League.")).toBeVisible();
+});
+
+test("dashboard links to the League when every active Track has a Pick", async ({ page }) => {
+  const allowed = { ...summary, tracks: { active: 3, missingPicks: 0 }, leagueView: { allowed: true, label: "See the current league standings and visible Picks." } };
+  await page.route("**/api/user/dashboard", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(allowed) }));
+  await page.goto("/dashboard.html");
+  await expect(page.getByRole("link", { name: /View League/ })).toHaveAttribute("href", "/league-page.html");
 });
 
 test("dashboard failure is recoverable and expired sessions return to login", async ({ page }) => {

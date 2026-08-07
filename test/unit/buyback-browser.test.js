@@ -14,3 +14,11 @@ test("buyback browser view distinguishes unavailable state", async () => {
   assert.equal(buildBuybackView({ status: "UNAVAILABLE", unitPriceCents: 1000, totalCents: 0 }).heading, "Week 2 buyback temporarily unavailable");
   assert.equal(buildBuybackView(null), null);
 });
+
+test("buyback browser view uses preseason wording", async () => {
+  const { buildBuybackView } = await import("../../public/js/modules/week-two-buyback.js");
+  const view = buildBuybackView({ status: "ELIGIBLE", schedulePhase: "PRESEASON", unitPriceCents: 1000, totalCents: 0, tracks: [] });
+  assert.equal(view.heading, "Preseason Track buyback");
+  assert.equal(view.pickLabel, "Eliminating Pick");
+  assert.match(view.declineConfirmation, /preseason offer/i);
+});

@@ -78,7 +78,7 @@ test("submission state derives the current deadline and eligible Teams for each 
   });
 });
 
-test("League view hides current Picks until the viewing User completes every active Track", async (t) => {
+test("League view rejects before loading standings until the viewing User completes every active Track", async (t) => {
   const season = {
     id: 23,
     year: 2026,
@@ -113,33 +113,23 @@ test("League view hides current Picks until the viewing User completes every act
     { track_id: 19, team_name: "Las Vegas Raiders" },
   ]);
 
+  await assert.rejects(
+    getLeagueView({ userId: 7 }),
+    (error) => error.code === "CONFLICT" && error.message === "Submit Picks for all active Tracks before viewing the League."
+  );
+  assert.equal(User.findAll.mock.callCount(), 0);
+});
+
+test("League view remains available to a User with no active Tracks", async (t) => {
+  const season = { id: 23, year: 2026, current_week: 4 };
+  const user = { id: 7, first_name: "Alex", last_name: "Viewer", getCrownType: () => null };
+  t.mock.method(LeagueSeason, "findOne", async () => season);
+  t.mock.method(Track, "findAll", async () => []);
+  t.mock.method(Pick, "findAll", async () => []);
+  t.mock.method(User, "findAll", async () => [user]);
+
   const view = await getLeagueView({ userId: 7 });
 
-  assert.equal(view.pickVisibility, "HIDDEN");
-  assert.equal(view.pickStatistics, null);
-  assert.deepEqual(view.users, [
-    {
-      id: 7,
-      firstName: "Alex",
-      lastName: "Viewer",
-      crownType: null,
-      tracksRemaining: 2,
-      picksSubmitted: false,
-      tracks: [
-        { id: 17, currentPick: { status: "HIDDEN" } },
-        { id: 18, currentPick: { status: "HIDDEN" } },
-      ],
-    },
-    {
-      id: 8,
-      firstName: "Taylor",
-      lastName: "Opponent",
-      crownType: "solo-1",
-      tracksRemaining: 1,
-      picksSubmitted: true,
-      tracks: [
-        { id: 19, currentPick: { status: "HIDDEN" } },
-      ],
-    },
-  ]);
+  assert.equal(view.pickVisibility, "VISIBLE");
+  assert.deepEqual(view.users, [{ id: 7, firstName: "Alex", lastName: "Viewer", crownType: null, tracksRemaining: 0, picksSubmitted: true, tracks: [] }]);
 });

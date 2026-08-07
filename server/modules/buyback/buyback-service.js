@@ -5,9 +5,21 @@ const {
   ScheduleSnapshot,
 } = require("../../../models");
 const { ConflictError, ValidationError, NotFoundError } = require("../../lib/errors");
-const { BUYBACK_PRICE_CENTS, eligibleWeekOneTracks, normalizeTrackIds, partitionResolution, buybackView } = require("./buyback-policy");
+const { BUYBACK_PRICE_CENTS, eligibleBuybackTracks, normalizeTrackIds, partitionResolution, buybackView } = require("./buyback-policy");
 
 const TERMINAL = new Set(["DECLINED_USER", "COMPLETED_USER_REQUEST", "COMPLETED_ADMIN_DIRECT", "CANCELLED_ADMIN", "EXPIRED_DEADLINE", "CLOSED_BY_PICK"]);
+
+function isPreseason(season) {
+  return season.schedule_phase === "PRESEASON";
+}
+
+function buybackWindowOpen(season) {
+  return season.state === "ACTIVE" && (isPreseason(season) || season.current_week === 2);
+}
+
+function eligibleEliminatingPick({ pick, season }) {
+  return pick?.outcome === "WRONG_PICK" && (isPreseason(season) || pick.week === 1);
+}
 
 function version(value) {
   const parsed = Number(value);
@@ -20,10 +32,10 @@ async function seasonTracks({ userId, season, transaction, lock = true }) {
   const pickIds = tracks.map((track) => track.eliminated_by_pick_id).filter(Boolean);
   const picks = pickIds.length ? await Pick.findAll({ where: { id: { [Op.in]: pickIds }, league_season_id: season.id }, transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) }) : [];
   const byId = new Map(picks.map((pick) => [pick.id, pick]));
-  return { tracks, eligible: eligibleWeekOneTracks(tracks.map((track) => {
+  return { tracks, eligible: eligibleBuybackTracks({ schedulePhase: season.schedule_phase, tracks: tracks.map((track) => {
     const pick = byId.get(track.eliminated_by_pick_id);
     return { id: track.id, eliminatedByPickId: track.eliminated_by_pick_id, eliminatingPick: pick && { id: pick.id, week: pick.week, outcome: pick.outcome, teamName: pick.team_name } };
-  })) };
+  }) }) };
 }
 
 async function currentDecision({ userId, seasonId, transaction, lock = true }) {
@@ -38,10 +50,10 @@ async function hasWeekTwoPick({ userId, season, transaction }) {
 
 async function materializeLocked({ userId, season, now, transaction }) {
   let decision = await currentDecision({ userId, seasonId: season.id, transaction });
-  if (decision || season.state !== "ACTIVE" || season.current_week !== 2) return decision;
+  if (decision || !buybackWindowOpen(season)) return decision;
   const { eligible } = await seasonTracks({ userId, season, transaction });
   if (!eligible.length) return null;
-  const picked = await hasWeekTwoPick({ userId, season, transaction });
+  const picked = isPreseason(season) ? false : await hasWeekTwoPick({ userId, season, transaction });
   decision = await BuybackDecision.create({ user_id: userId, league_season_id: season.id, status: picked ? "CLOSED_BY_PICK" : "ELIGIBLE", origin: picked ? "PICK" : "SYSTEM", unit_price_cents: BUYBACK_PRICE_CENTS, state_version: 0, resolved_at: picked ? now : null }, { transaction });
   return decision;
 }
@@ -58,18 +70,19 @@ async function getUserBuyback({ userId, deadlineAvailable, deadline, presentatio
     if (!season) return null;
     const decision = await materializeLocked({ userId, season, now, transaction });
     if (!decision) return null;
-    if (deadline instanceof Date && now >= deadline && ["ELIGIBLE", "PENDING_USER_REQUEST"].includes(decision.status)) {
+    if (!isPreseason(season) && deadline instanceof Date && now >= deadline && ["ELIGIBLE", "PENDING_USER_REQUEST"].includes(decision.status)) {
       await BuybackDecisionTrack.update({ resolution: "UNFULFILLED" }, { where: { buyback_decision_id: decision.id, resolution: "PENDING" }, transaction });
       await decision.update({ status: "EXPIRED_DEADLINE", origin: "DEADLINE", resolved_at: now, state_version: decision.state_version + 1 }, { transaction });
     }
     let tracks = await childViews(decision, transaction);
     if (decision.status === "ELIGIBLE") tracks = (await seasonTracks({ userId, season, transaction })).eligible.map((item) => ({ ...item, resolution: null }));
-    return buybackView({ decision: { status: decision.status, stateVersion: decision.state_version }, tracks, presentation, deadlineAvailable });
+    return buybackView({ decision: { status: decision.status, stateVersion: decision.state_version }, tracks, presentation, deadlineAvailable: isPreseason(season) || deadlineAvailable, schedulePhase: season.schedule_phase });
   });
 }
 
 function requireOpenWindow({ season, deadline, now }) {
-  if (season.state !== "ACTIVE" || season.current_week !== 2 || !(deadline instanceof Date) || Number.isNaN(deadline.getTime()) || now >= deadline) throw new ConflictError("Week 2 buyback decisions are unavailable");
+  if (!buybackWindowOpen(season)) throw new ConflictError("Buyback decisions are unavailable");
+  if (!isPreseason(season) && (!(deadline instanceof Date) || Number.isNaN(deadline.getTime()) || now >= deadline)) throw new ConflictError("Week 2 buyback decisions are unavailable");
 }
 
 async function decide({ userId, action, trackIds = [], stateVersion, deadline, now = new Date() }) {
@@ -103,14 +116,14 @@ async function decide({ userId, action, trackIds = [], stateVersion, deadline, n
 }
 
 async function assertPickAllowedLocked({ userId, season, now, transaction }) {
-  if (season.current_week !== 2) return { allowed: true };
+  if (!buybackWindowOpen(season)) return { allowed: true };
   const decision = await materializeLocked({ userId, season, now, transaction });
   if (!decision || TERMINAL.has(decision.status)) return { allowed: true };
   return { allowed: false, status: decision.status };
 }
 
 async function expireAtDeadlineLocked({ season, now, transaction }) {
-  if (season.current_week !== 2) return 0;
+  if (isPreseason(season) || season.current_week !== 2) return 0;
   const users = await User.findAll({ attributes: ["id"], transaction, lock: transaction.LOCK.UPDATE });
   let expired = 0;
   for (const user of users) {
@@ -124,10 +137,12 @@ async function expireAtDeadlineLocked({ season, now, transaction }) {
 }
 
 async function auditAdmin({ action, season, decision, summary, now, transaction }) {
-  return AdminAuditOperation.create({ action, description: `Resolve Week 2 buyback decision ${decision.id}`, status: "COMMITTED", league_season_id: season.id, week: 2, summary, undoable: false, created_at: now }, { transaction });
+  const label = isPreseason(season) ? `preseason Week ${season.current_week}` : "Week 2";
+  return AdminAuditOperation.create({ action, description: `Resolve ${label} buyback decision ${decision.id}`, status: "COMMITTED", league_season_id: season.id, week: season.current_week, summary, undoable: false, created_at: now }, { transaction });
 }
 
 async function requireStoredAdminWindow({ season, now, transaction }) {
+  if (isPreseason(season)) return;
   const schedule = await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: 2, provider: season.schedule_phase === "PRESEASON" ? "ESPN" : "FIXTURE_DOWNLOAD" }, order: [["fetched_at", "DESC"]], transaction });
   const kickoffs = schedule?.normalized_schedule?.games?.map((game) => new Date(game.kickoff)).filter((date) => !Number.isNaN(date.getTime())) || [];
   if (!kickoffs.length || now >= new Date(Math.min(...kickoffs.map((date) => date.getTime())))) throw new ConflictError("Week 2 buyback administration is closed");
@@ -142,7 +157,7 @@ async function resolveAdmin({ decisionId, stateVersion, fulfilledTrackIds = [], 
   const requestedVersion = version(stateVersion);
   return sequelize.transaction({ isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE }, async (transaction) => {
     const season = await LeagueSeason.findOne({ where: { open_slot: 1 }, transaction, lock: transaction.LOCK.UPDATE });
-    if (!season || season.current_week !== 2) throw new ConflictError("Week 2 buyback administration is unavailable");
+    if (!season || !buybackWindowOpen(season)) throw new ConflictError("Buyback administration is unavailable");
     await requireStoredAdminWindow({ season, now, transaction });
     const decision = await BuybackDecision.findByPk(Number(decisionId), { transaction, lock: transaction.LOCK.UPDATE });
     if (!decision || decision.league_season_id !== season.id) throw new NotFoundError("Buyback decision not found");
@@ -168,7 +183,7 @@ async function resolveAdmin({ decisionId, stateVersion, fulfilledTrackIds = [], 
       if (partition.fulfilledTrackIds.includes(member.track_id)) {
         const track = await Track.findByPk(member.track_id, { transaction, lock: transaction.LOCK.UPDATE });
         const pick = await Pick.findByPk(member.week_one_pick_id, { transaction, lock: transaction.LOCK.UPDATE });
-        if (!track || track.user_id !== decision.user_id || track.league_season_id !== season.id || track.eliminated_by_pick_id !== pick?.id || pick.week !== 1 || pick.outcome !== "WRONG_PICK") throw new ConflictError("A requested Track is no longer eligible");
+        if (!track || track.user_id !== decision.user_id || track.league_season_id !== season.id || track.eliminated_by_pick_id !== pick?.id || !eligibleEliminatingPick({ pick, season })) throw new ConflictError("A requested Track is no longer eligible");
         reactivation = await reactivate({ track, pick, season, audit, transaction });
       }
       await member.update({ resolution: reactivation ? "FULFILLED" : "UNFULFILLED", track_reactivation_id: reactivation?.id || null }, { transaction });
@@ -184,7 +199,7 @@ async function completeAdminDirect({ userId, trackIds, stateVersion, paymentConf
   const requestedVersion = version(stateVersion);
   return sequelize.transaction({ isolationLevel: Transaction.ISOLATION_LEVELS.SERIALIZABLE }, async (transaction) => {
     const season = await LeagueSeason.findOne({ where: { open_slot: 1 }, transaction, lock: transaction.LOCK.UPDATE });
-    if (!season || season.state !== "ACTIVE" || season.current_week !== 2) throw new ConflictError("Week 2 buyback administration is unavailable");
+    if (!season || !buybackWindowOpen(season)) throw new ConflictError("Buyback administration is unavailable");
     await requireStoredAdminWindow({ season, now, transaction });
     const decision = await materializeLocked({ userId: Number(userId), season, now, transaction });
     if (!decision) throw new ConflictError("No eligible buyback opportunity exists");
@@ -212,18 +227,18 @@ async function listAdmin({ view = "pending" }) {
   const season = await LeagueSeason.findOne({ where: { open_slot: 1 } });
   if (!season) return [];
   if (view === "eligible") {
-    const schedule = await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: 2, provider: season.schedule_phase === "PRESEASON" ? "ESPN" : "FIXTURE_DOWNLOAD" }, order: [["fetched_at", "DESC"]] });
+    const schedule = isPreseason(season) ? null : await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: 2, provider: "FIXTURE_DOWNLOAD" }, order: [["fetched_at", "DESC"]] });
     const kickoffs = schedule?.normalized_schedule?.games?.map((game) => new Date(game.kickoff)).filter((date) => !Number.isNaN(date.getTime())) || [];
     const deadline = kickoffs.length ? new Date(Math.min(...kickoffs.map((date) => date.getTime()))) : null;
     const users = await User.findAll({ attributes: ["id"] });
-    for (const user of users) await getUserBuyback({ userId: user.id, deadlineAvailable: Boolean(deadline), deadline, now: new Date() });
+    for (const user of users) await getUserBuyback({ userId: user.id, deadlineAvailable: isPreseason(season) || Boolean(deadline), deadline, now: new Date() });
   }
   const status = view === "history" ? { [Op.in]: [...TERMINAL] } : view === "eligible" ? "ELIGIBLE" : "PENDING_USER_REQUEST";
   const rows = await BuybackDecision.findAll({ where: { league_season_id: season.id, status }, include: [{ model: User, as: "user", attributes: ["id", "first_name", "last_name", "username"] }], order: [[view === "history" ? "resolved_at" : "created_at", "DESC"]] });
   return Promise.all(rows.map(async (row) => {
     let tracks = await childViews(row);
     if (row.status === "ELIGIBLE") tracks = (await seasonTracks({ userId: row.user_id, season, lock: false })).eligible.map((item) => ({ ...item, resolution: null }));
-    return { id: row.id, status: row.status, stateVersion: row.state_version, requestedAt: row.requested_at, resolvedAt: row.resolved_at, user: { id: row.user.id, displayName: `${row.user.first_name} ${row.user.last_name}`.trim(), username: row.user.username }, tracks };
+    return { id: row.id, status: row.status, stateVersion: row.state_version, requestedAt: row.requested_at, resolvedAt: row.resolved_at, ...(season.schedule_phase ? { schedulePhase: season.schedule_phase } : {}), user: { id: row.user.id, displayName: `${row.user.first_name} ${row.user.last_name}`.trim(), username: row.user.username }, tracks };
   }));
 }
 

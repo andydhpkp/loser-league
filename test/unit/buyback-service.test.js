@@ -20,6 +20,7 @@ const {
   completeAdminDirect,
   listAdmin,
   expireAtDeadlineLocked,
+  assertPickAllowedLocked,
 } = require("../../server/modules/buyback/buyback-service");
 
 function stubTransaction(t) {
@@ -103,6 +104,45 @@ test("Week 1 Wrong Pick materializes one blocking Buyback Decision", async (t) =
     contacts: [{ label: "Commissioner", href: "mailto:league@example.test" }],
     payment: { label: "Venmo", href: "https://example.test/pay" },
   });
+});
+
+test("later-week preseason Wrong Pick materializes without a deadline and blocks Picks", async (t) => {
+  const transaction = stubTransaction(t);
+  const season = { id: 23, state: "ACTIVE", current_week: 4, schedule_phase: "PRESEASON" };
+  const decision = mutableDecision({ id: 41, status: "ELIGIBLE", state_version: 0 });
+  const track = { id: 17, eliminated_by_pick_id: 29 };
+  const pick = { id: 29, week: 3, outcome: "WRONG_PICK", team_name: "Denver Broncos" };
+
+  t.mock.method(LeagueSeason, "findOne", async () => season);
+  t.mock.method(BuybackDecision, "findOne", async () => null);
+  t.mock.method(Track, "findAll", async () => [track]);
+  t.mock.method(Pick, "findAll", async () => [pick]);
+  t.mock.method(BuybackDecision, "create", async () => decision);
+  t.mock.method(BuybackDecisionTrack, "findAll", async () => []);
+
+  const view = await getUserBuyback({ userId: 7, deadlineAvailable: false, deadline: null, now: new Date("2026-08-30T20:00:00.000Z") });
+  const gate = await assertPickAllowedLocked({ userId: 7, season, now: new Date("2026-08-30T20:00:00.000Z"), transaction });
+
+  assert.equal(view.status, "ELIGIBLE");
+  assert.equal(view.pickBlocked, true);
+  assert.equal(view.schedulePhase, "PRESEASON");
+  assert.deepEqual(view.tracks, [{ trackId: 17, weekOnePick: "Denver Broncos", resolution: null }]);
+  assert.deepEqual(gate, { allowed: false, status: "ELIGIBLE" });
+});
+
+test("preseason buyback decisions do not expire at a deadline", async (t) => {
+  stubTransaction(t);
+  const season = { id: 23, state: "ACTIVE", current_week: 4, schedule_phase: "PRESEASON" };
+  const decision = mutableDecision({ id: 41, status: "PENDING_USER_REQUEST", state_version: 2 });
+  t.mock.method(LeagueSeason, "findOne", async () => season);
+  t.mock.method(BuybackDecision, "findOne", async () => decision);
+  t.mock.method(BuybackDecisionTrack, "findAll", async () => [{ track_id: 17, resolution: "PENDING", weekOnePick: { team_name: "Broncos" } }]);
+  t.mock.method(BuybackDecisionTrack, "update", async () => { throw new Error("preseason decisions must not expire"); });
+
+  const view = await getUserBuyback({ userId: 7, deadlineAvailable: false, deadline: new Date("2026-08-01T00:00:00.000Z"), now: new Date("2026-08-30T20:00:00.000Z") });
+
+  assert.equal(view.status, "PENDING_USER_REQUEST");
+  assert.equal(view.pickBlocked, true);
 });
 
 test("deadline expires a pending Buyback Decision and its unresolved Tracks", async (t) => {
@@ -287,7 +327,7 @@ test("User can decline an eligible Buyback Decision", async (t) => {
 
 test("admin partially fulfills a pending Buyback Decision atomically", async (t) => {
   stubTransaction(t);
-  const season = { id: 23, current_week: 2 };
+  const season = { id: 23, state: "ACTIVE", current_week: 2 };
   const decision = mutableDecision({
     id: 41,
     user_id: 7,

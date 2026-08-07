@@ -134,7 +134,7 @@ if (!databaseUrl) {
     assert.deepEqual(owned.tracks, []);
   });
 
-  test("league view hides every current Pick until the viewing User is complete", async () => {
+  test("league view rejects without disclosing current Picks until the viewing User is complete", async () => {
     const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 1, state_version: 1, open_slot: 1 });
     const viewer = await User.create({ first_name: "Hidden", last_name: "Viewer", username: "viewer", email: "viewer@example.test", password: "safe-test-password" });
     const other = await User.create({ first_name: "Other", last_name: "User", username: "other", email: "other@example.test", password: "safe-test-password" });
@@ -142,11 +142,10 @@ if (!databaseUrl) {
     const otherTrack = await Track.create({ user_id: other.id, league_season_id: season.id, available_picks: [], used_picks: ["Raiders"], current_pick: "Raiders", wrong_pick: null, state_version: 1 });
     await Pick.create({ track_id: otherTrack.id, league_season_id: season.id, week: 1, team_name: "Raiders", origin: "USER_SUBMISSION", outcome: "PENDING", committed_at: new Date(), state_version: 0 });
 
-    const view = await getLeagueView({ userId: viewer.id });
-    assert.equal(view.pickVisibility, "HIDDEN");
-    assert.equal(JSON.stringify(view).includes("Raiders"), false);
-    assert.equal(JSON.stringify(view).includes("password"), false);
-    assert.equal(JSON.stringify(view).includes("email"), false);
+    await assert.rejects(
+      getLeagueView({ userId: viewer.id }),
+      (error) => error.code === "CONFLICT" && error.message === "Submit Picks for all active Tracks before viewing the League."
+    );
   });
 
   test("auto-pick independently fills missing active Tracks and records one durable completion", async () => {
