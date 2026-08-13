@@ -9,7 +9,7 @@ function makePicksStatus(state, active, missing) {
   return { code: "PICKS_REQUIRED", label: `${missing} Pick${missing === 1 ? "" : "s"} still needed` };
 }
 
-function dashboardSummary(state) {
+function dashboardSummary(state, featureAccess = {}) {
   const tracks = Array.isArray(state.tracks) ? state.tracks : [];
   const active = tracks.length;
   const missing = tracks.filter((track) => track.status === "NOT_SUBMITTED").length;
@@ -21,7 +21,7 @@ function dashboardSummary(state) {
     tracks: { active, missingPicks: missing },
     leagueView: { allowed: leagueViewAllowed, label: leagueViewAllowed ? "See the current league standings and visible Picks." : "Submit Picks for all active Tracks before viewing the League." },
     makePicks: makePicksStatus(state, active, missing),
-    features: { textPickReminders: false },
+    features: { pickReminders: featureAccess.pickReminders === true },
   };
 }
 

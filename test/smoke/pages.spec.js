@@ -25,7 +25,7 @@ for (const [name, url, entry] of pages) {
       if (requestUrl.includes("/api/users/logged")) {
         body = {};
       } else if (requestUrl.includes("/api/user/dashboard")) {
-        body = { leagueSeason: { year: 2026, week: 1, state: "ACTIVE" }, deadline: { available: true, timestamp: "2026-09-10T00:00:00.000Z" }, tracks: { active: 2, missingPicks: 1 }, makePicks: { code: "PICKS_REQUIRED", label: "1 Pick still needed" }, features: { textPickReminders: false } };
+        body = { leagueSeason: { year: 2026, week: 1, state: "ACTIVE" }, deadline: { available: true, timestamp: "2026-09-10T00:00:00.000Z" }, tracks: { active: 2, missingPicks: 1 }, makePicks: { code: "PICKS_REQUIRED", label: "1 Pick still needed" }, features: { pickReminders: false } };
       } else if (requestUrl.includes("/api/user/league/support")) {
         body = { contacts: [] };
       } else if (requestUrl.includes("/api/user/league/view")) {

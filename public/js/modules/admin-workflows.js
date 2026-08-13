@@ -264,7 +264,7 @@ async function loadUserWorkspace(userId) {
 async function renderUserWorkspace(userId, { preferredTrackId = null, message = "" } = {}) {
   selectedUserId = Number(userId);
   selectedTrackId = preferredTrackId;
-  const { user, tracks: inspected } = await loadUserWorkspace(selectedUserId);
+  const { user, tracks: inspected, features } = await loadUserWorkspace(selectedUserId);
   const userIndex = users.findIndex((item) => item.id === user.id);
   const userSummary = { ...users[userIndex], ...user, tracks: inspected.map((view) => ({
     id: view.track.id,
@@ -314,11 +314,21 @@ async function renderUserWorkspace(userId, { preferredTrackId = null, message = 
     winButtons.append(button);
   }
   wins.append(winHistory, crownType, yearLabel, winButtons, winStatus);
+  const entitlement = document.createElement("section");
+  entitlement.className = "mb-3";
+  const entitlementButton = document.createElement("button"); entitlementButton.className = "btn btn-primary";
+  const betaEnabled = Boolean(features?.pickRemindersBetaAccess?.enabled);
+  entitlementButton.textContent = betaEnabled ? "Remove Pick Reminders Beta Access" : "Grant Pick Reminders Beta Access";
+  entitlementButton.addEventListener("click", async () => {
+    const result = await runAdminAction("SET_PICK_REMINDERS_BETA_ACCESS", { userId: userSummary.id, enabled: !betaEnabled });
+    if (result) await renderUserWorkspace(userSummary.id, { message: "Pick Reminders Beta Access updated." });
+  });
+  entitlement.append(Object.assign(document.createElement("h4"), { textContent: "Pick Reminders Beta Access" }), entitlementButton);
   const buyback = document.createElement("button");
   buyback.className = "btn btn-warning mb-3";
   buyback.textContent = "Manage this User's buyback";
   buyback.addEventListener("click", () => showWorkflow("buybacks"));
-  workspace.append(addForm, wins, buyback);
+  workspace.append(addForm, wins, entitlement, buyback);
   if (!inspected.length) workspace.insertAdjacentHTML("beforeend", "<p>No Tracks in the current League Season.</p>");
   const cards = document.createElement("div"); cards.className = "admin-track-grid";
   const detail = document.createElement("section"); detail.className = "admin-track-actions";
@@ -463,6 +473,16 @@ export async function initializeAdminWorkflows() {
     helpReturnFocus = null;
   });
   document.querySelectorAll("[data-open-workflow]").forEach((button) => button.addEventListener("click", async () => { await refreshUsers(); await showWorkflow(button.dataset.openWorkflow); }));
+  const releaseButton = document.getElementById("pickRemindersReleaseButton");
+  const loadRelease = async () => {
+    const response = await fetch("/api/admin/features", { cache: "no-store" });
+    if (!response.ok) throw new Error("Unable to load Pick Reminders release state");
+    const state = (await response.json()).features.pickReminders;
+    releaseButton.disabled = false;
+    releaseButton.textContent = state.publicReleased ? "Withdraw Pick Reminders public release" : "Release Pick Reminders to all Users";
+    document.getElementById("pickRemindersReleaseStatus").textContent = state.publicReleased ? "Public release is on." : "Public release is off.";
+    releaseButton.onclick = async () => { if (await runAdminAction("SET_PICK_REMINDERS_PUBLIC_RELEASE", { enabled: !state.publicReleased })) await loadRelease(); };
+  };
   document.getElementById("viewStatistics").addEventListener("click", async () => {
     try { await showStatisticsModal(); } catch (error) { window.alert(error.message || "Unable to load statistics"); }
   });
@@ -519,5 +539,5 @@ export async function initializeAdminWorkflows() {
     const status = document.getElementById("leagueSeasonContextStatus");
     try { if (await runAdminAction("START_REGULAR_SEASON", {})) await loadLeagueSeasonContext(); } catch (error) { status.textContent = error.message; }
   });
-  await refreshUsers();
+  await Promise.all([refreshUsers(), loadRelease()]);
 }

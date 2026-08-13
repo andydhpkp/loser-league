@@ -271,6 +271,32 @@
 
 ## Interfaces and data
 
+### PR 1 fixed contracts
+
+- `PICK_REMINDERS` is the only registered feature key. Durable state lives in
+  `feature_release`, `user_feature_entitlement`, and
+  `user_feature_access_state`; the last table records the start and expiry of
+  the confirmed 30-day grace period without storing channel or consent data.
+- `PICK_REMINDERS_SYSTEM_AVAILABLE` is the validated master availability
+  setting. Only the normalized values `true` and `false` are accepted; missing
+  or invalid values resolve to false and invalid configuration is logged by
+  setting name only.
+- `GET /api/admin/features` returns only
+  `{ features: { pickReminders: { publicReleased, stateVersion } } }`.
+- `GET /api/admin/users/:userId/workspace` adds only
+  `features.pickRemindersBetaAccess` with `enabled` and `stateVersion`.
+- Existing preview/confirm routes register
+  `SET_PICK_REMINDERS_BETA_ACCESS` with `{ userId, enabled }` and
+  `SET_PICK_REMINDERS_PUBLIC_RELEASE` with `{ enabled }`. Preview and audit
+  states contain only feature key, enabled/released state, version, numeric
+  User ID where applicable, and grace timestamps; no consent or destination
+  data exists in PR 1.
+- `GET /api/user/dashboard` replaces `features.textPickReminders` with
+  `features.pickReminders`, a server-authored boolean effective-access value.
+  The browser renders the label **Pick Reminder Settings** only when true; PR 1
+  provides no settings route, so the action is disabled and identifies the
+  feature as not yet available.
+
 ### Routes and browser interactions
 
 - Replace the dormant dashboard capability with a server-authored effective

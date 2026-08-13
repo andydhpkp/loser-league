@@ -25,5 +25,5 @@ test("dashboard route authorizes before loading and returns private summary", as
   assert.equal(response.status, 200);
   assert.equal(response.headers["cache-control"], "private, no-store");
   assert.deepEqual(response.body, { safe: true });
-  assert.deepEqual(calls, [{ userId: 42 }]);
+  assert.deepEqual(calls, [{ userId: 42, featureConfiguration: undefined }]);
 });

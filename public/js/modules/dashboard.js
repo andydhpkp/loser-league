@@ -26,6 +26,8 @@ export function renderDashboard(document, summary) {
     viewLeague.setAttribute("tabindex", "-1");
   }
   document.getElementById("makePicksStatus").textContent = summary.makePicks.label;
+  const reminderAction = document.getElementById("pickReminderSettingsAction");
+  if (reminderAction) reminderAction.hidden = summary.features?.pickReminders !== true;
 }
 
 export async function loadDashboard({ document, fetchImpl = fetch, location = window.location }) {

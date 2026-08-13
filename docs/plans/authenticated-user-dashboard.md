@@ -14,7 +14,10 @@
 ## Behavior
 
 - Dashboard actions are View League, Make Picks, and Help, in that order. Text Pick Reminder Settings and all reminder-related Help copy remain hidden until Phase 2.
-- A dormant server-controlled `features.textPickReminders: false` capability preserves the future action seam.
+- PR 1 replaces the dormant capability with server-computed
+  `features.pickReminders`; effective-access Users see the final **Pick Reminder
+  Settings** label in a disabled coming-later state while ordinary Users see no
+  reminder action.
 - The server returns the canonical Make Picks status code and label. Precedence is lifecycle unavailable; season not started/completed; no active Tracks; buyback blocked; submission closed; Picks required/all submitted.
 - Schedule failure returns valid season and count data with a nullable deadline and explicit unavailable status. Failure to establish a trustworthy core summary returns an error.
 - The browser formats the authoritative ISO deadline in its locale with a short time-zone name; an invalid value renders unavailable.

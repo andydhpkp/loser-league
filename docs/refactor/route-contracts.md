@@ -37,8 +37,16 @@ no-store`, and exposes only the active League Season year/week/state,
 authoritative deadline availability/timestamp, the User's active and
 missing-Pick counts, a server-computed Make Picks code/label, and feature
 capabilities. It never returns Track details, other Users, Picks, contact data,
-session state, or admin state. `features.textPickReminders` remains `false` in
-Phase 1 and all reminder UI and Help copy are hidden.
+session state, or admin state. `features.pickReminders` is server-computed from
+validated system availability and durable beta/public-release state. PR 1
+shows only a disabled **Pick Reminder Settings** label to effective-access
+Users; all reminder settings and Help copy remain unavailable.
+
+`GET /api/admin/features` requires the shared-admin session and exposes only
+the Pick Reminders public-release boolean and state version. The User workspace
+adds only Pick Reminders Beta Access and its state version. The registered
+access/release mutations use the existing preview/confirm contract and
+actorless sanitized audit.
 
 ## Teams (`/api/teams`)
 

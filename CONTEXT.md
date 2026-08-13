@@ -50,3 +50,9 @@ eliminated by Week 1 Picks or continue without them. A pending request remains
 Pick-blocking until shared admin resolves it or the Week 2 deadline expires it.
 Payment is confirmed outside Loser League.
 _Avoid_: Purchase, payment record, new Track request
+
+**Pick Reminders**:
+One optional feature that will provide push, verified email, and shared
+calendar methods. Feature access never means a User consented to a reminder
+method. The User-facing dashboard action is **Pick Reminder Settings**.
+_Avoid_: Text reminders, notification enrollment

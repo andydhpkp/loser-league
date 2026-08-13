@@ -32,6 +32,11 @@ phone values. Invalid or absent values degrade to valid remaining actions or a
 safe generic fallback rather than preventing startup. See
 [`zero-track-onboarding.md`](zero-track-onboarding.md).
 
+Pick Reminders PR 1 recognizes `PICK_REMINDERS_SYSTEM_AVAILABLE` as a strict
+boolean string. Missing, invalid, or `false` values fail closed. Do not set it
+to `true` during PR 1 deployment; owner configuration and production
+enablement are deferred until the complete reminder program is launch-ready.
+
 Verify only that the key name is present. Missing configuration prevents the
 application from starting, which intentionally blocks deployment rather than
 publishing an admin interface with a fallback credential.
