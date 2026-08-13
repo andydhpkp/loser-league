@@ -1,9 +1,14 @@
 function buildFeatureConfiguration(env = process.env) {
-  const raw = env.PICK_REMINDERS_SYSTEM_AVAILABLE;
-  const valid = raw === undefined || raw === "true" || raw === "false";
+  const settings = {
+    PICK_REMINDERS_SYSTEM_AVAILABLE: "pickRemindersSystemAvailable",
+    PICK_REMINDERS_EMAIL_DELIVERY_AVAILABLE: "pickRemindersEmailDeliveryAvailable",
+    PICK_REMINDERS_PUSH_DELIVERY_AVAILABLE: "pickRemindersPushDeliveryAvailable",
+    PICK_REMINDERS_ADMIN_CAMPAIGN_AVAILABLE: "pickRemindersAdminCampaignAvailable",
+  };
+  const invalidSettings = Object.keys(settings).filter((name) => env[name] !== undefined && env[name] !== "true" && env[name] !== "false");
   return {
-    pickRemindersSystemAvailable: raw === "true",
-    invalidSettings: valid ? [] : ["PICK_REMINDERS_SYSTEM_AVAILABLE"],
+    ...Object.fromEntries(Object.entries(settings).map(([name, property]) => [property, env[name] === "true"])),
+    invalidSettings,
   };
 }
 module.exports = { buildFeatureConfiguration };

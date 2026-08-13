@@ -10,6 +10,7 @@ const { createBulkTrackRouter } = require("./admin/bulk-track-routes");
 const { createAdminLeagueSeasonRouter } = require("./admin/league-season-routes");
 const { createAdminUserWorkspaceRouter } = require("./admin/user-workspace-routes");
 const { createAdminFeatureRouter } = require("./admin/feature-routes");
+const { createAdminReminderRouter } = require("./admin/reminder-routes");
 const { createPickSubmissionRouter } = require("./user/pick-submission-routes");
 const { createDashboardRouter } = require("./user/dashboard-routes");
 const dashboardService = require("./modules/dashboard/dashboard-service");
@@ -40,6 +41,9 @@ function createApp({
   featureConfiguration = buildFeatureConfiguration(),
   requestClosureEvaluation,
   requestAutoPickEvaluation,
+  requestReminderEvaluation,
+  loadManualReminderContext,
+  getReminderOperationalStatus = async () => ({ counts: {} }),
   inspectAdminTrack = inspectTrack,
   inspectAdminUserWorkspace = inspectUserWorkspace,
   userDashboardService = dashboardService,
@@ -106,11 +110,14 @@ function createApp({
     loadHistoricalResults: createDefaultHistoricalResultsLoader({ fetchImpl }),
     loadRolloverTargetSchedule: ({ year, week }) => fetchFixtureSchedule({ year, week, fetchImpl }),
     loadPreseasonWeeks: ({ year, now }) => fetchPreseasonWeeks({ year, now, fetchImpl }),
+    loadManualReminderContext,
+    requestReminderEvaluation,
   }));
   app.use("/api/admin/league-season", createAdminLeagueSeasonRouter());
   app.use("/api/admin/repairs", createAdminRepairRouter({ inspectTrack: inspectAdminTrack }));
   app.use("/api/admin/users", createAdminUserWorkspaceRouter({ inspectUserWorkspace: inspectAdminUserWorkspace }));
   app.use("/api/admin/features", createAdminFeatureRouter());
+  app.use("/api/admin/reminders", createAdminReminderRouter({ getOperationalStatus: getReminderOperationalStatus }));
   app.use("/api/admin/buybacks", createAdminBuybackRouter(buybackService, { requestAutoPickEvaluation }));
   app.use("/api/admin/tracks/bulk", createBulkTrackRouter());
   app.use("/api/user/league", createPickSubmissionRouter({

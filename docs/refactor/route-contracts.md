@@ -136,6 +136,22 @@ read-only aggregate returning a sanitized User summary and ordered
 current-season Track inspection views.
 The registry includes `OVERRIDE_GAME_RESULT` and `CLOSE_WEEK`.
 
+`SEND_PICK_REMINDERS` uses the same preview and confirmation routes and accepts
+an empty JSON object only. The server chooses the current open League Season,
+schedule phase, round, authoritative deadline, eligible Users, and all enabled
+email/push channels. Preview returns aggregate channel counts and sanitized
+proximity warnings only. Confirmation returns the committed actorless audit
+operation and aggregate campaign summary; it never returns recipients,
+destinations, Picks, Teams, message content, or raw delivery records. The action
+is unavailable unless the master and manual-campaign operational controls are
+true. PR 2 adds no User settings route and keeps the dashboard action disabled.
+
+`GET /api/admin/reminders` requires the shared-admin session and returns only
+active/previous-League-Season aggregate counts for evaluated, eligible, claimed,
+accepted, unknown, temporary/permanent failure, suppressed, and retry-exhausted
+delivery state. It returns no campaign rows, identities, destinations, or
+content.
+
 `OVERRIDE_GAME_RESULT` preview accepts the exact current Fixture home/away
 Teams, non-negative final scores, required explanation, and optional HTTP(S)
 source URL. `CLOSE_WEEK` preview accepts no authoritative result input; the

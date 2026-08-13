@@ -17,6 +17,8 @@ function createAdminActionRouter({
   loadHistoricalResults,
   loadRolloverTargetSchedule,
   loadPreseasonWeeks,
+  loadManualReminderContext,
+  requestReminderEvaluation = async () => {},
   createActionPreview = defaultCreatePreview,
   confirmActionPreview = defaultConfirmPreview,
 } = {}) {
@@ -37,16 +39,19 @@ function createAdminActionRouter({
   router.post("/:action/preview", async (req, res, next) => {
     try {
       const manualClosureContext = req.params.action === "CLOSE_WEEK" ? await loadManualClosureContext() : undefined;
-      res.status(201).json(await createActionPreview(req.params.action, req.body, { manualClosureContext, loadHistoricalResults, loadRolloverTargetSchedule, loadPreseasonWeeks }));
+      res.status(201).json(await createActionPreview(req.params.action, req.body, { manualClosureContext, loadHistoricalResults, loadRolloverTargetSchedule, loadPreseasonWeeks, loadManualReminderContext }));
     }
     catch (error) { next(error); }
   });
   router.post("/:action/confirm", async (req, res, next) => {
     try {
       const manualClosureContext = req.params.action === "CLOSE_WEEK" ? await loadManualClosureContext() : undefined;
-      const result = await confirmActionPreview(req.params.action, req.body.confirmationKey, req.body.note, { manualClosureContext, loadHistoricalResults, loadRolloverTargetSchedule, loadPreseasonWeeks, confirmationPhrase: req.body.confirmationPhrase });
-      res.json(result);
+      const result = await confirmActionPreview(req.params.action, req.body.confirmationKey, req.body.note, { manualClosureContext, loadHistoricalResults, loadRolloverTargetSchedule, loadPreseasonWeeks, loadManualReminderContext, confirmationPhrase: req.body.confirmationPhrase });
+      if (req.params.action === "SEND_PICK_REMINDERS") {
+        res.json({ action: result.action, operationId: result.id, leagueSeason: result.league_season_id ? { id: result.league_season_id, round: result.week } : null, summary: result.summary });
+      } else res.json(result);
       if (req.params.action === "OVERRIDE_GAME_RESULT") void requestClosureEvaluation();
+      if (req.params.action === "SEND_PICK_REMINDERS") void requestReminderEvaluation();
     }
     catch (error) { next(error); }
   });

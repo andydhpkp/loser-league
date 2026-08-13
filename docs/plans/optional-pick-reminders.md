@@ -297,6 +297,46 @@
   provides no settings route, so the action is disabled and identifies the
   feature as not yet available.
 
+### PR 2 fixed contracts
+
+- `reminder_preference` stores one provider-neutral row per User with independent
+  `email_enabled` and `push_enabled` booleans. Both default false, survive
+  League Season rollover, cascade on User deletion, and contain no destination
+  or provider data.
+- `reminder_campaign` identifies one `AUTOMATIC` or `MANUAL` campaign by League
+  Season, schedule phase, and round. The automatic identity uses the stable
+  `FIXED_24_HOUR_V1` window key; its identity never includes a deadline. A
+  unique constraint permits only one automatic window and one manual campaign
+  for that round across processes and schedule changes.
+- `reminder_delivery` is the provider-neutral outbox. It is unique by campaign,
+  User, and channel and stores only bounded attempt/claim/result metadata,
+  including durable claim and temporary-failure counters. It
+  stores no destination, message body, Pick, Team, username, email, endpoint,
+  credential, provider payload, or request body.
+- Provider adapters implement `send(intent)` where intent is exactly
+  `{ kind: "PICK_REMINDER", channel, navigateTo: "DASHBOARD" }`, and return one
+  of `ACCEPTED`, `TEMPORARY_FAILURE`, `PERMANENT_FAILURE`, or `UNKNOWN`.
+  `UNKNOWN` is terminal and is never blindly resent.
+- A claim lease is two minutes. Definite temporary failures retry after one,
+  five, and fifteen minutes, for at most four total attempts. Timing and clocks
+  are injectable in tests. Eligibility is rechecked before campaign creation,
+  every claim, every provider attempt, and every retry.
+- Retention cleanup deletes at most 100 delivery/campaign rows per transaction
+  and retains the active and immediately previous League Seasons. Preferences
+  are removed only by User deletion or expiry of PR 1's 30-day access-removal
+  grace state.
+- `SEND_PICK_REMINDERS` is the registered actorless admin action. It accepts no
+  intent fields. Preview and confirmation use the existing ten-minute,
+  one-use, stale-safe routes and return only League Season, phase/round,
+  authoritative deadline, aggregate channel counts, and sanitized warnings.
+  Campaign, outbox, and audit commit atomically; providers are invoked only
+  after commit.
+- Operational settings are `PICK_REMINDERS_EMAIL_DELIVERY_AVAILABLE`,
+  `PICK_REMINDERS_PUSH_DELIVERY_AVAILABLE`, and
+  `PICK_REMINDERS_ADMIN_CAMPAIGN_AVAILABLE`. Like the PR 1 master setting, only
+  lowercase `true` and `false` are valid and every absent or invalid value
+  fails closed. Repository and production documentation leave them absent/off.
+
 ### Routes and browser interactions
 
 - Replace the dormant dashboard capability with a server-authored effective

@@ -17,6 +17,9 @@ const FeatureRelease = require('./FeatureRelease')
 const UserFeatureEntitlement = require('./UserFeatureEntitlement')
 const UserFeatureAccessState = require('./UserFeatureAccessState')
 const FeatureAdminAuditTarget = require('./FeatureAdminAuditTarget')
+const ReminderPreference = require('./ReminderPreference')
+const ReminderCampaign = require('./ReminderCampaign')
+const ReminderDelivery = require('./ReminderDelivery')
 
 User.hasMany(Track, {
     foreignKey: 'user_id'
@@ -120,6 +123,15 @@ FeatureRelease.hasMany(UserFeatureAccessState, { as: 'accessStates', foreignKey:
 UserFeatureAccessState.belongsTo(FeatureRelease, { as: 'feature', foreignKey: 'feature_key' })
 AdminAuditOperation.hasMany(FeatureAdminAuditTarget, { as: 'featureTargets', foreignKey: 'admin_audit_operation_id' })
 FeatureAdminAuditTarget.belongsTo(AdminAuditOperation, { as: 'operation', foreignKey: 'admin_audit_operation_id' })
+User.hasOne(ReminderPreference, { as: 'reminderPreference', foreignKey: 'user_id' })
+ReminderPreference.belongsTo(User, { as: 'user', foreignKey: 'user_id' })
+LeagueSeason.hasMany(ReminderCampaign, { as: 'reminderCampaigns', foreignKey: 'league_season_id' })
+ReminderCampaign.belongsTo(LeagueSeason, { as: 'leagueSeason', foreignKey: 'league_season_id' })
+ReminderCampaign.hasMany(ReminderDelivery, { as: 'deliveries', foreignKey: 'reminder_campaign_id' })
+ReminderDelivery.belongsTo(ReminderCampaign, { as: 'campaign', foreignKey: 'reminder_campaign_id' })
+User.hasMany(ReminderDelivery, { as: 'reminderDeliveries', foreignKey: 'user_id' })
+ReminderDelivery.belongsTo(User, { as: 'user', foreignKey: 'user_id' })
+ReminderCampaign.belongsTo(AdminAuditOperation, { as: 'auditOperation', foreignKey: 'admin_audit_operation_id' })
 
 
 module.exports = {
@@ -140,5 +152,8 @@ module.exports = {
     FeatureRelease,
     UserFeatureEntitlement,
     UserFeatureAccessState,
-    FeatureAdminAuditTarget
+    FeatureAdminAuditTarget,
+    ReminderPreference,
+    ReminderCampaign,
+    ReminderDelivery
 };

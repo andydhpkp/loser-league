@@ -155,6 +155,7 @@ test("admin action registry requires the shared-admin session and exposes no act
     "DELETE_USER",
     "SET_PICK_REMINDERS_BETA_ACCESS",
     "SET_PICK_REMINDERS_PUBLIC_RELEASE",
+    "SEND_PICK_REMINDERS",
     "OVERRIDE_GAME_RESULT",
     "CLOSE_WEEK",
     "COMPLETE_LEAGUE_SEASON",

@@ -20,6 +20,7 @@ const {
   UserFeatureEntitlement,
   UserFeatureAccessState,
   FeatureAdminAuditTarget,
+  ReminderCampaign,
 } = require("../../models");
 const { ConflictError, NotFoundError, ValidationError } = require("../lib/errors");
 const { getAdminAction } = require("./action-registry");
@@ -29,6 +30,7 @@ const { buildRolloverExport, deriveWinningUsers, normalizeTargetYear, normalizeW
 const { earliestScheduleKickoff, isTrackEnrollmentOpen } = require("../modules/league-season/enrollment-policy");
 const { inferPreseasonWeek } = require("../modules/league-season/preseason-policy");
 const { PICK_REMINDERS, graceState } = require("../features/feature-access-service");
+const { createCampaignWithDeliveries } = require("../modules/reminders/reminder-repository");
 
 const PREVIEW_TTL_MS = 10 * 60 * 1000;
 const hashKey = (key) => crypto.createHash("sha256").update(key).digest("hex");
@@ -92,6 +94,10 @@ async function openSeason(transaction, lock = false) {
 
 const historicalActions = new Set(["CORRECT_HISTORICAL_PICK", "RECONCILE_PICK_OUTCOME"]);
 async function prepareActionOptions(action, input, options) {
+  if (action === "SEND_PICK_REMINDERS") {
+    if (typeof options.loadManualReminderContext !== "function") throw new ConflictError("Pick Reminders manual campaigns are unavailable");
+    return { ...options, manualReminderContext: await options.loadManualReminderContext() };
+  }
   if (action === "CLOSE_WEEK") {
     const season = await LeagueSeason.findOne({ where: { open_slot: 1 } });
     if (season?.schedule_phase === "PRESEASON" && typeof options.loadPreseasonWeeks === "function") {
@@ -204,6 +210,23 @@ async function buildActionPreview(action, input, transaction, lock = false, opti
     if (before.publicReleased === input.enabled) throw new ConflictError("Pick Reminders public release is already in the requested state");
     const grace = !input.enabled ? graceState(options.now || new Date()) : null;
     return { normalizedIntent: { enabled: input.enabled }, description: `${input.enabled ? "Release" : "Withdraw"} Pick Reminders ${input.enabled ? "to" : "from"} all Users`, warnings: ["Release does not change reminder consent."], leagueSeason: null, targets: [{ targetType: "FEATURE", targetId: PICK_REMINDERS, beforeState: before, afterState: { ...before, publicReleased: input.enabled, stateVersion: before.stateVersion + 1, ...(grace ? { accessRemovedAt: grace.access_removed_at, graceExpiresAt: grace.grace_expires_at } : {}) } }], plan: { release, grace }, undoable: false };
+  }
+  if (action === "SEND_PICK_REMINDERS") {
+    if (!input || Object.keys(input).length !== 0) throw new ValidationError("Manual Pick Reminders accepts no campaign input");
+    const context = await options.loadManualReminderContext({ transaction });
+    const season = await LeagueSeason.findByPk(context.season.id, { transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+    if (!season || season.open_slot !== 1 || season.state !== "ACTIVE" || season.current_week !== context.season.current_week || season.schedule_phase !== context.season.schedule_phase) throw new ConflictError("Manual Pick Reminders context is stale");
+    const existing = await ReminderCampaign.findOne({ where: { league_season_id: season.id, schedule_phase: season.schedule_phase, round: season.current_week, kind: "MANUAL", window_key: "ONE_PER_ROUND_V1" }, transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+    if (existing) throw new ConflictError("The manual Pick Reminders campaign already exists for this round");
+    const deadline = new Date(context.deadline);
+    const beforeState = { exists: false, stateVersion: season.state_version, deadline: deadline.toISOString(), email: context.counts.email, push: context.counts.push };
+    return {
+      normalizedIntent: {}, description: `Send the manual Pick Reminders campaign for ${season.year} round ${season.current_week}`,
+      warnings: context.warnings, leagueSeason: season, scheduleHash: context.scheduleHash,
+      targets: [{ targetType: "LEAGUE_SEASON", targetId: season.id, beforeState, afterState: { ...beforeState, exists: true } }],
+      publicFields: { leagueSeason: { year: season.year }, round: season.current_week, schedulePhase: season.schedule_phase, authoritativeDeadline: deadline.toISOString(), eligibleDeliveries: context.counts },
+      plan: { deadline, currentTime: context.currentTime, evaluated: context.evaluated, deliveries: context.deliveries }, undoable: false,
+    };
   }
   if (action === "CREATE_LEAGUE_SEASON") {
     const year = Number(input.year);
@@ -735,7 +758,12 @@ async function buildActionPreview(action, input, transaction, lock = false, opti
   return { normalizedIntent: { userId }, description: `Permanently delete User ${userId} and ${tracks.length} owned Tracks`, warnings: ["This action cannot be undone."], leagueSeason: null, targets: [{ targetType: "USER", targetId: userId, beforeState: { exists: true }, afterState: null }, ...tracks.map((track) => ({ targetType: "TRACK", targetId: track.id, beforeState: trackState(track), afterState: null }))] };
 }
 
+function storedPreview(action, built, expiresAt) {
+  return { action, description: built.description, warnings: built.warnings, leagueSeason: built.leagueSeason ? { id: built.leagueSeason.id, year: built.leagueSeason.year, week: built.leagueSeason.current_week } : null, affectedIds: built.targets.map(({ targetType, targetId }) => ({ targetType, targetId })), targets: built.targets, ...(built.unfinishedUnselectedGames ? { unfinishedUnselectedGames: built.unfinishedUnselectedGames } : {}), ...(built.rolloverExport ? { rolloverExport: built.rolloverExport } : {}), expiresAt, undoable: Boolean(built.undoable) };
+}
+
 function publicPreview(action, built, expiresAt, confirmationKey) {
+  if (action === "SEND_PICK_REMINDERS") return { action, ...built.publicFields, warnings: built.warnings, expiresAt, confirmationKey };
   return { action, description: built.description, warnings: built.warnings, leagueSeason: built.leagueSeason ? { id: built.leagueSeason.id, year: built.leagueSeason.year, week: built.leagueSeason.current_week } : null, affectedIds: built.targets.map(({ targetType, targetId }) => ({ targetType, targetId })), targets: built.targets, ...(built.unfinishedUnselectedGames ? { unfinishedUnselectedGames: built.unfinishedUnselectedGames } : {}), ...(built.rolloverExport ? { rolloverExport: built.rolloverExport } : {}), expiresAt, confirmationKey, undoable: Boolean(built.undoable) };
 }
 
@@ -746,8 +774,7 @@ async function createPreview(action, input, options = {}) {
     const confirmationKey = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + PREVIEW_TTL_MS);
     const preview = publicPreview(action, built, expiresAt, confirmationKey);
-    const stored = { ...preview };
-    delete stored.confirmationKey;
+    const stored = storedPreview(action, built, expiresAt);
     await AdminActionPreview.create({ confirmation_key_hash: hashKey(confirmationKey), action, normalized_intent: built.normalizedIntent, preview: stored, league_season_id: built.leagueSeason?.id || null, week: built.leagueSeason?.current_week ?? null, league_season_state_version: built.leagueSeason?.state_version ?? null, schedule_hash: built.scheduleHash || null, expires_at: expiresAt }, { transaction });
     return preview;
   });
@@ -917,6 +944,11 @@ async function confirmPreview(action, confirmationKey, note, options = {}) {
 
     const auditNote = action === "OVERRIDE_GAME_RESULT" ? built.normalizedIntent.explanation : action === "REACTIVATE_TRACK" ? built.normalizedIntent.correctionNote : normalizeNote(note);
     const operation = await AdminAuditOperation.create({ action, description: built.description, note: auditNote, status: "COMMITTED", league_season_id: auditLeagueSeason?.id || null, week: action === "START_LEAGUE_SEASON" ? 1 : auditLeagueSeason?.current_week ?? null, summary: { affectedCount: targets.length, ...(built.rolloverExport ? { exportChecksum: built.rolloverExport.exportChecksum, deleted: built.rolloverExport.counts } : {}) }, undoable: Boolean(built.undoable) }, { transaction });
+    if (action === "SEND_PICK_REMINDERS") {
+      const campaign = await createCampaignWithDeliveries({ season: built.leagueSeason, deadline: built.plan.deadline, kind: "MANUAL", candidates: built.plan.deliveries, evaluated: built.plan.evaluated, now: built.plan.currentTime, auditOperationId: operation.id, transaction });
+      if (!campaign.created) throw new ConflictError("The manual Pick Reminders campaign already exists for this round");
+      await operation.update({ summary: { evaluated: built.plan.evaluated, eligibleDeliveries: { email: built.plan.deliveries.filter(({ channel }) => channel === "EMAIL").length, push: built.plan.deliveries.filter(({ channel }) => channel === "PUSH").length } } }, { transaction });
+    }
     if (action === "UNDO_ADMIN_ACTION") await built.plan.operation.update({ status: "UNDONE", undone_by_operation_id: operation.id }, { transaction });
     if (action === "OVERRIDE_GAME_RESULT") {
       const intent = built.normalizedIntent;

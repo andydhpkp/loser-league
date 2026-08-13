@@ -183,3 +183,9 @@ Effective access also requires
 `PICK_REMINDERS_SYSTEM_AVAILABLE=true`. Missing, malformed, or false
 configuration keeps the feature unavailable. Public release and production
 system availability remain off after PR 1.
+
+PR 2 registers `SEND_PICK_REMINDERS` for one extra all-enabled-channel campaign
+per active round. It accepts no recipient, channel, deadline, Pick, or content
+input. Preview and confirmation are aggregate-only and fail closed unless both
+the master and admin-campaign controls are enabled. PR 2 leaves those controls
+off, so the intermediate deployment cannot contact Users.

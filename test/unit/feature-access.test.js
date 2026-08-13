@@ -5,9 +5,12 @@ const { FeatureRelease, UserFeatureEntitlement, UserFeatureAccessState } = requi
 const { getPickRemindersAccess } = require("../../server/features/feature-access-service");
 
 test("Pick Reminders availability fails closed when absent or invalid", () => {
-  assert.deepEqual(buildFeatureConfiguration({}), { pickRemindersSystemAvailable: false, invalidSettings: [] });
-  assert.deepEqual(buildFeatureConfiguration({ PICK_REMINDERS_SYSTEM_AVAILABLE: "TRUE" }), { pickRemindersSystemAvailable: false, invalidSettings: ["PICK_REMINDERS_SYSTEM_AVAILABLE"] });
-  assert.deepEqual(buildFeatureConfiguration({ PICK_REMINDERS_SYSTEM_AVAILABLE: "true" }), { pickRemindersSystemAvailable: true, invalidSettings: [] });
+  const off = { pickRemindersSystemAvailable: false, pickRemindersEmailDeliveryAvailable: false, pickRemindersPushDeliveryAvailable: false, pickRemindersAdminCampaignAvailable: false };
+  assert.deepEqual(buildFeatureConfiguration({}), { ...off, invalidSettings: [] });
+  assert.deepEqual(buildFeatureConfiguration({ PICK_REMINDERS_SYSTEM_AVAILABLE: "TRUE" }), { ...off, invalidSettings: ["PICK_REMINDERS_SYSTEM_AVAILABLE"] });
+  assert.deepEqual(buildFeatureConfiguration({ PICK_REMINDERS_SYSTEM_AVAILABLE: "true", PICK_REMINDERS_EMAIL_DELIVERY_AVAILABLE: "true", PICK_REMINDERS_PUSH_DELIVERY_AVAILABLE: "false", PICK_REMINDERS_ADMIN_CAMPAIGN_AVAILABLE: "true" }), {
+    pickRemindersSystemAvailable: true, pickRemindersEmailDeliveryAvailable: true, pickRemindersPushDeliveryAvailable: false, pickRemindersAdminCampaignAvailable: true, invalidSettings: [],
+  });
 });
 
 test("effective access requires system availability and beta or public release", async (t) => {

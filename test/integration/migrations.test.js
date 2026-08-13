@@ -36,6 +36,9 @@ if (!databaseUrl) {
       "user_feature_entitlement",
       "user_feature_access_state",
       "feature_admin_audit_target",
+      "reminder_preference",
+      "reminder_campaign",
+      "reminder_delivery",
       "admin_audit_operation",
       "admin_audit_target",
       "official_game_result_override",
@@ -77,6 +80,17 @@ if (!databaseUrl) {
     assert.ok(resultOverride.source_url);
     assert.ok(resultOverride.admin_audit_operation_id);
     assert.equal(resultOverride.actor_id, undefined);
+    const preference = await queryInterface.describeTable("reminder_preference");
+    assert.equal(String(preference.email_enabled.defaultValue), "0");
+    assert.equal(String(preference.push_enabled.defaultValue), "0");
+    const delivery = await queryInterface.describeTable("reminder_delivery");
+    assert.ok(delivery.claimed_count);
+    assert.ok(delivery.temporary_failure_count);
+    assert.equal(delivery.destination, undefined);
+    assert.equal(delivery.message_body, undefined);
+    const campaign = await queryInterface.describeTable("reminder_campaign");
+    assert.ok(campaign.evaluated_count);
+    assert.ok(campaign.eligible_count);
 
     await queryInterface.bulkInsert("league_season", [
       {

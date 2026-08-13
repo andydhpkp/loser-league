@@ -97,6 +97,10 @@ binding. The shared HTTP client owns request/error normalization.
   availability with durable public-release/per-User entitlement state. Its
   access-state table records the 30-day removal grace window without storing
   reminder consent or channel data.
+- A provider-neutral reminder module owns pure eligibility, fixed campaign
+  identity, preferences, transactional outbox claims, bounded retry,
+  suppression, cleanup, and minimal provider intents. Startup composes its
+  coordinator; Express and provider adapters do not enter reminder policy.
 - The profile entry renders an accessible buyback modal from sanitized
   submission state. Browser dismissal and disabled controls are presentation;
   server identity, eligibility, price, deadline, and Pick gating are authority.

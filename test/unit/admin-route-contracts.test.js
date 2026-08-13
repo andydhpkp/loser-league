@@ -12,6 +12,7 @@ const { createAdminActionRouter } = require("../../server/admin/action-routes");
 const { createAdminLeagueSeasonRouter } = require("../../server/admin/league-season-routes");
 const { createAdminUserWorkspaceRouter } = require("../../server/admin/user-workspace-routes");
 const { createAdminFeatureRouter } = require("../../server/admin/feature-routes");
+const { createAdminReminderRouter } = require("../../server/admin/reminder-routes");
 
 function authenticatedApp(path, router) {
   const app = express();
@@ -54,6 +55,14 @@ test("admin feature route authorizes before release lookup", async () => {
   const app = express(); app.use((req, _res, next) => { req.session = {}; next(); }); app.use("/features", router);
   assert.equal((await request(app).get("/features")).status, 401);
   assert.equal(called, false);
+});
+
+test("admin reminder operations route returns aggregate counts only", async () => {
+  const counts = { evaluated: 4, eligible: 2, claimed: 0, accepted: 1, unknown: 1, temporarilyFailed: 0, permanentlyFailed: 0, suppressed: 0, retryExhausted: 0 };
+  const app = authenticatedApp("/reminders", createAdminReminderRouter({ getOperationalStatus: async () => ({ counts }) }));
+  const response = await request(app).get("/reminders");
+  assert.deepEqual(response.body, { counts });
+  assert.equal(JSON.stringify(response.body).includes("user"), false);
 });
 
 test("admin action audit route returns the newest operations", async (t) => {
@@ -128,6 +137,32 @@ test("official-result confirmation forwards its phrase and requests closure eval
   assert.equal(confirmations[0][2], "Official result");
   assert.equal(confirmations[0][3].confirmationPhrase, "CONFIRM");
   assert.equal(evaluations, 1);
+});
+
+test("manual reminder preview exposes only the aggregate service contract", async () => {
+  const preview = { action: "SEND_PICK_REMINDERS", leagueSeason: { year: 2026 }, round: 3, schedulePhase: "REGULAR", authoritativeDeadline: "2026-09-11T00:00:00.000Z", eligibleDeliveries: { email: 2, push: 1 }, warnings: [], expiresAt: "2026-09-10T20:10:00.000Z", confirmationKey: "a".repeat(64) };
+  const app = authenticatedApp("/actions", createAdminActionRouter({
+    loadManualReminderContext: async () => ({}),
+    createActionPreview: async (action, body, options) => {
+      assert.equal(action, "SEND_PICK_REMINDERS"); assert.deepEqual(body, {}); assert.equal(typeof options.loadManualReminderContext, "function"); return preview;
+    },
+  }));
+  const response = await request(app).post("/actions/SEND_PICK_REMINDERS/preview").send({});
+  assert.equal(response.status, 201);
+  assert.deepEqual(response.body, preview);
+  for (const forbidden of ["targets", "recipients", "channels", "message", "picks", "users"]) assert.equal(Object.hasOwn(response.body, forbidden), false);
+});
+
+test("manual reminder confirmation returns aggregate audit facts and wakes delivery after commit", async () => {
+  let wakeups = 0;
+  const app = authenticatedApp("/actions", createAdminActionRouter({
+    confirmActionPreview: async () => ({ id: 81, action: "SEND_PICK_REMINDERS", league_season_id: 4, week: 3, summary: { evaluated: 3, eligibleDeliveries: { email: 2, push: 1 } }, targets: [{ userId: 7 }] }),
+    requestReminderEvaluation: async () => { wakeups += 1; },
+  }));
+  const response = await request(app).post("/actions/SEND_PICK_REMINDERS/confirm").send({ confirmationKey: "a".repeat(64) });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(response.body, { action: "SEND_PICK_REMINDERS", operationId: 81, leagueSeason: { id: 4, round: 3 }, summary: { evaluated: 3, eligibleDeliveries: { email: 2, push: 1 } } });
+  assert.equal(wakeups, 1);
 });
 
 test("admin League Season route falls back to the latest completed season", async (t) => {
