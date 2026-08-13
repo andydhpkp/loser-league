@@ -2,11 +2,11 @@ const { FeatureRelease, UserFeatureEntitlement, UserFeatureAccessState } = requi
 const PICK_REMINDERS = "PICK_REMINDERS";
 const GRACE_MS = 30 * 24 * 60 * 60 * 1000;
 
-async function getPickRemindersAccess({ userId, systemAvailable }) {
+async function getPickRemindersAccess({ userId, systemAvailable, transaction }) {
   const [release, entitlement, accessState] = await Promise.all([
-    FeatureRelease.findByPk(PICK_REMINDERS, { attributes: ["public_released", "state_version"] }),
-    UserFeatureEntitlement.findOne({ where: { user_id: userId, feature_key: PICK_REMINDERS }, attributes: ["enabled", "state_version"] }),
-    UserFeatureAccessState.findOne({ where: { user_id: userId, feature_key: PICK_REMINDERS }, attributes: ["access_removed_at", "grace_expires_at"] }),
+    FeatureRelease.findByPk(PICK_REMINDERS, { attributes: ["public_released", "state_version"], transaction }),
+    UserFeatureEntitlement.findOne({ where: { user_id: userId, feature_key: PICK_REMINDERS }, attributes: ["enabled", "state_version"], transaction }),
+    UserFeatureAccessState.findOne({ where: { user_id: userId, feature_key: PICK_REMINDERS }, attributes: ["access_removed_at", "grace_expires_at"], transaction }),
   ]);
   const entitled = entitlement?.enabled === true;
   const publicReleased = release?.public_released === true;

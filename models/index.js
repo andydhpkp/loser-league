@@ -19,6 +19,9 @@ const {
   UserFeatureEntitlement,
   UserFeatureAccessState,
   FeatureAdminAuditTarget,
+  ReminderPreference,
+  ReminderCampaign,
+  ReminderDelivery,
 } = require("./my-index");
 
 module.exports = {
@@ -42,4 +45,7 @@ module.exports = {
   UserFeatureEntitlement,
   UserFeatureAccessState,
   FeatureAdminAuditTarget,
+  ReminderPreference,
+  ReminderCampaign,
+  ReminderDelivery,
 };

@@ -37,6 +37,11 @@ boolean string. Missing, invalid, or `false` values fail closed. Do not set it
 to `true` during PR 1 deployment; owner configuration and production
 enablement are deferred until the complete reminder program is launch-ready.
 
+PR 2 also recognizes `PICK_REMINDERS_EMAIL_DELIVERY_AVAILABLE`,
+`PICK_REMINDERS_PUSH_DELIVERY_AVAILABLE`, and
+`PICK_REMINDERS_ADMIN_CAMPAIGN_AVAILABLE`. Leave them absent/off. Do not add
+provider credentials or enable public release during the foundation rollout.
+
 Verify only that the key name is present. Missing configuration prevents the
 application from starting, which intentionally blocks deployment rather than
 publishing an admin interface with a fallback credential.
