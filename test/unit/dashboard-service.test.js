@@ -3,8 +3,12 @@ const { test } = require("node:test");
 
 const pickLeagueService = require("../../server/modules/picks/league-service");
 const { getSummary } = require("../../server/modules/dashboard/dashboard-service");
+const { FeatureRelease, UserFeatureEntitlement, UserFeatureAccessState } = require("../../models");
 
 test("dashboard summary derives its actions from the User submission state", async (t) => {
+  t.mock.method(FeatureRelease, "findByPk", async () => ({ public_released: false, state_version: 0 }));
+  t.mock.method(UserFeatureEntitlement, "findOne", async () => null);
+  t.mock.method(UserFeatureAccessState, "findOne", async () => null);
   t.mock.method(pickLeagueService, "getSubmissionState", async ({ userId }) => {
     assert.equal(userId, 7);
     return {
@@ -29,4 +33,5 @@ test("dashboard summary derives its actions from the User submission state", asy
   assert.equal(summary.leagueSeason.week, 2);
   assert.equal(summary.tracks.active, 1);
   assert.equal(summary.tracks.missingPicks, 1);
+  assert.equal(summary.features.pickReminders, false);
 });

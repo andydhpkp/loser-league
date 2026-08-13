@@ -13,6 +13,10 @@ const OfficialGameResultOverride = require('./OfficialGameResultOverride')
 const TrackReactivation = require('./TrackReactivation')
 const BuybackDecision = require('./BuybackDecision')
 const BuybackDecisionTrack = require('./BuybackDecisionTrack')
+const FeatureRelease = require('./FeatureRelease')
+const UserFeatureEntitlement = require('./UserFeatureEntitlement')
+const UserFeatureAccessState = require('./UserFeatureAccessState')
+const FeatureAdminAuditTarget = require('./FeatureAdminAuditTarget')
 
 User.hasMany(Track, {
     foreignKey: 'user_id'
@@ -106,6 +110,16 @@ BuybackDecisionTrack.belongsTo(Track, { as: 'track', foreignKey: 'track_id' })
 BuybackDecisionTrack.belongsTo(Pick, { as: 'weekOnePick', foreignKey: 'week_one_pick_id' })
 BuybackDecisionTrack.belongsTo(TrackReactivation, { as: 'reactivation', foreignKey: 'track_reactivation_id' })
 BuybackDecision.belongsTo(AdminAuditOperation, { as: 'auditOperation', foreignKey: 'admin_audit_operation_id' })
+User.hasMany(UserFeatureEntitlement, { as: 'featureEntitlements', foreignKey: 'user_id' })
+UserFeatureEntitlement.belongsTo(User, { as: 'user', foreignKey: 'user_id' })
+FeatureRelease.hasMany(UserFeatureEntitlement, { as: 'entitlements', foreignKey: 'feature_key' })
+UserFeatureEntitlement.belongsTo(FeatureRelease, { as: 'feature', foreignKey: 'feature_key' })
+User.hasMany(UserFeatureAccessState, { as: 'featureAccessStates', foreignKey: 'user_id' })
+UserFeatureAccessState.belongsTo(User, { as: 'user', foreignKey: 'user_id' })
+FeatureRelease.hasMany(UserFeatureAccessState, { as: 'accessStates', foreignKey: 'feature_key' })
+UserFeatureAccessState.belongsTo(FeatureRelease, { as: 'feature', foreignKey: 'feature_key' })
+AdminAuditOperation.hasMany(FeatureAdminAuditTarget, { as: 'featureTargets', foreignKey: 'admin_audit_operation_id' })
+FeatureAdminAuditTarget.belongsTo(AdminAuditOperation, { as: 'operation', foreignKey: 'admin_audit_operation_id' })
 
 
 module.exports = {
@@ -122,5 +136,9 @@ module.exports = {
     OfficialGameResultOverride,
     TrackReactivation,
     BuybackDecision,
-    BuybackDecisionTrack
+    BuybackDecisionTrack,
+    FeatureRelease,
+    UserFeatureEntitlement,
+    UserFeatureAccessState,
+    FeatureAdminAuditTarget
 };

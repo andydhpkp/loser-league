@@ -15,6 +15,10 @@ const {
   TrackReactivation,
   BuybackDecision,
   BuybackDecisionTrack,
+  FeatureRelease,
+  UserFeatureEntitlement,
+  UserFeatureAccessState,
+  FeatureAdminAuditTarget,
 } = require("./my-index");
 
 module.exports = {
@@ -34,4 +38,8 @@ module.exports = {
   TrackReactivation,
   BuybackDecision,
   BuybackDecisionTrack,
+  FeatureRelease,
+  UserFeatureEntitlement,
+  UserFeatureAccessState,
+  FeatureAdminAuditTarget,
 };

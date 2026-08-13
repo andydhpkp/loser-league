@@ -93,6 +93,10 @@ binding. The shared HTTP client owns request/error normalization.
 - The authenticated dashboard consumes a minimal server-authoritative summary.
   Its browser entry formats the authoritative deadline for local display but
   does not infer Pick, buyback, deadline, or League Season rules.
+- A narrow feature-access module combines validated fail-closed system
+  availability with durable public-release/per-User entitlement state. Its
+  access-state table records the 30-day removal grace window without storing
+  reminder consent or channel data.
 - The profile entry renders an accessible buyback modal from sanitized
   submission state. Browser dismissal and disabled controls are presentation;
   server identity, eligibility, price, deadline, and Pick gating are authority.

@@ -6,7 +6,7 @@ if (!databaseUrl) {
 } else {
   process.env.NODE_ENV = "test";
   const assert = require("node:assert/strict");
-  const { sequelize, User, Team, Track, Pick, ScheduleSnapshot, LeagueWeekOperation, LeagueSeason, OfficialGameResultOverride, AdminActionPreview, AdminAuditOperation, AdminAuditTarget } = require("../../models");
+  const { sequelize, User, Team, Track, Pick, ScheduleSnapshot, LeagueWeekOperation, LeagueSeason, OfficialGameResultOverride, AdminActionPreview, AdminAuditOperation, AdminAuditTarget, FeatureRelease, UserFeatureEntitlement, UserFeatureAccessState } = require("../../models");
   const { createPreview, confirmPreview, hashKey } = require("../../server/admin/action-service");
   const { migrateEmptyTestDatabase } = require("../support/migrate-test-database");
 
@@ -36,6 +36,28 @@ if (!databaseUrl) {
     assert.equal(replay.id, operation.id);
     assert.equal(await Track.count(), 1);
     assert.equal(await AdminAuditOperation.count(), 1);
+  });
+
+  test("Pick Reminders beta and public release changes are stale-safe, audited, and establish grace", async () => {
+    const user = await User.create({ first_name: "Beta", last_name: "User", username: "beta-user", email: "beta@example.test", password: "safe-test-password" });
+    const grant = await createPreview("SET_PICK_REMINDERS_BETA_ACCESS", { userId: user.id, enabled: true });
+    await confirmPreview("SET_PICK_REMINDERS_BETA_ACCESS", grant.confirmationKey);
+    const entitlement = await UserFeatureEntitlement.findOne();
+    assert.equal(entitlement.enabled, true);
+    assert.equal(entitlement.state_version, 1);
+    assert.equal(await UserFeatureAccessState.count(), 0);
+
+    const remove = await createPreview("SET_PICK_REMINDERS_BETA_ACCESS", { userId: user.id, enabled: false });
+    const operation = await confirmPreview("SET_PICK_REMINDERS_BETA_ACCESS", remove.confirmationKey);
+    const grace = await UserFeatureAccessState.findOne();
+    assert.equal(operation.action, "SET_PICK_REMINDERS_BETA_ACCESS");
+    assert.equal(grace.grace_expires_at.getTime() - grace.access_removed_at.getTime(), 30 * 24 * 60 * 60 * 1000);
+
+    const release = await createPreview("SET_PICK_REMINDERS_PUBLIC_RELEASE", { enabled: true });
+    await FeatureRelease.increment("state_version", { where: { feature_key: "PICK_REMINDERS" } });
+    await assert.rejects(confirmPreview("SET_PICK_REMINDERS_PUBLIC_RELEASE", release.confirmationKey), /stale/);
+    assert.equal((await FeatureRelease.findByPk("PICK_REMINDERS")).public_released, false);
+    assert.equal(await AdminAuditOperation.count({ where: { action: "SET_PICK_REMINDERS_BETA_ACCESS" } }), 2);
   });
 
   test("admin creates an explicit League Season at SETUP Week 0 through one-use preview", async () => {

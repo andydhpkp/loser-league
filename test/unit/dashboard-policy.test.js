@@ -21,8 +21,13 @@ test("dashboard summary exposes minimal authoritative counts and capability", ()
     tracks: { active: 2, missingPicks: 1 },
     leagueView: { allowed: false, label: "Submit Picks for all active Tracks before viewing the League." },
     makePicks: { code: "PICKS_REQUIRED", label: "1 Pick still needed" },
-    features: { textPickReminders: false },
+    features: { pickReminders: false },
   });
+});
+
+test("dashboard exposes only server-computed Pick Reminders access", () => {
+  assert.equal(dashboardSummary(state(), { pickReminders: true }).features.pickReminders, true);
+  assert.deepEqual(Object.keys(dashboardSummary(state(), { pickReminders: false }).features), ["pickReminders"]);
 });
 
 test("dashboard League view capability allows complete, zero-Track, and Week 0 Users", () => {

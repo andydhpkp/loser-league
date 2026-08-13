@@ -170,3 +170,16 @@ workflows, but now require the same admin session and transactionally write a
 sanitized, actorless, non-undoable `LEGACY_EMERGENCY_REPAIR` audit. Their route
 contracts are unchanged and their guided mappings are documented in the route
 inventory.
+
+## Pick Reminders feature controls
+
+The User workspace exposes only **Pick Reminders Beta Access**. Global feature
+operations expose **Release Pick Reminders to all Users**. Both use the same
+ten-minute stale-safe preview and actorless audit as other registered actions.
+They grant access only and cannot enable a reminder method or record User
+consent.
+
+Effective access also requires
+`PICK_REMINDERS_SYSTEM_AVAILABLE=true`. Missing, malformed, or false
+configuration keeps the feature unavailable. Public release and production
+system availability remain off after PR 1.

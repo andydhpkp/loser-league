@@ -16,6 +16,10 @@ const {
   AdminActionPreview,
   AdminAuditOperation,
   AdminAuditTarget,
+  FeatureRelease,
+  UserFeatureEntitlement,
+  UserFeatureAccessState,
+  FeatureAdminAuditTarget,
 } = require("../../models");
 const { ConflictError, NotFoundError, ValidationError } = require("../lib/errors");
 const { getAdminAction } = require("./action-registry");
@@ -24,6 +28,7 @@ const { planAssignCurrentPick, planBuybackReactivation, planHistoricalPickCorrec
 const { buildRolloverExport, deriveWinningUsers, normalizeTargetYear, normalizeWinnerTrackIds } = require("../modules/league-season/completion-rollover-policy");
 const { earliestScheduleKickoff, isTrackEnrollmentOpen } = require("../modules/league-season/enrollment-policy");
 const { inferPreseasonWeek } = require("../modules/league-season/preseason-policy");
+const { PICK_REMINDERS, graceState } = require("../features/feature-access-service");
 
 const PREVIEW_TTL_MS = 10 * 60 * 1000;
 const hashKey = (key) => crypto.createHash("sha256").update(key).digest("hex");
@@ -180,6 +185,26 @@ async function clearSeasonGameplay(leagueSeasonId, transaction) {
 async function buildActionPreview(action, input, transaction, lock = false, options = {}) {
   const { manualClosureContext, historicalResultsContext } = options;
   if (!getAdminAction(action)) throw new NotFoundError("Admin action not found");
+  if (action === "SET_PICK_REMINDERS_BETA_ACCESS") {
+    const userId = positiveId(input.userId, "User ID");
+    if (typeof input.enabled !== "boolean") throw new ValidationError("Enabled must be a boolean");
+    const user = await User.findByPk(userId, { attributes: ["id"], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+    if (!user) throw new NotFoundError("User not found");
+    const entitlement = await UserFeatureEntitlement.findOne({ where: { user_id: userId, feature_key: PICK_REMINDERS }, transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+    const before = { feature: PICK_REMINDERS, enabled: entitlement?.enabled === true, stateVersion: entitlement?.state_version || 0 };
+    if (before.enabled === input.enabled) throw new ConflictError("Pick Reminders Beta Access is already in the requested state");
+    const grace = !input.enabled ? graceState(options.now || new Date()) : null;
+    return { normalizedIntent: { userId, enabled: input.enabled }, description: `${input.enabled ? "Grant" : "Remove"} Pick Reminders Beta Access for User ${userId}`, warnings: ["Access does not change reminder consent."], leagueSeason: null, targets: [{ targetType: "USER", targetId: userId, beforeState: before, afterState: { ...before, enabled: input.enabled, stateVersion: before.stateVersion + 1, ...(grace ? { accessRemovedAt: grace.access_removed_at, graceExpiresAt: grace.grace_expires_at } : {}) } }], plan: { entitlement, grace }, undoable: false };
+  }
+  if (action === "SET_PICK_REMINDERS_PUBLIC_RELEASE") {
+    if (typeof input.enabled !== "boolean") throw new ValidationError("Enabled must be a boolean");
+    const release = await FeatureRelease.findByPk(PICK_REMINDERS, { transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+    if (!release) throw new ConflictError("Pick Reminders feature registration is unavailable");
+    const before = { feature: PICK_REMINDERS, publicReleased: release.public_released, stateVersion: release.state_version };
+    if (before.publicReleased === input.enabled) throw new ConflictError("Pick Reminders public release is already in the requested state");
+    const grace = !input.enabled ? graceState(options.now || new Date()) : null;
+    return { normalizedIntent: { enabled: input.enabled }, description: `${input.enabled ? "Release" : "Withdraw"} Pick Reminders ${input.enabled ? "to" : "from"} all Users`, warnings: ["Release does not change reminder consent."], leagueSeason: null, targets: [{ targetType: "FEATURE", targetId: PICK_REMINDERS, beforeState: before, afterState: { ...before, publicReleased: input.enabled, stateVersion: before.stateVersion + 1, ...(grace ? { accessRemovedAt: grace.access_removed_at, graceExpiresAt: grace.grace_expires_at } : {}) } }], plan: { release, grace }, undoable: false };
+  }
   if (action === "CREATE_LEAGUE_SEASON") {
     const year = Number(input.year);
     if (!Number.isInteger(year) || year < 1000 || year > 9999) throw new ValidationError("A four-digit League Season year is required");
@@ -739,6 +764,8 @@ async function confirmPreview(action, confirmationKey, note, options = {}) {
     if (!stored || stored.action !== action) throw new NotFoundError("Admin action preview not found");
     if (stored.audit_operation_id) return AdminAuditOperation.findByPk(stored.audit_operation_id, { include: [{ model: AdminAuditTarget, as: "targets" }], transaction });
     if (stored.expires_at <= new Date()) throw new ConflictError("Admin action preview expired");
+    const graceTimestamp = stored.preview.targets.find((target) => target.afterState?.accessRemovedAt)?.afterState.accessRemovedAt;
+    if (graceTimestamp) preparedOptions.now = new Date(graceTimestamp);
     const built = await buildActionPreview(action, stored.normalized_intent, transaction, true, preparedOptions);
     const expected = stored.preview.targets.map(({ targetType, targetId, beforeState }) => ({ targetType, targetId, beforeState }));
     const actual = built.targets.map(({ targetType, targetId, beforeState }) => ({ targetType, targetId, beforeState }));
@@ -810,6 +837,27 @@ async function confirmPreview(action, confirmationKey, note, options = {}) {
     } else if (action === "DELETE_USER") {
       await Track.destroy({ where: { user_id: built.normalizedIntent.userId }, transaction });
       await User.destroy({ where: { id: built.normalizedIntent.userId }, transaction });
+    } else if (action === "SET_PICK_REMINDERS_BETA_ACCESS") {
+      const [entitlement] = await UserFeatureEntitlement.findOrCreate({ where: { user_id: built.normalizedIntent.userId, feature_key: PICK_REMINDERS }, defaults: { enabled: false, state_version: 0 }, transaction });
+      await entitlement.update({ enabled: built.normalizedIntent.enabled, state_version: entitlement.state_version + 1 }, { transaction });
+      const release = await FeatureRelease.findByPk(PICK_REMINDERS, { transaction, lock: transaction.LOCK.UPDATE });
+      if (built.normalizedIntent.enabled || release.public_released) {
+        await UserFeatureAccessState.destroy({ where: { user_id: built.normalizedIntent.userId, feature_key: PICK_REMINDERS }, transaction });
+      } else {
+        await UserFeatureAccessState.upsert({ user_id: built.normalizedIntent.userId, feature_key: PICK_REMINDERS, ...built.plan.grace }, { transaction });
+      }
+    } else if (action === "SET_PICK_REMINDERS_PUBLIC_RELEASE") {
+      const release = await FeatureRelease.findByPk(PICK_REMINDERS, { transaction, lock: transaction.LOCK.UPDATE });
+      await release.update({ public_released: built.normalizedIntent.enabled, state_version: release.state_version + 1 }, { transaction });
+      if (built.normalizedIntent.enabled) {
+        await UserFeatureAccessState.destroy({ where: { feature_key: PICK_REMINDERS }, transaction });
+      } else {
+        const users = await User.findAll({ attributes: ["id"], transaction, lock: transaction.LOCK.UPDATE });
+        const entitled = await UserFeatureEntitlement.findAll({ where: { feature_key: PICK_REMINDERS, enabled: true }, attributes: ["user_id"], transaction, lock: transaction.LOCK.UPDATE });
+        const entitledIds = new Set(entitled.map((item) => item.user_id));
+        const grace = built.plan.grace;
+        for (const user of users.filter((item) => !entitledIds.has(item.id))) await UserFeatureAccessState.upsert({ user_id: user.id, feature_key: PICK_REMINDERS, ...grace }, { transaction });
+      }
     } else if (action === "RESET_CURRENT_PICKS") {
       for (const { track, pick, plan } of built.plans) {
         await pick.destroy({ transaction });
@@ -876,7 +924,10 @@ async function confirmPreview(action, confirmationKey, note, options = {}) {
     } else if (action === "REACTIVATE_TRACK") {
       await TrackReactivation.create({ track_id: built.plan.track.id, league_season_id: built.leagueSeason.id, waived_pick_id: built.plan.waivedPickId, admin_audit_operation_id: operation.id, created_at: new Date() }, { transaction });
     }
-    await AdminAuditTarget.bulkCreate(targets.map((target) => ({ admin_audit_operation_id: operation.id, target_type: target.targetType, target_id: target.targetId, before_state: target.beforeState, after_state: target.afterState, state_version: target.stateVersion ?? target.afterState?.stateVersion ?? null })), { transaction });
+    const featureTargets = targets.filter((target) => target.targetType === "FEATURE");
+    const modelTargets = targets.filter((target) => target.targetType !== "FEATURE");
+    await AdminAuditTarget.bulkCreate(modelTargets.map((target) => ({ admin_audit_operation_id: operation.id, target_type: target.targetType, target_id: target.targetId, before_state: target.beforeState, after_state: target.afterState, state_version: target.stateVersion ?? target.afterState?.stateVersion ?? null })), { transaction });
+    await FeatureAdminAuditTarget.bulkCreate(featureTargets.map((target) => ({ admin_audit_operation_id: operation.id, feature_key: target.targetId, before_state: target.beforeState, after_state: target.afterState, state_version: target.afterState.stateVersion })), { transaction });
     await stored.update({ consumed_at: new Date(), audit_operation_id: operation.id }, { transaction });
     return AdminAuditOperation.findByPk(operation.id, { include: [{ model: AdminAuditTarget, as: "targets" }], transaction });
   });

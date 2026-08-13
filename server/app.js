@@ -9,6 +9,7 @@ const { createAdminBuybackRouter } = require("./admin/buyback-routes");
 const { createBulkTrackRouter } = require("./admin/bulk-track-routes");
 const { createAdminLeagueSeasonRouter } = require("./admin/league-season-routes");
 const { createAdminUserWorkspaceRouter } = require("./admin/user-workspace-routes");
+const { createAdminFeatureRouter } = require("./admin/feature-routes");
 const { createPickSubmissionRouter } = require("./user/pick-submission-routes");
 const { createDashboardRouter } = require("./user/dashboard-routes");
 const dashboardService = require("./modules/dashboard/dashboard-service");
@@ -25,6 +26,7 @@ const { fetchFixtureSchedule, fetchPreseasonWeeks } = require("./nfl/fixture-dow
 const { LeagueSeason } = require("../models");
 const { buildOnboardingConfiguration } = require("./onboarding/configuration");
 const buybackService = require("./modules/buyback/buyback-service");
+const { buildFeatureConfiguration } = require("./features/configuration");
 
 function createApp({
   routes,
@@ -35,6 +37,7 @@ function createApp({
   fetchImpl = global.fetch,
   logger = createLogger(),
   onboardingConfiguration = buildOnboardingConfiguration(),
+  featureConfiguration = buildFeatureConfiguration(),
   requestClosureEvaluation,
   requestAutoPickEvaluation,
   inspectAdminTrack = inspectTrack,
@@ -55,6 +58,7 @@ function createApp({
   if (onboardingConfiguration.invalidSettings.length) {
     logger.warn("onboarding_configuration_invalid", { invalidSettings: onboardingConfiguration.invalidSettings });
   }
+  if (featureConfiguration.invalidSettings.length) logger.warn("feature_configuration_invalid", { invalidSettings: featureConfiguration.invalidSettings });
 
   const app = express();
   const isProduction = process.env.NODE_ENV === "production";
@@ -106,6 +110,7 @@ function createApp({
   app.use("/api/admin/league-season", createAdminLeagueSeasonRouter());
   app.use("/api/admin/repairs", createAdminRepairRouter({ inspectTrack: inspectAdminTrack }));
   app.use("/api/admin/users", createAdminUserWorkspaceRouter({ inspectUserWorkspace: inspectAdminUserWorkspace }));
+  app.use("/api/admin/features", createAdminFeatureRouter());
   app.use("/api/admin/buybacks", createAdminBuybackRouter(buybackService, { requestAutoPickEvaluation }));
   app.use("/api/admin/tracks/bulk", createBulkTrackRouter());
   app.use("/api/user/league", createPickSubmissionRouter({
@@ -115,7 +120,7 @@ function createApp({
     submit: (input) => pickLeagueService.submit({ ...input, fetchImpl }),
     decideBuyback: (input) => pickLeagueService.decideBuyback({ ...input, fetchImpl }),
   }, { requestAutoPickEvaluation }));
-  app.use("/api/user/dashboard", createDashboardRouter(userDashboardService, { requestAutoPickEvaluation }));
+  app.use("/api/user/dashboard", createDashboardRouter(userDashboardService, { requestAutoPickEvaluation, featureConfiguration }));
 
   app.get("/api/proxy/nfl", async (_req, res, next) => {
     try {

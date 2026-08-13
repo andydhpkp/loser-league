@@ -11,6 +11,7 @@ const {
 const { createAdminActionRouter } = require("../../server/admin/action-routes");
 const { createAdminLeagueSeasonRouter } = require("../../server/admin/league-season-routes");
 const { createAdminUserWorkspaceRouter } = require("../../server/admin/user-workspace-routes");
+const { createAdminFeatureRouter } = require("../../server/admin/feature-routes");
 
 function authenticatedApp(path, router) {
   const app = express();
@@ -33,11 +34,26 @@ test("admin User workspace route maps the selected User to one sanitized view", 
   const calls = [];
   const app = authenticatedApp("/users", createAdminUserWorkspaceRouter({
     inspectUserWorkspace: async (userId) => { calls.push(userId); return { user: { id: userId }, tracks: [] }; },
+    getFeatureAccess: async () => ({ betaAccess: { enabled: false, stateVersion: 0 } }),
   }));
   const response = await request(app).get("/users/7/workspace");
   assert.equal(response.status, 200);
-  assert.deepEqual(response.body, { user: { id: 7 }, tracks: [] });
+  assert.deepEqual(response.body, { user: { id: 7 }, tracks: [], features: { pickRemindersBetaAccess: { enabled: false, stateVersion: 0 } } });
   assert.deepEqual(calls, [7]);
+});
+
+test("admin feature route exposes only sanitized release state", async () => {
+  const app = authenticatedApp("/features", createAdminFeatureRouter({ getRelease: async () => ({ publicReleased: false, stateVersion: 0 }) }));
+  const response = await request(app).get("/features");
+  assert.deepEqual(response.body, { features: { pickReminders: { publicReleased: false, stateVersion: 0 } } });
+});
+
+test("admin feature route authorizes before release lookup", async () => {
+  let called = false;
+  const router = createAdminFeatureRouter({ getRelease: async () => { called = true; } });
+  const app = express(); app.use((req, _res, next) => { req.session = {}; next(); }); app.use("/features", router);
+  assert.equal((await request(app).get("/features")).status, 401);
+  assert.equal(called, false);
 });
 
 test("admin action audit route returns the newest operations", async (t) => {
