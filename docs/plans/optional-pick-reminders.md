@@ -1,5 +1,13 @@
 # Change contract: Optional Pick reminders
 
+## PR 6 fixed contracts and status
+
+- The protected route is `/reminder-settings.html`; it requires a valid User session and effective access and is private/no-store.
+- The page composes the stable PR 3–5 APIs independently in Push notifications, Email reminders, Calendar reminders order. Browser state never decides eligibility.
+- Entitled dashboard order is View League, Make Picks, Pick Reminder Settings, Help. Other Users see no dead action.
+- Existing stale-safe admin actions own beta access, public release, and the one-per-round campaign. Public-release preview and confirmation fail closed unless integrated readiness is true; readiness never releases automatically. Operations output is aggregate-only.
+- PR 6 implementation and repository documentation are complete subject to the required verification gate. Owner production configuration, live beta, explicit public release, and issue #45 closure remain incomplete external steps.
+
 ## Problem and outcome
 
 - Users can miss a Pick deadline unless they remember to open Loser League.

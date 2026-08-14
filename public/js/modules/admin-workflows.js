@@ -483,6 +483,23 @@ export async function initializeAdminWorkflows() {
     document.getElementById("pickRemindersReleaseStatus").textContent = state.publicReleased ? "Public release is on." : "Public release is off.";
     releaseButton.onclick = async () => { if (await runAdminAction("SET_PICK_REMINDERS_PUBLIC_RELEASE", { enabled: !state.publicReleased })) await loadRelease(); };
   };
+  const renderOperationalStatus = async () => {
+    const target = document.getElementById("reminderOperationsStatus"); target.textContent = "Loading aggregate reminder status…";
+    try {
+      const response = await fetch("/api/admin/reminders", { cache: "no-store" }); if (!response.ok) throw new Error();
+      const counts = (await response.json()).counts || {};
+      const labels = { evaluated: "Evaluated", eligible: "Eligible", claimed: "Claimed", accepted: "Accepted", unknown: "Unknown", temporarilyFailed: "Temporary failure", permanentlyFailed: "Permanent failure", suppressed: "Suppressed", retryExhausted: "Retry exhausted", invalidSubscriptions: "Invalid push subscriptions removed" };
+      target.replaceChildren(...Object.entries(labels).filter(([key]) => Number.isFinite(counts[key])).map(([key, label]) => Object.assign(document.createElement("p"), { textContent: `${label}: ${counts[key]}` })));
+      if (!target.childNodes.length) target.textContent = "No aggregate reminder activity is available yet.";
+    } catch (_error) { target.textContent = "Aggregate reminder status is temporarily unavailable."; }
+  };
+  document.getElementById("sendPickRemindersButton").addEventListener("click", async (event) => {
+    const button = event.currentTarget; const status = document.getElementById("sendPickRemindersStatus"); button.disabled = true; status.textContent = "Preparing a safe aggregate preview…";
+    try { const result = await runAdminAction("SEND_PICK_REMINDERS", {}); status.textContent = result ? "Manual reminder campaign confirmed. Delivery remains subject to final eligibility checks." : "Manual reminder cancelled."; if (result) await renderOperationalStatus(); }
+    catch (error) { status.textContent = error.message || "Manual reminder is unavailable."; }
+    finally { button.disabled = false; button.focus(); }
+  });
+  document.getElementById("refreshReminderOperations").addEventListener("click", renderOperationalStatus);
   document.getElementById("viewStatistics").addEventListener("click", async () => {
     try { await showStatisticsModal(); } catch (error) { window.alert(error.message || "Unable to load statistics"); }
   });
@@ -539,5 +556,5 @@ export async function initializeAdminWorkflows() {
     const status = document.getElementById("leagueSeasonContextStatus");
     try { if (await runAdminAction("START_REGULAR_SEASON", {})) await loadLeagueSeasonContext(); } catch (error) { status.textContent = error.message; }
   });
-  await Promise.all([refreshUsers(), loadRelease()]);
+  await Promise.all([refreshUsers(), loadRelease(), renderOperationalStatus()]);
 }

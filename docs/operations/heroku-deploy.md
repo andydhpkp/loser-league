@@ -2,6 +2,8 @@
 
 > Pick Reminders owner setup is deferred. Before any beta, configure the exact HTTPS canonical origin; push/VAPID settings; and the dedicated Gmail sender, app password, credential version, and versioned email token key. Keep system, email, push, and public release controls off until the full launch checklist passes. Never place real values in source or deployment transcripts.
 
+PR 6 adds the integrated UI and fail-closed readiness gate but authorizes no Heroku changes. Follow the complete owner setup, controlled-beta, monitoring, rotation, incident, rollback, and launch checklist in [`pick-reminders.md`](pick-reminders.md). Readiness never enables public release automatically.
+
 Loser League deploys the exact tested `main` commit through
 `.github/workflows/test-and-deploy.yml`.
 

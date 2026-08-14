@@ -19,7 +19,8 @@ export async function loginFormHandler(event) {
 
     if (response.ok) {
       await response.json();
-      location.href = "/dashboard.html";
+      const returnTo = new globalThis.URLSearchParams(location.search).get("returnTo");
+      location.href = returnTo === "/reminder-settings.html" ? returnTo : "/dashboard.html";
     } else {
       alert("Sorry, incorrect username or password");
     }

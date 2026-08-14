@@ -5,6 +5,8 @@ status codes and bodies are compatibility constraints.
 
 ## Shared Pick deadline calendar
 
+Protected `GET /reminder-settings.html` requires a valid User session and effective `PICK_REMINDERS` access, is `private, no-store`, redirects unauthenticated Users through the safe login return, and returns a neutral 404 when access is absent. Its browser composes the stable email, push, and calendar APIs independently; one channel failure does not invalidate another.
+
 Public `GET /calendar/pick-deadlines.ics` requires no session or token and returns the shared cross-season iCalendar representation with five-minute public caching, strong ETag, Last-Modified, and conditional 304 support. Query parameters and request Host never select its content. Unsupported methods use the existing not-found convention.
 
 Hidden `GET /api/user/reminders/calendar` requires a User session and effective Pick Reminders access and is `private, no-store`. It returns only `state`, canonical `subscriptionUrl`, safe `webcalUrl`, `subscriptionState: "LINK_PROVIDED"`, and `subscriptionCompletionDetectable: false`. It never returns a User token or claims an external subscription is enabled.

@@ -4,8 +4,7 @@ The User session is the authority for authenticated pages and APIs.
 `localStorage` values are not login evidence.
 
 Successful login and registration land on `/dashboard.html`. The dashboard
-shows a minimal server-authoritative League Season summary and links, in order,
-to View League, Make Picks, and Help. Pick status comes from the server; the
+shows a minimal server-authoritative League Season summary and links. With effective Pick Reminders access, their order is View League, Make Picks, Pick Reminder Settings, and Help; without access the reminder action is absent. The protected settings route is `/reminder-settings.html` and provides Home and Logout. Pick status comes from the server; the
 browser only formats the ISO deadline in the User's locale and time zone.
 
 During Week 1 or later, View League is disabled until every active Track owned

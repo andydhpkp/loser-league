@@ -27,6 +27,7 @@ const { createEmailProviderHealthService } = require("./modules/reminders/email-
 const { createEmailReminderService } = require("./modules/reminders/email-reminder-service");
 const { createEmailReminderProvider } = require("./modules/reminders/email-reminder-provider");
 const { buildCalendarConfiguration } = require("./modules/calendar/calendar-configuration");
+const { calculatePickReminderReadiness } = require("./features/pick-reminder-readiness");
 const { createCalendarScheduleLoader } = require("./modules/calendar/calendar-schedule-loader");
 const { createCalendarService } = require("./modules/calendar/calendar-service");
 const { createCalendarCoordinator } = require("./modules/calendar/calendar-coordinator");
@@ -97,6 +98,7 @@ const app = createApp({
   requestReminderEvaluation: () => reminderCoordinator.evaluate(),
   loadManualReminderContext: reminderService.buildManualCampaignContext,
   getReminderOperationalStatus: reminderService.getOperationalStatus,
+  getReminderReleaseReadiness: async () => calculatePickReminderReadiness({ featureConfiguration, pushConfiguration, emailConfiguration, calendarConfiguration, providerChannels: Object.keys(providers) }),
   featureConfiguration,
   pushConfiguration,
   pushSubscriptionService,

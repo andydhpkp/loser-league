@@ -19,6 +19,7 @@ function createAdminActionRouter({
   loadPreseasonWeeks,
   loadManualReminderContext,
   requestReminderEvaluation = async () => {},
+  getReleaseReadiness = async () => ({ ready: false, checks: {} }),
   createActionPreview = defaultCreatePreview,
   confirmActionPreview = defaultConfirmPreview,
 } = {}) {
@@ -39,14 +40,16 @@ function createAdminActionRouter({
   router.post("/:action/preview", async (req, res, next) => {
     try {
       const manualClosureContext = req.params.action === "CLOSE_WEEK" ? await loadManualClosureContext() : undefined;
-      res.status(201).json(await createActionPreview(req.params.action, req.body, { manualClosureContext, loadHistoricalResults, loadRolloverTargetSchedule, loadPreseasonWeeks, loadManualReminderContext }));
+      const releaseReadiness = req.params.action === "SET_PICK_REMINDERS_PUBLIC_RELEASE" ? await getReleaseReadiness() : undefined;
+      res.status(201).json(await createActionPreview(req.params.action, req.body, { manualClosureContext, loadHistoricalResults, loadRolloverTargetSchedule, loadPreseasonWeeks, loadManualReminderContext, releaseReadiness }));
     }
     catch (error) { next(error); }
   });
   router.post("/:action/confirm", async (req, res, next) => {
     try {
       const manualClosureContext = req.params.action === "CLOSE_WEEK" ? await loadManualClosureContext() : undefined;
-      const result = await confirmActionPreview(req.params.action, req.body.confirmationKey, req.body.note, { manualClosureContext, loadHistoricalResults, loadRolloverTargetSchedule, loadPreseasonWeeks, loadManualReminderContext, confirmationPhrase: req.body.confirmationPhrase });
+      const releaseReadiness = req.params.action === "SET_PICK_REMINDERS_PUBLIC_RELEASE" ? await getReleaseReadiness() : undefined;
+      const result = await confirmActionPreview(req.params.action, req.body.confirmationKey, req.body.note, { manualClosureContext, loadHistoricalResults, loadRolloverTargetSchedule, loadPreseasonWeeks, loadManualReminderContext, confirmationPhrase: req.body.confirmationPhrase, releaseReadiness });
       if (req.params.action === "SEND_PICK_REMINDERS") {
         res.json({ action: result.action, operationId: result.id, leagueSeason: result.league_season_id ? { id: result.league_season_id, round: result.week } : null, summary: result.summary });
       } else res.json(result);

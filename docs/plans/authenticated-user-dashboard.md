@@ -13,7 +13,7 @@
 
 ## Behavior
 
-- Dashboard actions are View League, Make Picks, and Help, in that order. Text Pick Reminder Settings and all reminder-related Help copy remain hidden until Phase 2.
+- Dashboard actions are View League, Make Picks, Pick Reminder Settings, and Help in that order when effective access exists; otherwise the reminder action is absent.
 - PR 1 replaces the dormant capability with server-computed
   `features.pickReminders`; effective-access Users see the final **Pick Reminder
   Settings** label in a disabled coming-later state while ordinary Users see no
@@ -53,7 +53,7 @@
 
 - Resolved: separate Help page; dedicated dashboard endpoint; server-authored Pick status; partial lifecycle success; browser-local deadline; header plus explicit Home links; hidden reminder UI/copy with a false capability seam.
 - Open questions: none.
-- External dependency: issue #45 owns all Text Pick Reminder behavior and activation.
+- External dependency: issue #45 owns final production setup, controlled beta, and explicit public activation of Pick Reminders.
 
 ## Completion
 
