@@ -18,7 +18,27 @@ async function refreshPushDevice() {
   const status = await response.json(); byId("pushStatus").textContent = `${stateText(status.state)}. ${status.deviceCount} device${status.deviceCount === 1 ? "" : "s"} set up.`; setVisible("enablePush", !status.currentDeviceEnabled); setVisible("disablePush", status.currentDeviceEnabled); setVisible("disableAllPush", status.deviceCount > 0);
 }
 function renderEmail(value) { byId("emailStatus").textContent = stateText(value.state); byId("maskedEmail").textContent = value.maskedDestination ? `Account email: ${value.maskedDestination}` : ""; setVisible("verifyEmail", ["OFF", "VERIFICATION_REQUIRED"].includes(value.state)); setVisible("enableEmail", value.state === "USER_DISABLED"); setVisible("disableEmail", value.state === "ENABLED"); }
-function renderCalendar(value) { byId("calendarStatus").textContent = value.state === "AVAILABLE" ? "Available" : "Temporarily unavailable"; if (value.state === "AVAILABLE") { const link = byId("subscribeCalendar"); link.href = value.webcalUrl; link.hidden = false; byId("copyCalendar").hidden = false; byId("copyCalendar").dataset.url = value.subscriptionUrl; } const providers = [CALENDAR_INSTRUCTIONS.apple, CALENDAR_INSTRUCTIONS.google, CALENDAR_INSTRUCTIONS.outlook]; byId("calendarInstructions").textContent = `${providers.map(({ subscribe, remove }) => `${subscribe} ${remove}`).join(" ")} ${CALENDAR_INSTRUCTIONS.limitations}`; }
+function instructionParagraph(label, text) {
+  const paragraph = document.createElement("p");
+  const heading = document.createElement("strong");
+  heading.textContent = label;
+  paragraph.append(heading, document.createTextNode(`: ${text}`));
+  return paragraph;
+}
+function renderCalendar(value) {
+  byId("calendarStatus").textContent = value.state === "AVAILABLE" ? "Available" : "Temporarily unavailable";
+  if (value.state === "AVAILABLE") { const link = byId("subscribeCalendar"); link.href = value.webcalUrl; link.hidden = false; byId("copyCalendar").hidden = false; byId("copyCalendar").dataset.url = value.subscriptionUrl; }
+  const container = byId("calendarInstructions");
+  container.replaceChildren(...[CALENDAR_INSTRUCTIONS.apple, CALENDAR_INSTRUCTIONS.google, CALENDAR_INSTRUCTIONS.outlook].map(({ title, subscribe, remove }) => {
+    const section = document.createElement("section");
+    section.className = "calendar-provider-instructions";
+    const heading = document.createElement("h3");
+    heading.textContent = title;
+    section.append(heading, instructionParagraph("Subscribe", subscribe), instructionParagraph("Remove", remove));
+    return section;
+  }));
+  byId("calendarLimitations").textContent = CALENDAR_INSTRUCTIONS.limitations;
+}
 async function load() { byId("pageStatus").textContent = "Loading reminder options…"; try { const result = await loadChannelStatuses(); if (result.push.value) { renderPush(result.push.value); await refreshPushDevice(); } else byId("pushStatus").textContent = "Temporarily unavailable"; if (result.email.value) renderEmail(result.email.value); else byId("emailStatus").textContent = "Temporarily unavailable"; if (result.calendar.value) renderCalendar(result.calendar.value); else byId("calendarStatus").textContent = "Temporarily unavailable"; byId("pageStatus").textContent = Object.values(result).some((item) => item.error) ? "Some reminder options could not be loaded. Other options remain available." : "Reminder options loaded."; } catch (error) { if (error.message === "SESSION_EXPIRED") location.href = "/index.html?returnTo=%2Freminder-settings.html"; else byId("pageStatus").textContent = "Reminder options are temporarily unavailable. Return Home and try again."; } }
 async function pending(button, action) { button.disabled = true; try { await action(); await load(); } catch (error) { if (error.message === "SESSION_EXPIRED") location.href = "/index.html?returnTo=%2Freminder-settings.html"; else byId("pageStatus").textContent = "That change could not be completed. Try again."; } finally { button.disabled = false; button.focus(); } }
 byId("enablePush").addEventListener("click", (event) => pending(event.currentTarget, async () => { const result = await enablePushOnDevice({ configuration: pushConfiguration }); byId("pushStatus").textContent = stateText(result.state); }));

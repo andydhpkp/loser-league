@@ -1120,6 +1120,18 @@ label {
 
 .reminder-actions .btn { min-height: 44px; }
 
+#calendarInstructionDetails { margin-block: 1rem; }
+
+.calendar-provider-instructions { padding-block: 1rem; }
+
+.calendar-provider-instructions + .calendar-provider-instructions { border-top: 1px solid #ced4da; }
+
+.calendar-provider-instructions h3 { margin-bottom: 0.75rem; }
+
+.calendar-provider-instructions p:last-child { margin-bottom: 0; }
+
+.calendar-limitations { margin-top: 1rem; }
+
 .reminder-card :focus-visible,
 .reminder-settings-shell :focus-visible { outline: 3px solid #212529; outline-offset: 3px; }
 
