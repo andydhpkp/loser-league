@@ -1,0 +1,4 @@
+const { Model, DataTypes } = require("sequelize"); const sequelize = require("../config/connection");
+class EmailVerificationRequest extends Model {}
+EmailVerificationRequest.init({ id: { type: DataTypes.BIGINT.UNSIGNED, primaryKey: true, autoIncrement: true }, user_id: { type: DataTypes.INTEGER, allowNull: false }, token_digest: { type: DataTypes.CHAR(64), allowNull: false, unique: true }, email_digest: { type: DataTypes.CHAR(64), allowNull: false }, key_version: { type: DataTypes.STRING(32), allowNull: false }, expires_at: { type: DataTypes.DATE, allowNull: false }, sent_at: { type: DataTypes.DATE, allowNull: true }, consumed_at: { type: DataTypes.DATE, allowNull: true }, superseded_at: { type: DataTypes.DATE, allowNull: true }, result: { type: DataTypes.STRING(24), allowNull: false, defaultValue: "PENDING" } }, { sequelize, freezeTableName: true, underscored: true, modelName: "email_verification_request" });
+module.exports = EmailVerificationRequest;

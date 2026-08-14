@@ -51,7 +51,7 @@ test("dashboard failure is recoverable and expired sessions return to login", as
 
   await page.route("**/api/user/dashboard", (route) => route.fulfill({ status: 401, body: "{}" }));
   await page.reload();
-  await expect(page).toHaveURL(/\/index\.html$/);
+  await page.waitForURL(/\/index\.html$/, { waitUntil: "load" });
 });
 
 test("Help explains active rules without reminder or admin material", async ({ page }) => {

@@ -71,6 +71,11 @@ Never include personal User, Track, Pick, payment, contact, session, or producti
 
 For the hidden PR 3 PWA seam, verify manifest/icons, standalone detection, iPhone/iPad Home Screen guidance, Android install guidance, direct-gesture notification permission, denial recovery, update-ready signaling, notification focus/open behavior, and an offline page with no authenticated content. Use controlled APIs and fake transport only.
 
+For hidden PR 4, verify the public verification success/failure and neutral
+opt-out landings at every portrait width, landscape, 200% text, keyboard focus,
+reduced motion, and screen-reader heading/status semantics. Fixtures and traces
+must contain no real or full destination, token, or provider response.
+
 1. Identify every new or changed rendered state and transition.
 2. Add deterministic behavior coverage at the 390 x 844 project.
 3. Add or reuse a layout contract that runs at all four portrait widths.

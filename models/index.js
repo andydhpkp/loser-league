@@ -24,6 +24,10 @@ const {
   ReminderDelivery,
   PushSubscription,
   PushDeviceDelivery,
+  EmailReminderVerification,
+  EmailVerificationRequest,
+  EmailOptOutToken,
+  EmailProviderHealth,
 } = require("./my-index");
 
 module.exports = {
@@ -52,4 +56,8 @@ module.exports = {
   ReminderDelivery,
   PushSubscription,
   PushDeviceDelivery,
+  EmailReminderVerification,
+  EmailVerificationRequest,
+  EmailOptOutToken,
+  EmailProviderHealth,
 };

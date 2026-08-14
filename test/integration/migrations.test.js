@@ -39,6 +39,10 @@ if (!databaseUrl) {
       "reminder_preference",
       "reminder_campaign",
       "reminder_delivery",
+      "email_reminder_verification",
+      "email_verification_request",
+      "email_opt_out_token",
+      "email_provider_health",
       "admin_audit_operation",
       "admin_audit_target",
       "official_game_result_override",
@@ -91,6 +95,13 @@ if (!databaseUrl) {
     const campaign = await queryInterface.describeTable("reminder_campaign");
     assert.ok(campaign.evaluated_count);
     assert.ok(campaign.eligible_count);
+    const verificationRequest = await queryInterface.describeTable("email_verification_request");
+    assert.ok(verificationRequest.token_digest);
+    assert.equal(verificationRequest.token, undefined);
+    assert.equal(verificationRequest.email, undefined);
+    const optOutToken = await queryInterface.describeTable("email_opt_out_token");
+    assert.ok(optOutToken.token_digest);
+    assert.equal(optOutToken.token, undefined);
 
     await queryInterface.bulkInsert("league_season", [
       {

@@ -18,20 +18,41 @@ const { createPushSubscriptionService } = require("./modules/reminders/push-subs
 const { createWebPushTransport } = require("./modules/reminders/web-push-provider");
 const { createPushReminderProvider } = require("./modules/reminders/push-reminder-provider");
 const webPush = require("web-push");
+const nodemailer = require("nodemailer");
+const { buildEmailConfiguration } = require("./modules/reminders/email-configuration");
+const { createEmailTokenCryptography } = require("./modules/reminders/email-token-cryptography");
+const { createGmailTransport } = require("./modules/reminders/gmail-transport");
+const { createEmailTransports } = require("./modules/reminders/email-transports");
+const { createEmailProviderHealthService } = require("./modules/reminders/email-provider-health-service");
+const { createEmailReminderService } = require("./modules/reminders/email-reminder-service");
+const { createEmailReminderProvider } = require("./modules/reminders/email-reminder-provider");
 
 const PORT = process.env.PORT || 3001;
 const logger = createLogger();
 const sessionStore = new SequelizeStore({ db: sequelize });
 const featureConfiguration = buildFeatureConfiguration();
 const pushConfiguration = buildPushConfiguration();
+const emailConfiguration = buildEmailConfiguration();
 const pushCryptography = pushConfiguration.ready ? createSubscriptionCryptography({ current: pushConfiguration.currentKey, previous: pushConfiguration.previousKey, digestKey: pushConfiguration.digestKey }) : null;
 const pushSubscriptionService = pushConfiguration.ready ? createPushSubscriptionService({ cryptography: pushCryptography }) : null;
 const loadAuthoritativeReminderContext = createAuthoritativeReminderContextLoader();
+const emailCryptography = emailConfiguration.currentKey ? createEmailTokenCryptography({ current: emailConfiguration.currentKey, previous: emailConfiguration.previousKey }) : null;
+const emailProviderHealth = emailConfiguration.credentialVersion ? createEmailProviderHealthService({ credentialVersion: emailConfiguration.credentialVersion, logger }) : null;
+const gmailTransport = emailConfiguration.ready ? createGmailTransport({ nodemailer, configuration: emailConfiguration }) : null;
+const emailTransports = gmailTransport ? createEmailTransports({ gmailTransport, configuration: emailConfiguration }) : null;
+const unavailableEmailService = { status: async () => ({ state: "TEMPORARILY_UNAVAILABLE", maskedDestination: null }), requestVerification: async () => ({ state: "TEMPORARILY_UNAVAILABLE" }), setEnabled: async () => ({ state: "TEMPORARILY_UNAVAILABLE", maskedDestination: null }), consumeVerification: async () => ({ success: false }), optOut: async () => ({ state: "USER_DISABLED" }), deliveryEligibility: async () => ({ eligible: false, reason: "EMAIL_UNAVAILABLE", defer: true }), cleanup: async () => ({ requestsDeleted: 0, optOutTokensDeleted: 0 }), operationalStatus: async () => ({ email: { state: "EMAIL_UNCONFIGURED", verified: 0, verification: {} } }) };
+const emailReminderService = emailCryptography && emailProviderHealth ? createEmailReminderService({ cryptography: emailCryptography, setupTransport: emailTransports || { sendVerification: async () => ({ classification: "UNKNOWN" }) }, providerHealth: emailProviderHealth, configuration: emailConfiguration, logger }) : unavailableEmailService;
+const providers = {};
+if (pushConfiguration.ready) providers.PUSH = createPushReminderProvider({ cryptography: pushCryptography, transport: createWebPushTransport({ webPush, configuration: pushConfiguration }), configuration: pushConfiguration });
+if (emailConfiguration.ready) providers.EMAIL = createEmailReminderProvider({ emailService: emailReminderService, transport: emailTransports, providerHealth: emailProviderHealth });
 const reminderService = createReminderService({
   loadAuthoritativeContext: loadAuthoritativeReminderContext,
   configuration: featureConfiguration,
   logger,
-  providers: pushConfiguration.ready ? { PUSH: createPushReminderProvider({ cryptography: pushCryptography, transport: createWebPushTransport({ webPush, configuration: pushConfiguration }), configuration: pushConfiguration }) } : {},
+  providers,
+  channelGuard: async ({ channel, userId, transaction }) => channel === "EMAIL" ? emailReminderService?.deliveryEligibility({ userId, transaction }) || { eligible: false, reason: "EMAIL_UNAVAILABLE", defer: true } : { eligible: true },
+  ancillaryCleanup: ({ limit }) => emailReminderService?.cleanup({ limit }) || {},
+  ancillaryStatus: () => emailReminderService.operationalStatus(),
 });
 const reminderCoordinator = createReminderCoordinator({
   evaluate: reminderService.evaluateAutomatic,
@@ -70,6 +91,8 @@ const app = createApp({
   featureConfiguration,
   pushConfiguration,
   pushSubscriptionService,
+  emailReminderService,
+  emailConfiguration,
 });
 
 startServer({ app, database: sequelize, port: PORT, logger, lifecycleCoordinator })

@@ -2,6 +2,7 @@ const { Op, Transaction } = require("sequelize");
 const {
   sequelize, User, Track, Pick, LeagueSeason, ReminderPreference,
   ReminderCampaign, ReminderDelivery, UserFeatureAccessState, PushSubscription,
+  EmailReminderVerification, EmailVerificationRequest, EmailOptOutToken,
 } = require("../../../models");
 
 const CLAIM_LEASE_MS = 2 * 60 * 1000;
@@ -72,6 +73,7 @@ async function claimNext({ now, validate = async () => ({ eligible: true }) }) {
     });
     if (!delivery) return null;
     const validation = await validate({ delivery, transaction });
+    if (validation.defer === true) return { deferred: true };
     if (validation.eligible !== true) {
       await delivery.update({ state: "SUPPRESSED", claimed_until: null, next_attempt_at: null, consumed_at: now, suppression_reason: validation.reason || "INELIGIBLE" }, { transaction });
       return { suppressed: true };
@@ -90,6 +92,11 @@ async function finishClaim({ claim, state, now, retryDelayMs = null, suppression
     suppression_reason: suppressionReason,
     ...(state === "TEMPORARILY_FAILED" ? { temporary_failure_count: sequelize.literal("temporary_failure_count + 1") } : {}),
   }, { where: { id: claim.id, state: "CLAIMED", claim_version: claim.claimVersion } });
+  return updated === 1;
+}
+
+async function deferClaim({ claim }) {
+  const [updated] = await ReminderDelivery.update({ state: claim.attemptCount > 0 ? "TEMPORARILY_FAILED" : "PENDING", claimed_until: null }, { where: { id: claim.id, state: "CLAIMED", claim_version: claim.claimVersion } });
   return updated === 1;
 }
 
@@ -118,9 +125,12 @@ async function deleteExpiredPreferences({ now, limit = 100 }) {
     const userIds = expired.map(({ user_id: userId }) => userId);
     if (!userIds.length) return 0;
     const subscriptionsDeleted = await PushSubscription.destroy({ where: { user_id: userIds }, transaction });
+    const emailVerificationRequestsDeleted = await EmailVerificationRequest.destroy({ where: { user_id: userIds }, transaction });
+    const emailOptOutTokensDeleted = await EmailOptOutToken.destroy({ where: { user_id: userIds }, transaction });
+    const emailVerificationsDeleted = await EmailReminderVerification.destroy({ where: { user_id: userIds }, transaction });
     const deleted = await ReminderPreference.destroy({ where: { user_id: userIds }, transaction });
     await UserFeatureAccessState.destroy({ where: { user_id: userIds, feature_key: "PICK_REMINDERS", grace_expires_at: { [Op.lte]: now } }, transaction });
-    return deleted + subscriptionsDeleted;
+    return deleted + subscriptionsDeleted + emailVerificationRequestsDeleted + emailOptOutTokensDeleted + emailVerificationsDeleted;
   });
 }
 
@@ -150,4 +160,4 @@ async function getOperationalCounts({ retainedSeasonIds }) {
   };
 }
 
-module.exports = { CLAIM_LEASE_MS, createCampaignWithDeliveries, claimNext, deleteExpiredPreferences, deleteHistoryBeforeSeasonIds, finishClaim, getAutomaticConsumedAt, getOperationalCounts, listCandidateViews, loadCandidateView, loadRoundContext };
+module.exports = { CLAIM_LEASE_MS, createCampaignWithDeliveries, claimNext, deferClaim, deleteExpiredPreferences, deleteHistoryBeforeSeasonIds, finishClaim, getAutomaticConsumedAt, getOperationalCounts, listCandidateViews, loadCandidateView, loadRoundContext };

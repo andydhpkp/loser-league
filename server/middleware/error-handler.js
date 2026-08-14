@@ -12,7 +12,7 @@ function createErrorHandler(logger) {
     logger.error("request_failed", {
       requestId: req.requestId,
       method: req.method,
-      route: req.originalUrl,
+      route: req.route?.path || req.path,
       status,
       errorCode: code,
       errorType: error.name,

@@ -9,7 +9,7 @@
     "express-session": "^1.17.2",
     "google-auth-library": "^9.0.0",
     "mysql2": "^2.3.3",
-    "nodemailer": "^6.7.3",
+    "nodemailer": "9.0.3",
     "sequelize": "^6.17.0",
     "sequelize-cli": "^6.6.1",
     "web-push": "3.6.7"
