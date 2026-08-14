@@ -82,3 +82,11 @@ must contain no real or full destination, token, or provider response.
 4. Repeat high-risk dense, modal, focused-input, large-text, or motion states at their specialized seam.
 5. Run focused tests during development, then all required repository checks before a pull request.
 6. Complete and record the real-device pass when the change materially affects phone workflows.
+## Hidden calendar contract
+
+PR 5 adds reusable instruction/link content but no visible page. Smoke coverage
+must continue to prove ordinary Users cannot discover a calendar control.
+PR 6 must test the subscribe and copy-link controls on narrow, large-text,
+landscape, keyboard/focus, and reduced-motion configurations without opening a
+real calendar provider. Test `webcal:` conversion and clipboard behavior only
+through controlled browser seams.

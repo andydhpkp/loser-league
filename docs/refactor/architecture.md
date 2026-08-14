@@ -110,6 +110,11 @@ binding. The shared HTTP client owns request/error normalization.
   current `User.email` only at send time. Durable provider health prevents all
   processes from retrying rejected credentials until an owner changes the
   credential version deliberately.
+- A shared calendar module loads season-wide Fixture/ESPN evidence outside its
+  transaction, validates rounds independently, and reconciles stable generic
+  deadline events plus one exact durable feed representation under database
+  locks. A startup/15-minute coordinator owns refresh; the public transport
+  adapter owns conditional HTTP caching and has no session or User dependency.
 - The profile entry renders an accessible buyback modal from sanitized
   submission state. Browser dismissal and disabled controls are presentation;
   server identity, eligibility, price, deadline, and Pick gating are authority.

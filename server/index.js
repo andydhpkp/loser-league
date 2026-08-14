@@ -26,6 +26,10 @@ const { createEmailTransports } = require("./modules/reminders/email-transports"
 const { createEmailProviderHealthService } = require("./modules/reminders/email-provider-health-service");
 const { createEmailReminderService } = require("./modules/reminders/email-reminder-service");
 const { createEmailReminderProvider } = require("./modules/reminders/email-reminder-provider");
+const { buildCalendarConfiguration } = require("./modules/calendar/calendar-configuration");
+const { createCalendarScheduleLoader } = require("./modules/calendar/calendar-schedule-loader");
+const { createCalendarService } = require("./modules/calendar/calendar-service");
+const { createCalendarCoordinator } = require("./modules/calendar/calendar-coordinator");
 
 const PORT = process.env.PORT || 3001;
 const logger = createLogger();
@@ -33,6 +37,7 @@ const sessionStore = new SequelizeStore({ db: sequelize });
 const featureConfiguration = buildFeatureConfiguration();
 const pushConfiguration = buildPushConfiguration();
 const emailConfiguration = buildEmailConfiguration();
+const calendarConfiguration = buildCalendarConfiguration();
 const pushCryptography = pushConfiguration.ready ? createSubscriptionCryptography({ current: pushConfiguration.currentKey, previous: pushConfiguration.previousKey, digestKey: pushConfiguration.digestKey }) : null;
 const pushSubscriptionService = pushConfiguration.ready ? createPushSubscriptionService({ cryptography: pushCryptography }) : null;
 const loadAuthoritativeReminderContext = createAuthoritativeReminderContextLoader();
@@ -60,6 +65,8 @@ const reminderCoordinator = createReminderCoordinator({
   cleanup: reminderService.cleanup,
   logger,
 });
+const calendarService = createCalendarService({ loadSchedule: createCalendarScheduleLoader(), configuration: calendarConfiguration, logger });
+const calendarCoordinator = createCalendarCoordinator({ refresh: calendarService.refresh, cleanup: calendarService.cleanup, logger });
 const autoPickCoordinator = createAutoPickCoordinator({
   evaluate: createDefaultAutoPickEvaluator(),
   logger,
@@ -73,11 +80,13 @@ const lifecycleCoordinator = {
     autoPickCoordinator.start();
     weekClosureCoordinator.start();
     reminderCoordinator.start();
+    calendarCoordinator.start();
   },
   stop() {
     autoPickCoordinator.stop();
     weekClosureCoordinator.stop();
     reminderCoordinator.stop();
+    calendarCoordinator.stop();
   },
 };
 const app = createApp({
@@ -93,6 +102,8 @@ const app = createApp({
   pushSubscriptionService,
   emailReminderService,
   emailConfiguration,
+  calendarConfiguration,
+  calendarService,
 });
 
 startServer({ app, database: sequelize, port: PORT, logger, lifecycleCoordinator })

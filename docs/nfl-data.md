@@ -89,3 +89,6 @@ requires explicit approval after production traffic is confirmed migrated.
 
 Rollback consists of deploying the previous Loser League application version;
 the external proxy remains untouched by this change.
+## Calendar season-schedule seam
+
+The hidden Pick deadline calendar needs future rounds without changing the current-round lifecycle contract. Its dedicated loader fetches Fixture Download's annual response once, partitions rounds 1–18 as regular season and 19–22 as playoffs, then applies the same normalized game, duplicate, Team-reuse, timestamp, and earliest-kickoff rules independently per round. Preseason uses the existing ESPN scoreboard seam for weeks 1–4. One invalid future round is omitted/cancelled without discarding other trustworthy rounds; transport failure preserves the entire last trustworthy calendar. Automated tests inject provider responses and never contact either service.

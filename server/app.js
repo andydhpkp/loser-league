@@ -31,6 +31,7 @@ const { buildFeatureConfiguration } = require("./features/configuration");
 const { createPushRouter } = require("./user/push-routes");
 const { getPickRemindersAccess } = require("./features/feature-access-service");
 const { createEmailReminderRouter, createPublicEmailReminderRouter } = require("./user/email-reminder-routes");
+const { createCalendarStatusRouter, createPublicCalendarRouter } = require("./calendar/calendar-routes");
 
 function createApp({
   routes,
@@ -44,6 +45,8 @@ function createApp({
   featureConfiguration = buildFeatureConfiguration(),
   pushConfiguration = { ready: false, vapidPublicKey: null },
   emailConfiguration = { ready: false, invalidSettings: [] },
+  calendarConfiguration = { ready: false, invalidSettings: [] },
+  calendarService,
   pushSubscriptionService,
   emailReminderService,
   requestClosureEvaluation,
@@ -72,6 +75,7 @@ function createApp({
   if (featureConfiguration.invalidSettings.length) logger.warn("feature_configuration_invalid", { invalidSettings: featureConfiguration.invalidSettings });
   if (pushConfiguration.invalidSettings?.length) logger.warn("push_configuration_invalid", { invalidSettings: pushConfiguration.invalidSettings });
   if (emailConfiguration.invalidSettings?.length) logger.warn("email_configuration_invalid", { invalidSettings: emailConfiguration.invalidSettings });
+  if (calendarConfiguration.invalidSettings?.length) logger.warn("calendar_configuration_invalid", { invalidSettings: calendarConfiguration.invalidSettings });
 
   const app = express();
   const isProduction = process.env.NODE_ENV === "production";
@@ -93,6 +97,7 @@ function createApp({
     saveUninitialized: true,
     ...(sessionStore ? { store: sessionStore } : {}),
   });
+  if (calendarService) app.use("/calendar", createPublicCalendarRouter({ service: calendarService, available: () => featureConfiguration.pickRemindersCalendarAvailable === true && calendarConfiguration.ready }));
   app.get("/admin.html", sessionMiddleware, (req, res) => {
     if (req.session.adminAuthenticated !== true) {
       res.redirect("/index.html");
@@ -140,6 +145,7 @@ function createApp({
   app.use("/api/user/dashboard", createDashboardRouter(userDashboardService, { requestAutoPickEvaluation, featureConfiguration }));
   if (pushSubscriptionService) app.use("/api/user/reminders/push", createPushRouter({ service: pushSubscriptionService, getAccess: getPickRemindersAccess, featureConfiguration, pushConfiguration }));
   if (emailReminderService) app.use("/api/user/reminders/email", createEmailReminderRouter({ service: emailReminderService, getAccess: getPickRemindersAccess, featureConfiguration }));
+  if (calendarService) app.use("/api/user/reminders/calendar", createCalendarStatusRouter({ getAccess: getPickRemindersAccess, featureConfiguration, calendarConfiguration }));
 
   app.get("/api/proxy/nfl", async (_req, res, next) => {
     try {

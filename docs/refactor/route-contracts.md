@@ -3,6 +3,12 @@
 All routes are mounted under `/api` unless stated otherwise. Existing successful
 status codes and bodies are compatibility constraints.
 
+## Shared Pick deadline calendar
+
+Public `GET /calendar/pick-deadlines.ics` requires no session or token and returns the shared cross-season iCalendar representation with five-minute public caching, strong ETag, Last-Modified, and conditional 304 support. Query parameters and request Host never select its content. Unsupported methods use the existing not-found convention.
+
+Hidden `GET /api/user/reminders/calendar` requires a User session and effective Pick Reminders access and is `private, no-store`. It returns only `state`, canonical `subscriptionUrl`, safe `webcalUrl`, `subscriptionState: "LINK_PROVIDED"`, and `subscriptionCompletionDetectable: false`. It never returns a User token or claims an external subscription is enabled.
+
 ## Hidden Pick Reminders push (`/api/user/reminders/push`)
 
 | Method | Path | Purpose |

@@ -26,6 +26,8 @@ const EmailReminderVerification = require('./EmailReminderVerification')
 const EmailVerificationRequest = require('./EmailVerificationRequest')
 const EmailOptOutToken = require('./EmailOptOutToken')
 const EmailProviderHealth = require('./EmailProviderHealth')
+const CalendarEvent = require('./CalendarEvent')
+const CalendarFeedState = require('./CalendarFeedState')
 
 User.hasMany(Track, {
     foreignKey: 'user_id'
@@ -150,6 +152,8 @@ User.hasMany(EmailVerificationRequest, { as: 'emailVerificationRequests', foreig
 EmailVerificationRequest.belongsTo(User, { as: 'user', foreignKey: 'user_id' })
 User.hasMany(EmailOptOutToken, { as: 'emailOptOutTokens', foreignKey: 'user_id' })
 EmailOptOutToken.belongsTo(User, { as: 'user', foreignKey: 'user_id' })
+LeagueSeason.hasMany(CalendarEvent, { as: 'calendarEvents', foreignKey: 'league_season_id' })
+CalendarEvent.belongsTo(LeagueSeason, { as: 'leagueSeason', foreignKey: 'league_season_id' })
 
 
 module.exports = {
@@ -179,5 +183,7 @@ module.exports = {
     EmailReminderVerification,
     EmailVerificationRequest,
     EmailOptOutToken,
-    EmailProviderHealth
+    EmailProviderHealth,
+    CalendarEvent,
+    CalendarFeedState
 };
