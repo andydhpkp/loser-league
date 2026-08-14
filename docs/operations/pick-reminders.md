@@ -92,6 +92,9 @@ outbox, and actorless audit commit atomically; provider work occurs after commit
 
 Logs contain aggregate evaluated, eligible, durable claimed/retried, accepted,
 unknown, temporary/permanent failure, suppression, retry exhaustion, and cleanup counts.
+Idle delivery passes and calendar refreshes with no created, updated, or cancelled
+events do not emit routine completion logs; failures and non-empty aggregate activity
+remain observable.
 They exclude identities, destinations, Picks, Teams, content, endpoints,
 payloads, credentials, tokens, sessions, environment values, and request bodies.
 

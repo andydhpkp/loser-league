@@ -93,6 +93,24 @@ test("accepted, temporary, permanent, and exhausted attempts produce bounded agg
   assert.equal((await run("TEMPORARY_FAILURE", 3)).counts.retryExhausted, 1);
 });
 
+test("delivery logging suppresses idle passes but retains aggregate activity", async () => {
+  const events = [];
+  let claims = 0;
+  const service = createReminderService({
+    repository: repository({ claimNext: async () => claims++ === 1 ? { recoveredUnknown: true } : null }),
+    loadAuthoritativeContext: async () => ({ season, deadline }),
+    getAccess: async () => ({ effective: true }),
+    configuration,
+    logger: { info: (event, context) => events.push({ event, context }), warn() {} },
+    now: () => new Date("2026-09-10T12:00:00Z"),
+  });
+
+  assert.deepEqual(await service.processDue(), { claimed: 0, accepted: 0, unknown: 0, temporarilyFailed: 0, permanentlyFailed: 0, suppressed: 0, retryExhausted: 0 });
+  assert.deepEqual(events, []);
+  assert.equal((await service.processDue()).unknown, 1);
+  assert.deepEqual(events, [{ event: "reminder_delivery_completed", context: { claimed: 0, accepted: 0, unknown: 1, temporarilyFailed: 0, permanentlyFailed: 0, suppressed: 0, retryExhausted: 0 } }]);
+});
+
 test("cleanup reports bounded history and expired-preference counts", async (t) => {
   t.mock.method(LeagueSeason, "findAll", async () => [{ id: 9 }, { id: 8 }]);
   const service = createReminderService({ repository: repository({ deleteHistoryBeforeSeasonIds: async ({ retainedSeasonIds, limit }) => { assert.deepEqual(retainedSeasonIds, [9, 8]); assert.equal(limit, 25); return 3; }, deleteExpiredPreferences: async () => 2 }), loadAuthoritativeContext: async () => null, configuration, now: () => new Date("2026-09-10T12:00:00Z") });
