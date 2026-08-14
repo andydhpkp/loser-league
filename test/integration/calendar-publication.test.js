@@ -16,13 +16,16 @@ if (!databaseUrl) {
   test("migration adds generic constrained publication state and refresh survives schedule updates", async () => {
     const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 1, schedule_phase: "REGULAR", state_version: 1, open_slot: 1 });
     let deadline = new Date("2026-09-10T23:30:00Z"); let sourceHash = "a".repeat(64);
-    const service = createCalendarService({ loadSchedule: async () => ({ season, evidence: [{ year: 2026, phase: "REGULAR", round: 1, deadline, sourceHash }], invalidKeys: [] }), configuration: { dashboardUrl: "https://example.invalid/dashboard.html" }, now: () => new Date("2026-08-13T12:00:00Z"), logger: { info() {}, warn() {} } });
+    const events = [];
+    const service = createCalendarService({ loadSchedule: async () => ({ season, evidence: [{ year: 2026, phase: "REGULAR", round: 1, deadline, sourceHash }], invalidKeys: [] }), configuration: { dashboardUrl: "https://example.invalid/dashboard.html" }, now: () => new Date("2026-08-13T12:00:00Z"), logger: { info: (event, context) => events.push({ event, context }), warn() {} } });
     await service.refresh(); await service.refresh();
     assert.equal(await CalendarEvent.count(), 1); assert.equal((await CalendarEvent.findOne()).sequence, 0);
+    assert.deepEqual(events, [{ event: "calendar_refresh_committed", context: { created: 1, updated: 0, cancelled: 0 } }]);
     const first = await CalendarFeedState.findByPk(1);
     deadline = new Date("2026-09-11T00:00:00Z"); sourceHash = "b".repeat(64); await service.refresh();
     const event = await CalendarEvent.findOne(); const second = await CalendarFeedState.findByPk(1);
     assert.equal(event.sequence, 1); assert.equal(event.event_uid, "pick-deadline-2026-regular-1@calendar.loser-league.app"); assert.notEqual(second.content_hash, first.content_hash);
+    assert.deepEqual(events[1], { event: "calendar_refresh_committed", context: { created: 0, updated: 1, cancelled: 0 } });
     for (const forbidden of ["user_id", "email", "track", "pick", "team", "token"]) assert.equal((await sequelize.getQueryInterface().describeTable("calendar_event"))[forbidden], undefined);
   });
 

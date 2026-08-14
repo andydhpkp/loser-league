@@ -106,7 +106,7 @@ function createReminderService({
       else if (result.state === "PERMANENTLY_FAILED") counts.permanentlyFailed += 1;
       else if (result.state === "RETRY_EXHAUSTED") counts.retryExhausted += 1;
     }
-    logger.info("reminder_delivery_completed", counts);
+    if (Object.values(counts).some((count) => count > 0)) logger.info("reminder_delivery_completed", counts);
     return counts;
   }
 
