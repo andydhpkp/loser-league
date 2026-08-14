@@ -27,3 +27,7 @@ The installable shell starts at `/dashboard.html`. Protected navigation is netwo
 PR 4 adds hidden authenticated email JSON routes but no settings page or
 dashboard navigation change. Public verification and opt-out landing pages are
 session-independent, neutral, uncached, and link only to login for management.
+The PR 5 calendar API remains a hidden contract only. Do not add a dashboard,
+settings, or Help link before PR 6. When PR 6 exposes it, discovery must use
+the authenticated effective-access state and canonical server-returned URL;
+possession of the public feed itself remains sessionless.

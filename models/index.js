@@ -28,6 +28,8 @@ const {
   EmailVerificationRequest,
   EmailOptOutToken,
   EmailProviderHealth,
+  CalendarEvent,
+  CalendarFeedState,
 } = require("./my-index");
 
 module.exports = {
@@ -60,4 +62,6 @@ module.exports = {
   EmailVerificationRequest,
   EmailOptOutToken,
   EmailProviderHealth,
+  CalendarEvent,
+  CalendarFeedState,
 };

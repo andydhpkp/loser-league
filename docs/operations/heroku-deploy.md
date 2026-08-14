@@ -115,3 +115,8 @@ Never automate rollback or infer the target solely from relative position.
 Create a replacement dedicated Heroku authorization, update the
 `HEROKU_API_KEY` production-environment secret without displaying it, and
 observe one successful deployment. Then revoke the superseded authorization.
+Pick deadline calendar launch is owner-deferred. Do not set
+`PICK_REMINDERS_CALENDAR_AVAILABLE=true` during PR 5 deployment. Final launch
+requires a confirmed exact HTTPS `PUBLIC_APP_ORIGIN`, successful beta
+subscription/update/cancellation checks in Apple or Google Calendar plus
+Outlook, and explicit owner approval. Repository defaults remain fail-closed.
