@@ -129,3 +129,6 @@ binding. The shared HTTP client owns request/error normalization.
 - `app.js` is a compatibility re-export rather than a shared implementation.
 - Pages import only their entry module. No active behavior depends on global
   function declaration order or inline event attributes.
+# Pick Reminder Settings composition
+
+The protected server page boundary owns session/effective-access authorization. `public/js/pages/reminder-settings.js` owns DOM binding and composes the stable channel APIs through `public/js/modules/reminder-settings.js`; neither browser module decides reminder eligibility, deadlines, destinations, or release access. The service worker continues to exclude authenticated pages and APIs from its static cache.

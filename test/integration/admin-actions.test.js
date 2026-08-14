@@ -53,9 +53,10 @@ if (!databaseUrl) {
     assert.equal(operation.action, "SET_PICK_REMINDERS_BETA_ACCESS");
     assert.equal(grace.grace_expires_at.getTime() - grace.access_removed_at.getTime(), 30 * 24 * 60 * 60 * 1000);
 
-    const release = await createPreview("SET_PICK_REMINDERS_PUBLIC_RELEASE", { enabled: true });
+    await assert.rejects(createPreview("SET_PICK_REMINDERS_PUBLIC_RELEASE", { enabled: true }, { releaseReadiness: { ready: false } }), /not ready/);
+    const release = await createPreview("SET_PICK_REMINDERS_PUBLIC_RELEASE", { enabled: true }, { releaseReadiness: { ready: true } });
     await FeatureRelease.increment("state_version", { where: { feature_key: "PICK_REMINDERS" } });
-    await assert.rejects(confirmPreview("SET_PICK_REMINDERS_PUBLIC_RELEASE", release.confirmationKey), /stale/);
+    await assert.rejects(confirmPreview("SET_PICK_REMINDERS_PUBLIC_RELEASE", release.confirmationKey, null, { releaseReadiness: { ready: true } }), /stale/);
     assert.equal((await FeatureRelease.findByPk("PICK_REMINDERS")).public_released, false);
     assert.equal(await AdminAuditOperation.count({ where: { action: "SET_PICK_REMINDERS_BETA_ACCESS" } }), 2);
   });

@@ -5,6 +5,7 @@ const pages = [
   ["registration", "/create-account.html", "register.js"],
   ["dashboard", "/dashboard.html", "dashboard.js"],
   ["help", "/help.html", "help.js"],
+  ["Pick Reminder Settings", "/reminder-settings.html", "reminder-settings.js"],
   ["profile", "/profile.html", "profile.js"],
   ["league", "/league-page.html", "league.js"],
   ["admin", "/admin.html", "admin.js"],

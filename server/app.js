@@ -32,6 +32,7 @@ const { createPushRouter } = require("./user/push-routes");
 const { getPickRemindersAccess } = require("./features/feature-access-service");
 const { createEmailReminderRouter, createPublicEmailReminderRouter } = require("./user/email-reminder-routes");
 const { createCalendarStatusRouter, createPublicCalendarRouter } = require("./calendar/calendar-routes");
+const { createReminderSettingsPageRouter } = require("./user/reminder-settings-routes");
 
 function createApp({
   routes,
@@ -54,6 +55,7 @@ function createApp({
   requestReminderEvaluation,
   loadManualReminderContext,
   getReminderOperationalStatus = async () => ({ counts: {} }),
+  getReminderReleaseReadiness = async () => ({ ready: false, checks: {} }),
   inspectAdminTrack = inspectTrack,
   inspectAdminUserWorkspace = inspectUserWorkspace,
   userDashboardService = dashboardService,
@@ -98,6 +100,7 @@ function createApp({
     ...(sessionStore ? { store: sessionStore } : {}),
   });
   if (calendarService) app.use("/calendar", createPublicCalendarRouter({ service: calendarService, available: () => featureConfiguration.pickRemindersCalendarAvailable === true && calendarConfiguration.ready }));
+  app.use(sessionMiddleware, createReminderSettingsPageRouter({ getAccess: getPickRemindersAccess, featureConfiguration, pagePath: path.join(__dirname, "../public/reminder-settings.html") }));
   app.get("/admin.html", sessionMiddleware, (req, res) => {
     if (req.session.adminAuthenticated !== true) {
       res.redirect("/index.html");
@@ -127,6 +130,7 @@ function createApp({
     loadPreseasonWeeks: ({ year, now }) => fetchPreseasonWeeks({ year, now, fetchImpl }),
     loadManualReminderContext,
     requestReminderEvaluation,
+    getReleaseReadiness: getReminderReleaseReadiness,
   }));
   app.use("/api/admin/league-season", createAdminLeagueSeasonRouter());
   app.use("/api/admin/repairs", createAdminRepairRouter({ inspectTrack: inspectAdminTrack }));

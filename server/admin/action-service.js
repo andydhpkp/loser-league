@@ -204,6 +204,7 @@ async function buildActionPreview(action, input, transaction, lock = false, opti
   }
   if (action === "SET_PICK_REMINDERS_PUBLIC_RELEASE") {
     if (typeof input.enabled !== "boolean") throw new ValidationError("Enabled must be a boolean");
+    if (input.enabled && options.releaseReadiness?.ready !== true) throw new ConflictError("Pick Reminders are not ready for public release");
     const release = await FeatureRelease.findByPk(PICK_REMINDERS, { transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
     if (!release) throw new ConflictError("Pick Reminders feature registration is unavailable");
     const before = { feature: PICK_REMINDERS, publicReleased: release.public_released, stateVersion: release.state_version };

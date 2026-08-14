@@ -15,12 +15,12 @@ test("dashboard renders authoritative summary and approved action order", async 
   await expect(page.getByText(/Next Pick deadline: .+\b(?:UTC|GMT|[A-Z]{2,5})\b/)).toBeVisible();
 });
 
-test("effective-access dashboard preserves the disabled Pick Reminder Settings seam", async ({ page }) => {
+test("effective-access dashboard exposes the working Pick Reminder Settings action", async ({ page }) => {
   await page.route("**/api/user/dashboard", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ...summary, features: { pickReminders: true } }) }));
   await page.goto("/dashboard.html");
   await expect(page.getByText("Pick Reminder Settings")).toBeVisible();
-  await expect(page.getByText("Pick Reminder Settings").locator("..")).toHaveAttribute("aria-disabled", "true");
-  await expect(page.getByRole("link", { name: /Pick Reminder Settings/ })).toHaveCount(0);
+  await expect(page.getByRole("navigation", { name: "Primary" }).locator(".dashboard-action:visible")).toHaveText([/View League/, /Make Picks/, /Pick Reminder Settings/, /Help/]);
+  await expect(page.getByRole("link", { name: /Pick Reminder Settings/ })).toHaveAttribute("href", "/reminder-settings.html");
 });
 
 test("blocked direct League visits return to the dashboard with an explanation", async ({ page }) => {
@@ -54,13 +54,14 @@ test("dashboard failure is recoverable and expired sessions return to login", as
   await page.waitForURL(/\/index\.html$/, { waitUntil: "load" });
 });
 
-test("Help explains active rules without reminder or admin material", async ({ page }) => {
+test("Help explains active rules and reminder guidance without private admin material", async ({ page }) => {
   await page.route("**/api/user/league/support", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ contacts: [{ name: "Tate", smsUrl: "sms:+15555550100" }] }) }));
   await page.goto("/help.html");
   await expect(page.getByText(/cannot choose the same NFL Team twice/i)).toBeVisible();
   await expect(page.getByText(/wins or ties/i)).toBeVisible();
   await expect(page.getByRole("link", { name: "Text Tate for help" })).toHaveAttribute("href", "sms:+15555550100");
-  await expect(page.getByText(/reminder|admin password|repair/i)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Pick reminders" })).toBeVisible();
+  await expect(page.getByText(/admin password|repair/i)).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Home", exact: true })).toHaveAttribute("href", "/dashboard.html");
   await expect(page.getByRole("button", { name: "Logout" })).toBeVisible();
 });

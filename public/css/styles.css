@@ -1098,10 +1098,30 @@ label {
 }
 
 .dashboard-shell,
-.help-shell {
+.help-shell,
+.reminder-settings-shell {
   max-width: 48rem;
   padding-block: 2rem;
 }
+
+.reminder-card {
+  border: 1px solid #adb5bd;
+  border-radius: 0.75rem;
+  margin-block: 1.5rem;
+  padding: 1rem;
+}
+
+.reminder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-block: 1rem;
+}
+
+.reminder-actions .btn { min-height: 44px; }
+
+.reminder-card :focus-visible,
+.reminder-settings-shell :focus-visible { outline: 3px solid #212529; outline-offset: 3px; }
 
 .dashboard-summary {
   background: #f8f9fa;
@@ -1163,7 +1183,8 @@ label {
 
 @media (max-width: 360px) {
   .dashboard-shell,
-  .help-shell {
+  .help-shell,
+  .reminder-settings-shell {
     padding-inline: 1rem;
   }
 }

@@ -90,3 +90,6 @@ PR 6 must test the subscribe and copy-link controls on narrow, large-text,
 landscape, keyboard/focus, and reduced-motion configurations without opening a
 real calendar provider. Test `webcal:` conversion and clipboard behavior only
 through controlled browser seams.
+# Pick Reminder Settings
+
+Include `/reminder-settings.html` in authenticated phone-width, landscape, large-text, zoom, keyboard-order, visible-focus, reduced-motion, wrapping, touch-target, and no-color-only checks. Exercise iPhone/iPad installation instructions in Safari, Android installation instructions in Chrome, unsupported desktop behavior, direct-gesture permission, partial channel failure, retry/session expiry, and service-worker update action without forced reload.

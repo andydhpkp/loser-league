@@ -11,6 +11,7 @@ const pages = [
   ["registration", "/create-account.html"],
   ["dashboard", "/dashboard.html"],
   ["help", "/help.html"],
+  ["Pick Reminder Settings", "/reminder-settings.html"],
   ["matchup and onboarding", "/profile.html"],
   ["League view", "/league-page.html"],
   ["admin", "/admin.html"],

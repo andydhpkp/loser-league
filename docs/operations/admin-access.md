@@ -189,3 +189,5 @@ per active round. It accepts no recipient, channel, deadline, Pick, or content
 input. Preview and confirmation are aggregate-only and fail closed unless both
 the master and admin-campaign controls are enabled. PR 2 leaves those controls
 off, so the intermediate deployment cannot contact Users.
+
+PR 6 exposes that action in Global feature operations with aggregate preview and confirmation only. The same area shows sanitized aggregate operational counts and explains that provider acceptance is not delivery or reading. Public-release preview and confirmation fail closed until the integrated all-channel readiness gate passes. Readiness never enables release automatically.
