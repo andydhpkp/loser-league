@@ -1,9 +1,17 @@
 # Pick Reminders foundation operations
 
-PR 2 is a hidden provider-neutral foundation. It cannot send real email or Web
-Push because it contains no provider adapter, destination, credential, email
-verification, or push subscription. The dashboard action remains disabled and
-there is no ordinary-User settings route.
+## Hidden push/PWA configuration (PR 3)
+
+Keep master availability, push delivery, and public release off until the complete program is approved. Owner setup later requires `PUBLIC_APP_ORIGIN` as an exact HTTPS origin; one long-lived VAPID public/private pair plus a `mailto:` or HTTPS subject; a dedicated base64 32-byte `REMINDER_DATA_ENCRYPTION_KEY` and short version; and a separate base64 32-byte `PUSH_SUBSCRIPTION_DIGEST_KEY`. Generate values with maintained cryptographic tooling outside logs and source. Never paste values into tickets, chat, screenshots, retained commands, or fixtures.
+
+For rotation, configure the new current key/version and the old key/version in `REMINDER_DATA_PREVIOUS_ENCRYPTION_KEY` and `REMINDER_DATA_PREVIOUS_ENCRYPTION_KEY_VERSION`. New registration updates encrypt with current; old rows remain readable only during the bounded rotation. After sanitized counts confirm no old-version rows, remove the prior pair. If a needed prior key is lost, restore it or invalidate affected subscriptions and require setup again.
+
+HTTP 404/410 invalidates only the exact device. 408, 429, and 5xx are temporary; timeout or connection ambiguity becomes unknown and is never blindly resent. Emergency disablement uses the push switch first or the master switch for the feature; neither erases consent. Cleanup removes subscriptions on User deletion or after lost-access grace, while season rollover preserves them. Incident records and logs must never contain endpoints, keys, ciphertext, payloads, or request bodies.
+
+PR 3 keeps the feature hidden and adds the PWA/Web Push foundation. It still
+cannot send while owner configuration and both operational controls remain
+off. Email remains absent. The dashboard action remains disabled and there is
+no ordinary-User settings route.
 
 ## Coordination and recovery
 

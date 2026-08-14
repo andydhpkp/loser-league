@@ -22,6 +22,8 @@ const {
   ReminderPreference,
   ReminderCampaign,
   ReminderDelivery,
+  PushSubscription,
+  PushDeviceDelivery,
 } = require("./my-index");
 
 module.exports = {
@@ -48,4 +50,6 @@ module.exports = {
   ReminderPreference,
   ReminderCampaign,
   ReminderDelivery,
+  PushSubscription,
+  PushDeviceDelivery,
 };

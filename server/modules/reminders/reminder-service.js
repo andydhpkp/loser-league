@@ -85,7 +85,7 @@ function createReminderService({
         continue;
       }
       let outcome;
-      try { ({ outcome } = await provider.send(providerIntent(claim.channel))); }
+      try { ({ outcome } = await provider.send(providerIntent(claim.channel), { claim, context, now: attemptTime })); }
       catch (error) { logger.warn("reminder_provider_result_unknown", { channel: claim.channel, reason: error.code || error.name }); outcome = "UNKNOWN"; }
       const result = nextDeliveryState({ outcome, attemptCount: claim.attemptCount + 1 });
       await repository.finishClaim({ claim, state: result.state, now: now(), retryDelayMs: result.retryDelayMs });

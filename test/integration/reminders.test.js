@@ -6,10 +6,12 @@ if (!databaseUrl) {
 } else {
   process.env.NODE_ENV = "test";
   const assert = require("node:assert/strict");
-  const { sequelize, User, LeagueSeason, ReminderPreference, ReminderCampaign, ReminderDelivery, AdminAuditOperation } = require("../../models");
+  const { sequelize, User, LeagueSeason, ReminderPreference, ReminderCampaign, ReminderDelivery, AdminAuditOperation, PushSubscription } = require("../../models");
   const repository = require("../../server/modules/reminders/reminder-repository");
   const { createPreview, confirmPreview } = require("../../server/admin/action-service");
   const { migrateEmptyTestDatabase } = require("../support/migrate-test-database");
+  const { createSubscriptionCryptography } = require("../../server/modules/reminders/push-subscription-cryptography");
+  const { createPushSubscriptionService } = require("../../server/modules/reminders/push-subscription-service");
 
   test.beforeEach(async () => { await migrateEmptyTestDatabase(sequelize); });
   test.after(async () => sequelize.close());
@@ -98,6 +100,23 @@ if (!databaseUrl) {
     assert.equal(await ReminderDelivery.count(), 0);
     const columns = await sequelize.getQueryInterface().describeTable("reminder_delivery");
     for (const forbidden of ["destination", "message_body", "pick", "team", "email", "endpoint", "payload", "token"]) assert.equal(columns[forbidden], undefined);
+  });
+
+  test("multi-device push registration persists only encrypted subscriptions and device-scoped disablement", async () => {
+    const target = await user("push-devices"); const key = Buffer.alloc(32, 9).toString("base64");
+    const cryptography = createSubscriptionCryptography({ current: { version: "test-v1", key }, digestKey: key });
+    const service = createPushSubscriptionService({ cryptography });
+    const makeSubscription = (suffix) => ({ endpoint: `https://push.example.test/${suffix}`, expirationTime: null, keys: { p256dh: "A".repeat(87), auth: "B".repeat(22) } });
+    await service.register({ userId: target.id, subscription: makeSubscription("one") });
+    assert.equal((await service.register({ userId: target.id, subscription: makeSubscription("two") })).deviceCount, 2);
+    const rows = await PushSubscription.findAll({ where: { user_id: target.id } });
+    assert.equal(rows.length, 2); assert.equal(rows.some((row) => row.ciphertext.includes("push.example")), false);
+    assert.equal((await service.disableCurrent({ userId: target.id, endpoint: makeSubscription("one").endpoint })).deviceCount, 1);
+    assert.equal((await ReminderPreference.findByPk(target.id)).push_enabled, true);
+    assert.equal((await service.disableAll({ userId: target.id })).state, "USER_DISABLED");
+    assert.equal((await ReminderPreference.findByPk(target.id)).push_enabled, false);
+    await service.register({ userId: target.id, subscription: makeSubscription("three") }); await target.destroy();
+    assert.equal(await PushSubscription.count(), 0);
   });
 
   test("bounded cleanup retains active and previous League Seasons", async () => {

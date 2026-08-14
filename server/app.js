@@ -28,6 +28,8 @@ const { LeagueSeason } = require("../models");
 const { buildOnboardingConfiguration } = require("./onboarding/configuration");
 const buybackService = require("./modules/buyback/buyback-service");
 const { buildFeatureConfiguration } = require("./features/configuration");
+const { createPushRouter } = require("./user/push-routes");
+const { getPickRemindersAccess } = require("./features/feature-access-service");
 
 function createApp({
   routes,
@@ -39,6 +41,8 @@ function createApp({
   logger = createLogger(),
   onboardingConfiguration = buildOnboardingConfiguration(),
   featureConfiguration = buildFeatureConfiguration(),
+  pushConfiguration = { ready: false, vapidPublicKey: null },
+  pushSubscriptionService,
   requestClosureEvaluation,
   requestAutoPickEvaluation,
   requestReminderEvaluation,
@@ -63,6 +67,7 @@ function createApp({
     logger.warn("onboarding_configuration_invalid", { invalidSettings: onboardingConfiguration.invalidSettings });
   }
   if (featureConfiguration.invalidSettings.length) logger.warn("feature_configuration_invalid", { invalidSettings: featureConfiguration.invalidSettings });
+  if (pushConfiguration.invalidSettings?.length) logger.warn("push_configuration_invalid", { invalidSettings: pushConfiguration.invalidSettings });
 
   const app = express();
   const isProduction = process.env.NODE_ENV === "production";
@@ -128,6 +133,7 @@ function createApp({
     decideBuyback: (input) => pickLeagueService.decideBuyback({ ...input, fetchImpl }),
   }, { requestAutoPickEvaluation }));
   app.use("/api/user/dashboard", createDashboardRouter(userDashboardService, { requestAutoPickEvaluation, featureConfiguration }));
+  if (pushSubscriptionService) app.use("/api/user/reminders/push", createPushRouter({ service: pushSubscriptionService, getAccess: getPickRemindersAccess, featureConfiguration, pushConfiguration }));
 
   app.get("/api/proxy/nfl", async (_req, res, next) => {
     try {

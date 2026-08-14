@@ -21,3 +21,5 @@ workflow.
 
 Dashboard, Help, matchup, and league pages provide Home and Logout controls.
 Dashboard and Help return to login when the User session is absent or expires.
+
+The installable shell starts at `/dashboard.html`. Protected navigation is network-first and an expired session follows the existing login redirect. The offline fallback contains no User or League data and cannot submit Picks or settings. PR 3 adds no public settings page.

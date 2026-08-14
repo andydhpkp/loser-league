@@ -20,6 +20,8 @@ const FeatureAdminAuditTarget = require('./FeatureAdminAuditTarget')
 const ReminderPreference = require('./ReminderPreference')
 const ReminderCampaign = require('./ReminderCampaign')
 const ReminderDelivery = require('./ReminderDelivery')
+const PushSubscription = require('./PushSubscription')
+const PushDeviceDelivery = require('./PushDeviceDelivery')
 
 User.hasMany(Track, {
     foreignKey: 'user_id'
@@ -132,6 +134,12 @@ ReminderDelivery.belongsTo(ReminderCampaign, { as: 'campaign', foreignKey: 'remi
 User.hasMany(ReminderDelivery, { as: 'reminderDeliveries', foreignKey: 'user_id' })
 ReminderDelivery.belongsTo(User, { as: 'user', foreignKey: 'user_id' })
 ReminderCampaign.belongsTo(AdminAuditOperation, { as: 'auditOperation', foreignKey: 'admin_audit_operation_id' })
+User.hasMany(PushSubscription, { as: 'pushSubscriptions', foreignKey: 'user_id' })
+PushSubscription.belongsTo(User, { as: 'user', foreignKey: 'user_id' })
+ReminderDelivery.hasMany(PushDeviceDelivery, { as: 'pushDeviceDeliveries', foreignKey: 'reminder_delivery_id' })
+PushDeviceDelivery.belongsTo(ReminderDelivery, { as: 'delivery', foreignKey: 'reminder_delivery_id' })
+PushSubscription.hasMany(PushDeviceDelivery, { as: 'deliveries', foreignKey: 'push_subscription_id' })
+PushDeviceDelivery.belongsTo(PushSubscription, { as: 'subscription', foreignKey: 'push_subscription_id' })
 
 
 module.exports = {
@@ -155,5 +163,7 @@ module.exports = {
     FeatureAdminAuditTarget,
     ReminderPreference,
     ReminderCampaign,
-    ReminderDelivery
+    ReminderDelivery,
+    PushSubscription,
+    PushDeviceDelivery
 };

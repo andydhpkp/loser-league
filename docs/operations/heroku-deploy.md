@@ -1,5 +1,7 @@
 # Heroku deployment operations
 
+> Pick Reminders owner setup is deferred. Before any push beta, configure the exact HTTPS canonical origin, VAPID public/private/subject settings, current reminder-data encryption key/version, separate subscription-digest key, and push availability control. Keep system availability, push delivery, and public release off until the full launch checklist passes. Never place real values in source or deployment transcripts.
+
 Loser League deploys the exact tested `main` commit through
 `.github/workflows/test-and-deploy.yml`.
 

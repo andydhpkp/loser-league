@@ -101,6 +101,9 @@ binding. The shared HTTP client owns request/error normalization.
   identity, preferences, transactional outbox claims, bounded retry,
   suppression, cleanup, and minimal provider intents. Startup composes its
   coordinator; Express and provider adapters do not enter reminder policy.
+- A hidden push adapter resolves encrypted per-device subscriptions only at the
+  delivery boundary. Durable child attempts preserve the User/channel outbox
+  identity while preventing duplicate or ambiguous per-device resend.
 - The profile entry renders an accessible buyback modal from sanitized
   submission state. Browser dismissal and disabled controls are presentation;
   server identity, eligibility, price, deadline, and Pick gating are authority.

@@ -3,6 +3,18 @@
 All routes are mounted under `/api` unless stated otherwise. Existing successful
 status codes and bodies are compatibility constraints.
 
+## Hidden Pick Reminders push (`/api/user/reminders/push`)
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/configuration` | Safe operational state and public VAPID key when ready. |
+| POST | `/status` | Current-device state from an exact HTTPS endpoint plus aggregate count. |
+| PUT | `/subscription` | Register/update the authenticated User's encrypted device. |
+| DELETE | `/subscription` | Disable only the matching current device. |
+| DELETE | `/subscriptions` | Disable all devices and the push preference. |
+
+The routes require a User session and effective access, never accept a User ID, set `private, no-store`, and never return subscription or storage material.
+
 ## Users (`/api/users`)
 
 | Method | Path | Purpose |
