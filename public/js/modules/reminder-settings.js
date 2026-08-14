@@ -37,3 +37,10 @@ export async function mutateEmpty(url, fetchImpl = fetch) {
   if (!response.ok && response.status !== 429) return { state: "TEMPORARILY_UNAVAILABLE" };
   return response.json();
 }
+
+export function formatResendDelay(seconds) {
+  const remaining = Math.max(0, Math.ceil(Number(seconds) || 0));
+  if (!remaining) return "";
+  if (remaining >= 3600) return `${Math.floor(remaining / 3600)}h ${Math.ceil(remaining % 3600 / 60)}m`;
+  return `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`;
+}

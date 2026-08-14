@@ -28,3 +28,12 @@ test("push permission is requested only by the explicit enable operation", async
   assert.equal(permissions, 1);
   assert.deepEqual(result, { state: "PERMISSION_DENIED" });
 });
+
+test("resend countdown formatting is stable across minute and daily limits", async () => {
+  const { formatResendDelay } = await import("../../public/js/modules/reminder-settings.js");
+  assert.equal(formatResendDelay(0), "");
+  assert.equal(formatResendDelay(1), "0:01");
+  assert.equal(formatResendDelay(599), "9:59");
+  assert.equal(formatResendDelay(600), "10:00");
+  assert.equal(formatResendDelay(48_060), "13h 21m");
+});
