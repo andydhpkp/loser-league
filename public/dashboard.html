@@ -16,12 +16,12 @@
     <main class="container dashboard-shell">
       <section aria-labelledby="seasonSummaryTitle">
         <h2 id="seasonSummaryTitle">League Season summary</h2>
-        <div id="dashboardStatus" class="dashboard-summary" role="status" aria-live="polite" aria-busy="true">Loading your League Season summary…</div>
+        <div id="dashboardStatus" class="dashboard-summary" role="status" aria-live="polite" aria-busy="true"><span class="spinner-border loading-spinner" aria-hidden="true"></span><span>Loading your League Season summary…</span></div>
         <button id="retryDashboard" class="btn btn-outline-primary mt-3" type="button" hidden>Retry</button>
       </section>
       <nav class="dashboard-actions" aria-label="Primary">
-        <a id="viewLeagueAction" class="dashboard-action" href="/league-page.html"><strong>View League</strong><span id="viewLeagueStatus">Loading League access…</span></a>
-        <a class="dashboard-action" href="/profile.html"><strong>Make Picks</strong><span id="makePicksStatus">Loading Pick status…</span></a>
+        <a id="viewLeagueAction" class="dashboard-action" href="/league-page.html"><strong>View League</strong><span id="viewLeagueStatus"><span class="spinner-border loading-spinner" aria-hidden="true"></span><span>Loading League access…</span></span></a>
+        <a class="dashboard-action" href="/profile.html"><strong>Make Picks</strong><span id="makePicksStatus"><span class="spinner-border loading-spinner" aria-hidden="true"></span><span>Loading Pick status…</span></span></a>
         <a id="pickReminderSettingsAction" class="dashboard-action" href="/reminder-settings.html" hidden><strong>Pick Reminder Settings</strong><span>Choose optional push, email, and calendar reminders.</span></a>
         <a class="dashboard-action" href="/help.html"><strong>Help</strong><span>Review how Loser League works and get support.</span></a>
       </nav>
