@@ -22,6 +22,10 @@ const ReminderCampaign = require('./ReminderCampaign')
 const ReminderDelivery = require('./ReminderDelivery')
 const PushSubscription = require('./PushSubscription')
 const PushDeviceDelivery = require('./PushDeviceDelivery')
+const EmailReminderVerification = require('./EmailReminderVerification')
+const EmailVerificationRequest = require('./EmailVerificationRequest')
+const EmailOptOutToken = require('./EmailOptOutToken')
+const EmailProviderHealth = require('./EmailProviderHealth')
 
 User.hasMany(Track, {
     foreignKey: 'user_id'
@@ -140,6 +144,12 @@ ReminderDelivery.hasMany(PushDeviceDelivery, { as: 'pushDeviceDeliveries', forei
 PushDeviceDelivery.belongsTo(ReminderDelivery, { as: 'delivery', foreignKey: 'reminder_delivery_id' })
 PushSubscription.hasMany(PushDeviceDelivery, { as: 'deliveries', foreignKey: 'push_subscription_id' })
 PushDeviceDelivery.belongsTo(PushSubscription, { as: 'subscription', foreignKey: 'push_subscription_id' })
+User.hasOne(EmailReminderVerification, { as: 'emailReminderVerification', foreignKey: 'user_id' })
+EmailReminderVerification.belongsTo(User, { as: 'user', foreignKey: 'user_id' })
+User.hasMany(EmailVerificationRequest, { as: 'emailVerificationRequests', foreignKey: 'user_id' })
+EmailVerificationRequest.belongsTo(User, { as: 'user', foreignKey: 'user_id' })
+User.hasMany(EmailOptOutToken, { as: 'emailOptOutTokens', foreignKey: 'user_id' })
+EmailOptOutToken.belongsTo(User, { as: 'user', foreignKey: 'user_id' })
 
 
 module.exports = {
@@ -165,5 +175,9 @@ module.exports = {
     ReminderCampaign,
     ReminderDelivery,
     PushSubscription,
-    PushDeviceDelivery
+    PushDeviceDelivery,
+    EmailReminderVerification,
+    EmailVerificationRequest,
+    EmailOptOutToken,
+    EmailProviderHealth
 };

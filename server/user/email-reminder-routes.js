@@ -1,0 +1,17 @@
+const express = require("express");
+const { requireUser } = require("./require-user");
+const { ValidationError } = require("../lib/errors");
+function exactEmpty(body) { if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).length) throw new ValidationError("Email reminder request is invalid"); }
+function createEmailReminderRouter({ service, getAccess, featureConfiguration }) {
+  const router = express.Router(); router.use(requireUser); router.use((_req, res, next) => { res.set("Cache-Control", "private, no-store"); next(); });
+  async function authorize(req, res) { const access = await getAccess({ userId: req.session.user_id, systemAvailable: featureConfiguration.pickRemindersSystemAvailable }); if (!access.effective) { res.status(404).json({ error: "NOT_FOUND", message: "Email reminders are unavailable" }); return false; } return true; }
+  router.get("/", async (req, res, next) => { try { if (!await authorize(req, res)) return; res.json(await service.status(req.session.user_id)); } catch (error) { next(error); } });
+  router.post("/verification-requests", async (req, res, next) => { try { if (!await authorize(req, res)) return; exactEmpty(req.body); const result = await service.requestVerification(req.session.user_id); if (result.state === "RATE_LIMITED") { res.set("Retry-After", String(result.retryAfterSeconds)); return res.status(429).json(result); } return res.status(202).json(result); } catch (error) { return next(error); } });
+  router.post("/enable", async (req, res, next) => { try { if (!await authorize(req, res)) return; exactEmpty(req.body); return res.json(await service.setEnabled(req.session.user_id, true)); } catch (error) { return next(error); } });
+  router.post("/disable", async (req, res, next) => { try { if (!await authorize(req, res)) return; exactEmpty(req.body); return res.json(await service.setEnabled(req.session.user_id, false)); } catch (error) { return next(error); } });
+  return router;
+}
+function token(body) { return typeof body === "string" && /^[A-Za-z0-9_-]{43}$/.test(body) ? body : null; }
+function landing(title, message) { return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><link rel="stylesheet" href="/css/style.css"></head><body><main><h1>${title}</h1><p role="status">${message}</p><p><a href="/index.html">Log in to manage reminder options</a></p></main></body></html>`; }
+function createPublicEmailReminderRouter({ service }) { const router = express.Router(); router.use((_req, res, next) => { res.set("Cache-Control", "no-store"); res.set("Referrer-Policy", "no-referrer"); next(); }); router.get("/verify", async (req, res) => { let result = { success: false }; try { const raw = token(req.query.token); if (raw) result = await service.consumeVerification(raw); } catch (_error) {} const message = result.success ? "Email reminders are verified and enabled." : "This verification link is not available."; res.status(result.success ? 200 : 400).send(landing("Email reminder verification", message)); }); router.get("/stop", async (req, res) => { try { const raw = token(req.query.token); if (raw) await service.optOut(raw); } catch (_error) {} res.send(landing("Email reminders", "Email reminders are off.")); }); return router; }
+module.exports = { createEmailReminderRouter, createPublicEmailReminderRouter };

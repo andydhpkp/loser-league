@@ -1,0 +1,4 @@
+function tokenUrl(origin, path, token) { const url = new URL(path, origin); url.searchParams.set("token", token); return url.toString(); }
+function buildVerificationEmail({ origin, token }) { return { subject: "Verify Loser League email reminders", text: `Someone signed into Loser League requested Pick email reminders.\n\nVerify and enable email reminders: ${tokenUrl(origin, "/reminders/email/verify", token)}\n\nThis link expires after 24 hours. If you did not request this, no action is needed.` }; }
+function buildReminderEmail({ origin, optOutToken }) { return { subject: "Loser League reminder", text: `You may still have Picks to complete. Open Loser League.\n\n${new URL("/dashboard.html", origin)}\n\nStop email reminders: ${tokenUrl(origin, "/reminders/email/stop", optOutToken)}\n\nReplies are monitored by an organizer.` }; }
+module.exports = { buildReminderEmail, buildVerificationEmail };

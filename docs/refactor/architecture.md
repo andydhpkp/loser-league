@@ -104,6 +104,12 @@ binding. The shared HTTP client owns request/error normalization.
 - A hidden push adapter resolves encrypted per-device subscriptions only at the
   delivery boundary. Durable child attempts preserve the User/channel outbox
   identity while preventing duplicate or ambiguous per-device resend.
+- A hidden email application module owns masked status, purpose-bound verified
+  account-email evidence, durable verification limits, atomic consent, and
+  password-free opt-out. A replaceable Gmail/Nodemailer transport resolves the
+  current `User.email` only at send time. Durable provider health prevents all
+  processes from retrying rejected credentials until an owner changes the
+  credential version deliberately.
 - The profile entry renders an accessible buyback modal from sanitized
   submission state. Browser dismissal and disabled controls are presentation;
   server identity, eligibility, price, deadline, and Pick gating are authority.

@@ -14,6 +14,8 @@ const pages = [
   ["matchup and onboarding", "/profile.html"],
   ["League view", "/league-page.html"],
   ["admin", "/admin.html"],
+  ["email verification", `/reminders/email/verify?token=${"a".repeat(43)}`],
+  ["email opt-out", `/reminders/email/stop?token=${"b".repeat(43)}`],
 ];
 
 test.beforeEach(async ({ page }) => {

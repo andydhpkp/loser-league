@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { sequelize, User, LeagueSeason, ReminderPreference, ReminderCampaign, ReminderDelivery, UserFeatureAccessState, PushSubscription } = require("../../models");
+const { sequelize, User, LeagueSeason, ReminderPreference, ReminderCampaign, ReminderDelivery, UserFeatureAccessState, PushSubscription, EmailReminderVerification, EmailVerificationRequest, EmailOptOutToken } = require("../../models");
 const repository = require("../../server/modules/reminders/reminder-repository");
 
 test("repository loads the open round and derives active missing-Pick candidate counts", async (t) => {
@@ -53,6 +53,11 @@ test("an expired claim becomes unknown and is never blindly resent", async (t) =
   assert.equal(expired.state, "UNKNOWN");
 });
 
+test("a breaker race releases a claim without consuming or incrementing it", async (t) => {
+  t.mock.method(ReminderDelivery, "update", async (values, query) => { assert.equal(values.state, "TEMPORARILY_FAILED"); assert.equal(values.claimed_until, null); assert.deepEqual(query.where, { id: 8, state: "CLAIMED", claim_version: 3 }); return [1]; });
+  assert.equal(await repository.deferClaim({ claim: { id: 8, claimVersion: 3, attemptCount: 1 } }), true);
+});
+
 test("ineligible due delivery is suppressed before it can be claimed", async (t) => {
   const transaction = { LOCK: { UPDATE: "UPDATE" } }; let lookup = 0;
   t.mock.method(sequelize, "transaction", async (_options, work) => work(transaction));
@@ -73,8 +78,11 @@ test("cleanup deletes bounded old history and expired grace preferences", async 
   t.mock.method(UserFeatureAccessState, "findAll", async () => [{ user_id: 7 }]);
   t.mock.method(ReminderPreference, "destroy", async () => 1);
   t.mock.method(PushSubscription, "destroy", async () => 1);
+  t.mock.method(EmailReminderVerification, "destroy", async () => 1);
+  t.mock.method(EmailVerificationRequest, "destroy", async () => 1);
+  t.mock.method(EmailOptOutToken, "destroy", async () => 1);
   t.mock.method(UserFeatureAccessState, "destroy", async () => 1);
-  assert.equal(await repository.deleteExpiredPreferences({ now: new Date(), limit: 100 }), 2);
+  assert.equal(await repository.deleteExpiredPreferences({ now: new Date(), limit: 100 }), 5);
 });
 
 test("automatic proximity lookup returns the latest accepted timestamp", async (t) => {

@@ -13,19 +13,25 @@ function createReminderService({
   configuration,
   now = () => new Date(),
   logger = { info() {}, warn() {} },
+  channelGuard = async () => ({ eligible: true }),
+  ancillaryCleanup = async () => ({}),
+  ancillaryStatus = async () => ({}),
 }) {
   const channelAvailable = (channel) => configuration.pickRemindersSystemAvailable === true
     && (channel === "EMAIL" ? configuration.pickRemindersEmailDeliveryAvailable : configuration.pickRemindersPushDeliveryAvailable) === true;
 
   async function eligibleChannels({ season, deadline, candidate, currentTime, transaction }) {
     const access = await getAccess({ userId: candidate.userId, systemAvailable: configuration.pickRemindersSystemAvailable, transaction });
-    return ["EMAIL", "PUSH"].filter((channel) => evaluateReminderEligibility({
+    const channels = ["EMAIL", "PUSH"].filter((channel) => evaluateReminderEligibility({
       now: currentTime, deadline, effectiveAccess: access.effective,
       channelEnabled: channel === "EMAIL" ? candidate.emailEnabled : candidate.pushEnabled,
       channelAvailable: channelAvailable(channel), seasonState: season.state,
       round: season.current_week, schedulePhase: season.schedule_phase,
       activeTrackCount: candidate.activeTrackCount, missingPickCount: candidate.missingPickCount,
     }).eligible);
+    const guarded = [];
+    for (const channel of channels) if ((await channelGuard({ channel, userId: candidate.userId, transaction })).eligible === true) guarded.push(channel);
+    return guarded;
   }
 
   async function buildCandidates({ season, deadline, currentTime, transaction }) {
@@ -61,10 +67,13 @@ function createReminderService({
         const sameRound = preClaimContext?.season?.id === delivery.campaign.league_season_id && preClaimContext.season.current_week === delivery.campaign.round && preClaimContext.season.schedule_phase === delivery.campaign.schedule_phase;
         if (!sameRound) return { eligible: false, reason: "ROUND_CHANGED" };
         const candidate = await repository.loadCandidateView({ season: preClaimContext.season, userId: delivery.user_id, transaction });
+        const guard = await channelGuard({ channel: delivery.channel, userId: delivery.user_id, transaction });
+        if (guard.eligible !== true) return guard;
         const channels = await eligibleChannels({ season: preClaimContext.season, deadline: preClaimContext.deadline, candidate, currentTime: now(), transaction });
         return { eligible: channels.includes(delivery.channel), reason: "INELIGIBLE" };
       } });
       if (!claim) break;
+      if (claim.deferred) break;
       if (claim.recoveredUnknown) { counts.unknown += 1; continue; }
       if (claim.suppressed) { counts.suppressed += 1; continue; }
       counts.claimed += 1;
@@ -72,9 +81,11 @@ function createReminderService({
       const attemptTime = now();
       const sameRound = context?.season?.id === claim.campaign.leagueSeasonId && context.season.current_week === claim.campaign.round && context.season.schedule_phase === claim.campaign.schedulePhase;
       const candidate = sameRound ? await repository.loadCandidateView({ season: context.season, userId: claim.userId }) : null;
+      const attemptGuard = candidate ? await channelGuard({ channel: claim.channel, userId: claim.userId }) : { eligible: false, reason: "ROUND_CHANGED" };
       const channels = candidate ? await eligibleChannels({ season: context.season, deadline: context.deadline, candidate, currentTime: attemptTime }) : [];
-      if (!sameRound || !channels.includes(claim.channel)) {
-        await repository.finishClaim({ claim, state: "SUPPRESSED", now: attemptTime, suppressionReason: "INELIGIBLE" });
+      if (attemptGuard.defer === true) { await repository.deferClaim({ claim }); break; }
+      if (!sameRound || attemptGuard.eligible !== true || !channels.includes(claim.channel)) {
+        await repository.finishClaim({ claim, state: "SUPPRESSED", now: attemptTime, suppressionReason: attemptGuard.reason || "INELIGIBLE" });
         counts.suppressed += 1;
         continue;
       }
@@ -116,18 +127,19 @@ function createReminderService({
 
   async function cleanup({ limit = 100 } = {}) {
     const seasons = await LeagueSeason.findAll({ order: [["year", "DESC"]], limit: 2, attributes: ["id"] });
-    const [historyDeleted, preferencesDeleted] = await Promise.all([
+    const [historyDeleted, preferencesDeleted, ancillary] = await Promise.all([
       repository.deleteHistoryBeforeSeasonIds({ retainedSeasonIds: seasons.map(({ id }) => id), limit }),
       repository.deleteExpiredPreferences({ now: now(), limit }),
+      ancillaryCleanup({ limit }),
     ]);
-    const result = { historyDeleted, preferencesDeleted, limit };
+    const result = { historyDeleted, preferencesDeleted, ...ancillary, limit };
     logger.info("reminder_cleanup_completed", result);
     return result;
   }
 
   async function getOperationalStatus() {
     const seasons = await LeagueSeason.findAll({ order: [["year", "DESC"]], limit: 2, attributes: ["id"] });
-    return { counts: await repository.getOperationalCounts({ retainedSeasonIds: seasons.map(({ id }) => id) }) };
+    return { counts: await repository.getOperationalCounts({ retainedSeasonIds: seasons.map(({ id }) => id) }), ...await ancillaryStatus() };
   }
 
   return { buildCandidates, buildManualCampaignContext, cleanup, evaluateAutomatic, getOperationalStatus, processDue };

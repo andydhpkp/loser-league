@@ -15,6 +15,19 @@ status codes and bodies are compatibility constraints.
 
 The routes require a User session and effective access, never accept a User ID, set `private, no-store`, and never return subscription or storage material.
 
+## Hidden Pick Reminders email (`/api/user/reminders/email`)
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/` | Safe state and masked current account destination. |
+| POST | `/verification-requests` | Request ownership verification; body is exactly `{}`. |
+| POST | `/enable` | Immediately enable unchanged verified email; body is exactly `{}`. |
+| POST | `/disable` | Disable email only while preserving verification; body is exactly `{}`. |
+
+These routes require the User session and effective access, derive the User and destination server-side, and set `private, no-store`. The request route returns HTTP 202 pending or HTTP 429 with persisted `Retry-After`; it never exposes counters or provider details. Status returns only a masked destination and the documented safe state.
+
+Public `GET /reminders/email/verify?token=...` verifies and enables atomically or shows one neutral unavailable state. Public `GET /reminders/email/stop?token=...` idempotently shows **Email reminders are off.** Both set `no-store` and `Referrer-Policy: no-referrer`, expose no identity or League facts, and never log the query token.
+
 ## Users (`/api/users`)
 
 | Method | Path | Purpose |
@@ -161,8 +174,9 @@ true. PR 2 adds no User settings route and keeps the dashboard action disabled.
 `GET /api/admin/reminders` requires the shared-admin session and returns only
 active/previous-League-Season aggregate counts for evaluated, eligible, claimed,
 accepted, unknown, temporary/permanent failure, suppressed, and retry-exhausted
-delivery state. It returns no campaign rows, identities, destinations, or
-content.
+delivery state, plus aggregate email verification-result counts, verified count,
+and safe Gmail breaker/readiness state. It returns no campaign rows, identities,
+destinations, or content.
 
 `OVERRIDE_GAME_RESULT` preview accepts the exact current Fixture home/away
 Teams, non-negative final scores, required explanation, and optional HTTP(S)

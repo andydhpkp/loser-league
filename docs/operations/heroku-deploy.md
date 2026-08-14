@@ -1,6 +1,6 @@
 # Heroku deployment operations
 
-> Pick Reminders owner setup is deferred. Before any push beta, configure the exact HTTPS canonical origin, VAPID public/private/subject settings, current reminder-data encryption key/version, separate subscription-digest key, and push availability control. Keep system availability, push delivery, and public release off until the full launch checklist passes. Never place real values in source or deployment transcripts.
+> Pick Reminders owner setup is deferred. Before any beta, configure the exact HTTPS canonical origin; push/VAPID settings; and the dedicated Gmail sender, app password, credential version, and versioned email token key. Keep system, email, push, and public release controls off until the full launch checklist passes. Never place real values in source or deployment transcripts.
 
 Loser League deploys the exact tested `main` commit through
 `.github/workflows/test-and-deploy.yml`.
@@ -43,6 +43,14 @@ PR 2 also recognizes `PICK_REMINDERS_EMAIL_DELIVERY_AVAILABLE`,
 `PICK_REMINDERS_PUSH_DELIVERY_AVAILABLE`, and
 `PICK_REMINDERS_ADMIN_CAMPAIGN_AVAILABLE`. Leave them absent/off. Do not add
 provider credentials or enable public release during the foundation rollout.
+
+PR 4 recognizes `PICK_REMINDERS_EMAIL_FROM`, `PICK_REMINDERS_EMAIL_REPLY_TO`,
+`PICK_REMINDERS_GMAIL_USER`, `PICK_REMINDERS_GMAIL_APP_PASSWORD`,
+`PICK_REMINDERS_GMAIL_CREDENTIAL_VERSION`, `PICK_REMINDERS_EMAIL_TOKEN_KEY`,
+`PICK_REMINDERS_EMAIL_TOKEN_KEY_VERSION`, and the optional prior token
+key/version pair. Owner setup is required later; leave all absent and keep
+`PICK_REMINDERS_EMAIL_DELIVERY_AVAILABLE` off. Breaker recovery requires a
+repaired app password and deliberate credential-version change.
 
 Verify only that the key name is present. Missing configuration prevents the
 application from starting, which intentionally blocks deployment rather than
