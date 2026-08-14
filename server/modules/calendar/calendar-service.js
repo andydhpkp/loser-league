@@ -39,7 +39,8 @@ function createCalendarService({ loadSchedule, configuration, now = () => new Da
       if (!state) state = await FeedState.create({ id: STATE_ID, content, content_hash: contentHash, last_modified_at: refreshedAt, last_trustworthy_refresh_at: refreshedAt, state_version: 0 }, { transaction });
       else if (state.content_hash !== contentHash) await state.update({ content, content_hash: contentHash, last_modified_at: refreshedAt, last_trustworthy_refresh_at: refreshedAt, state_version: state.state_version + 1 }, { transaction });
       else await state.update({ last_trustworthy_refresh_at: refreshedAt }, { transaction });
-      logger.info("calendar_refresh_committed", { created: reconciled.changes.filter((item) => item.kind === "CREATE").length, updated: reconciled.changes.filter((item) => item.kind === "UPDATE").length, cancelled: reconciled.changes.filter((item) => item.kind === "CANCEL").length });
+      const counts = { created: reconciled.changes.filter((item) => item.kind === "CREATE").length, updated: reconciled.changes.filter((item) => item.kind === "UPDATE").length, cancelled: reconciled.changes.filter((item) => item.kind === "CANCEL").length };
+      if (Object.values(counts).some((count) => count > 0)) logger.info("calendar_refresh_committed", counts);
       return { status: reconciled.changes.length ? "CHANGED" : "UNCHANGED" };
     });
   }
