@@ -1,7 +1,7 @@
 const { Op, Transaction } = require("sequelize");
 const {
   sequelize, User, Track, Pick, LeagueSeason, ReminderPreference,
-  ReminderCampaign, ReminderDelivery, UserFeatureAccessState,
+  ReminderCampaign, ReminderDelivery, UserFeatureAccessState, PushSubscription,
 } = require("../../../models");
 
 const CLAIM_LEASE_MS = 2 * 60 * 1000;
@@ -117,9 +117,10 @@ async function deleteExpiredPreferences({ now, limit = 100 }) {
     const expired = await UserFeatureAccessState.findAll({ where: { feature_key: "PICK_REMINDERS", grace_expires_at: { [Op.lte]: now } }, attributes: ["user_id"], order: [["grace_expires_at", "ASC"]], limit, transaction, lock: transaction.LOCK.UPDATE });
     const userIds = expired.map(({ user_id: userId }) => userId);
     if (!userIds.length) return 0;
+    const subscriptionsDeleted = await PushSubscription.destroy({ where: { user_id: userIds }, transaction });
     const deleted = await ReminderPreference.destroy({ where: { user_id: userIds }, transaction });
     await UserFeatureAccessState.destroy({ where: { user_id: userIds, feature_key: "PICK_REMINDERS", grace_expires_at: { [Op.lte]: now } }, transaction });
-    return deleted;
+    return deleted + subscriptionsDeleted;
   });
 }
 

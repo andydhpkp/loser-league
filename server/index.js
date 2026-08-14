@@ -12,16 +12,26 @@ const { buildFeatureConfiguration } = require("./features/configuration");
 const { createReminderService } = require("./modules/reminders/reminder-service");
 const { createAuthoritativeReminderContextLoader } = require("./modules/reminders/reminder-context");
 const { createReminderCoordinator } = require("./modules/reminders/reminder-coordinator");
+const { buildPushConfiguration } = require("./modules/reminders/push-configuration");
+const { createSubscriptionCryptography } = require("./modules/reminders/push-subscription-cryptography");
+const { createPushSubscriptionService } = require("./modules/reminders/push-subscription-service");
+const { createWebPushTransport } = require("./modules/reminders/web-push-provider");
+const { createPushReminderProvider } = require("./modules/reminders/push-reminder-provider");
+const webPush = require("web-push");
 
 const PORT = process.env.PORT || 3001;
 const logger = createLogger();
 const sessionStore = new SequelizeStore({ db: sequelize });
 const featureConfiguration = buildFeatureConfiguration();
+const pushConfiguration = buildPushConfiguration();
+const pushCryptography = pushConfiguration.ready ? createSubscriptionCryptography({ current: pushConfiguration.currentKey, previous: pushConfiguration.previousKey, digestKey: pushConfiguration.digestKey }) : null;
+const pushSubscriptionService = pushConfiguration.ready ? createPushSubscriptionService({ cryptography: pushCryptography }) : null;
 const loadAuthoritativeReminderContext = createAuthoritativeReminderContextLoader();
 const reminderService = createReminderService({
   loadAuthoritativeContext: loadAuthoritativeReminderContext,
   configuration: featureConfiguration,
   logger,
+  providers: pushConfiguration.ready ? { PUSH: createPushReminderProvider({ cryptography: pushCryptography, transport: createWebPushTransport({ webPush, configuration: pushConfiguration }), configuration: pushConfiguration }) } : {},
 });
 const reminderCoordinator = createReminderCoordinator({
   evaluate: reminderService.evaluateAutomatic,
@@ -58,6 +68,8 @@ const app = createApp({
   loadManualReminderContext: reminderService.buildManualCampaignContext,
   getReminderOperationalStatus: reminderService.getOperationalStatus,
   featureConfiguration,
+  pushConfiguration,
+  pushSubscriptionService,
 });
 
 startServer({ app, database: sequelize, port: PORT, logger, lifecycleCoordinator })

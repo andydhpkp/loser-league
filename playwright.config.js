@@ -19,6 +19,7 @@ const webkitProjects = process.env.MOBILE_WEBKIT === "1" ? [{
 
 module.exports = defineConfig({
   testDir: "./test/smoke",
+  workers: 2,
   use: {
     baseURL: "http://127.0.0.1:4173",
     screenshot: "only-on-failure",

@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
-const { sequelize, User, LeagueSeason, ReminderPreference, ReminderCampaign, ReminderDelivery, UserFeatureAccessState } = require("../../models");
+const { sequelize, User, LeagueSeason, ReminderPreference, ReminderCampaign, ReminderDelivery, UserFeatureAccessState, PushSubscription } = require("../../models");
 const repository = require("../../server/modules/reminders/reminder-repository");
 
 test("repository loads the open round and derives active missing-Pick candidate counts", async (t) => {
@@ -72,8 +72,9 @@ test("cleanup deletes bounded old history and expired grace preferences", async 
   assert.equal(await repository.deleteHistoryBeforeSeasonIds({ retainedSeasonIds: [9, 8], limit: 100 }), 2);
   t.mock.method(UserFeatureAccessState, "findAll", async () => [{ user_id: 7 }]);
   t.mock.method(ReminderPreference, "destroy", async () => 1);
+  t.mock.method(PushSubscription, "destroy", async () => 1);
   t.mock.method(UserFeatureAccessState, "destroy", async () => 1);
-  assert.equal(await repository.deleteExpiredPreferences({ now: new Date(), limit: 100 }), 1);
+  assert.equal(await repository.deleteExpiredPreferences({ now: new Date(), limit: 100 }), 2);
 });
 
 test("automatic proximity lookup returns the latest accepted timestamp", async (t) => {
