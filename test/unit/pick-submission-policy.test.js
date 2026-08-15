@@ -12,6 +12,7 @@ const {
   normalizeEspnFixtureSchedule,
   normalizeFixtureSchedule,
 } = require("../../server/nfl/fixture-download-client");
+const { autoPickDue } = require("../../server/modules/picks/auto-pick-policy");
 
 test("League view access requires every active Track Pick after Week 0", () => {
   assert.equal(leagueViewAccess({ week: 4, activeTrackIds: [1, 2], pickedTrackIds: [1] }), "BLOCKED");
@@ -41,13 +42,14 @@ test("Fixture Download normalization supplies weekly Teams and earliest kickoff"
   assert.match(result.contentHash, /^[a-f0-9]{64}$/);
 });
 
-test("preseason normalization disables started games and uses the next kickoff", () => {
+test("preseason normalization disables started games but keeps the first kickoff as the deadline", () => {
   const result = normalizeEspnFixtureSchedule({ events: [
     { date: "2026-08-01T00:00:00Z", status: { type: { completed: true } }, competitions: [{ competitors: [{ homeAway: "home", team: { displayName: "Broncos" } }, { homeAway: "away", team: { displayName: "Raiders" } }] }] },
     { date: "2026-08-03T00:00:00Z", status: { type: { completed: false } }, competitions: [{ competitors: [{ homeAway: "home", team: { displayName: "Chiefs" } }, { homeAway: "away", team: { displayName: "Chargers" } }] }] },
   ] }, 1, new Date("2026-08-02T00:00:00Z"));
   assert.deepEqual(result.teams, ["Chargers", "Chiefs"]);
-  assert.equal(result.earliestKickoff.toISOString(), "2026-08-03T00:00:00.000Z");
+  assert.equal(result.earliestKickoff.toISOString(), "2026-08-01T00:00:00.000Z");
+  assert.equal(autoPickDue({ now: new Date("2026-08-02T00:00:00Z"), deadline: result.earliestKickoff }), true);
   assert.equal(result.completed, false);
   assert.equal(result.normalizedSchedule.games.length, 2);
 });

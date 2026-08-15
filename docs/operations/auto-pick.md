@@ -8,6 +8,10 @@ target Tracks, or Teams.
 
 - Fixture Download supplies the active year/week schedule. The earliest
   validated UTC kickoff is the submission deadline.
+- ESPN supplies preseason schedules. Preseason also uses the earliest kickoff
+  in the complete validated weekly schedule as its fixed deadline, including
+  after that game starts; automatic selections still exclude Teams whose games
+  have started.
 - The server refreshes every five minutes, then every 30 seconds during the
   final 15 minutes. Each request has a 10-second timeout.
 - Every web process starts an exact-deadline timer, an asynchronous startup
