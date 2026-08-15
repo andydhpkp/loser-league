@@ -75,7 +75,7 @@ test("login and registration navigate to the dashboard", async ({ page }) => {
   await page.goto("/index.html");
   await expect(page.getByRole("textbox", { name: "Username", exact: true })).toHaveAttribute("autocomplete", "username");
   await expect(page.getByLabel("Password", { exact: true })).toHaveAttribute("autocomplete", "current-password");
-  await expect(page.getByRole("checkbox", { name: "Keep me signed in for six months" })).toBeChecked();
+  await expect(page.getByRole("checkbox")).toHaveCount(0);
   await page.locator("#inputUsername").fill("user");
   await page.locator("#inputPassword").fill("password");
   await page.locator(".login-form").evaluate((form) => form.requestSubmit());

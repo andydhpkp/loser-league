@@ -4,7 +4,6 @@ export async function loginFormHandler(event) {
   event.preventDefault();
   const username = document.querySelector("#inputUsername").value.trim();
   const password = document.querySelector("#inputPassword").value;
-  const staySignedIn = document.querySelector("#staySignedIn").checked;
 
   if (username && password) {
     const response = await fetch("/api/users/login", {
@@ -12,7 +11,6 @@ export async function loginFormHandler(event) {
       body: JSON.stringify({
         username,
         password,
-        staySignedIn,
       }),
       headers: { "Content-Type": "application/json" },
     });
