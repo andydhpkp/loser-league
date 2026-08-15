@@ -4,6 +4,13 @@ const { User, Track } = require("../../models/my-index");
 const { requireAdmin } = require("../../server/admin/require-admin");
 const { logger } = require("../../server/lib/logger");
 
+const USER_SESSION_MAX_AGE_MS = 180 * 24 * 60 * 60 * 1000;
+const USER_SESSION_COOKIE_NAME = "connect.sid";
+
+function publicUser(dbUser) {
+  return { id: dbUser.id, username: dbUser.username };
+}
+
 router.get("/", requireAdmin, (req, res) => {
   User.findAll({
     attributes: { exclude: ["password", "email"] },
@@ -83,7 +90,7 @@ router.post("/", (req, res) => {
         req.session.user_id = dbUser.id;
         req.session.loggedIn = true;
 
-        res.json(dbUser);
+        res.json(publicUser(dbUser));
       });
     })
     .catch((err) => {
@@ -94,6 +101,17 @@ router.post("/", (req, res) => {
 
 //login route
 router.post("/login", (req, res) => {
+  if (
+    Object.hasOwn(req.body, "staySignedIn") &&
+    typeof req.body.staySignedIn !== "boolean"
+  ) {
+    res.status(400).json({
+      error: "INVALID_REQUEST",
+      message: "Keep-signed-in choice must be a boolean",
+    });
+    return;
+  }
+
   User.findOne({
     where: {
       username: req.body.username,
@@ -112,19 +130,27 @@ router.post("/login", (req, res) => {
       return;
     }
 
-    req.session.save(() => {
-      if (req.body.staySignedIn) {
-        //logged in for 10 years
-        req.session.cookie.maxAge = 1000 * 60 * 60 * 24 * 365 * 10;
-      } else {
-        req.session.cookie.expires = false;
-      }
-      req.session.user_id = dbUser.id;
-      req.session.username = dbUser.username;
-      req.session.loggedIn = true;
+    if (req.body.staySignedIn === true) {
+      req.session.cookie.maxAge = USER_SESSION_MAX_AGE_MS;
+    } else {
+      req.session.cookie.maxAge = null;
+    }
+    req.session.user_id = dbUser.id;
+    req.session.username = dbUser.username;
+    req.session.loggedIn = true;
 
-      res.json({ user: dbUser, message: "You are now logged in!" });
+    req.session.save((error) => {
+      if (error) {
+        logger.error("route_operation_failed", { errorType: error.name });
+        res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
+        return;
+      }
+
+      res.json({ user: publicUser(dbUser), message: "You are now logged in!" });
     });
+  }).catch((err) => {
+    logger.error("route_operation_failed", { errorType: err.name });
+    res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
   });
 });
 
@@ -152,7 +178,18 @@ router.get("/logged", (req, res) => {
 //logout route
 router.post("/logout", (req, res) => {
   if (req.session.loggedIn) {
-    req.session.destroy(() => {
+    req.session.destroy((error) => {
+      if (error) {
+        logger.error("route_operation_failed", { errorType: error.name });
+        res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
+        return;
+      }
+      res.clearCookie(USER_SESSION_COOKIE_NAME, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+      });
       res.status(204).end();
     });
   } else {
@@ -326,3 +363,4 @@ router.get("/:id/wins", (req, res) => {
 });
 
 module.exports = router;
+module.exports.USER_SESSION_MAX_AGE_MS = USER_SESSION_MAX_AGE_MS;

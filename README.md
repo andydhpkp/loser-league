@@ -62,7 +62,7 @@ remain on the server.
 
 | Page | Purpose |
 | --- | --- |
-| `/index.html` | User login, password reset, and shared-admin access |
+| `/` and `/index.html` | User login, password reset, and shared-admin access; authenticated Users redirect to the dashboard |
 | `/create-account.html` | User registration |
 | `/dashboard.html` | Authenticated season and Pick summary |
 | `/profile.html` | Track details, matchup review, Pick submission, and buyback decisions |

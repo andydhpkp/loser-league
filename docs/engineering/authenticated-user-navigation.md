@@ -3,9 +3,27 @@
 The User session is the authority for authenticated pages and APIs.
 `localStorage` values are not login evidence.
 
-Successful login and registration land on `/dashboard.html`. The dashboard
-shows a minimal server-authoritative League Season summary and links. With effective Pick Reminders access, their order is View League, Make Picks, Pick Reminder Settings, and Help; without access the reminder action is absent. The protected settings route is `/reminder-settings.html` and provides Home and Logout. Pick status comes from the server; the
-browser only formats the ISO deadline in the User's locale and time zone.
+The login page is served at `/` and `/index.html`. A valid server User session
+redirects either URL to `/dashboard.html`; missing, expired, unsigned, or
+malformed sessions remain on login. Autofilled fields and browser storage are
+never treated as authentication evidence.
+
+The login form exposes standards-compatible username and current-password
+autofill metadata. **Keep me signed in for six months** is checked by default.
+When checked, a successful login issues a 180-day session cookie; when
+unchecked, it issues a browser-session-only cookie. The cookie remains
+`HttpOnly`, `SameSite=Lax`, and `Secure` in production. Logout destroys the
+server session and clears either form of the cookie.
+
+Successful login and registration land on `/dashboard.html`. A fresh login
+may return to `/reminder-settings.html` only when that exact safe `returnTo`
+value was supplied; arbitrary return values fall back to the dashboard. The
+dashboard shows a minimal server-authoritative League Season summary and
+links. With effective Pick Reminders access, their order is View League, Make
+Picks, Pick Reminder Settings, and Help; without access the reminder action is
+absent. The protected settings route is `/reminder-settings.html` and provides
+Home and Logout. Pick status comes from the server; the browser only formats
+the ISO deadline in the User's locale and time zone.
 
 During Week 1 or later, View League is disabled until every active Track owned
 by the User has a normalized current-week Pick. The league-view API enforces the
