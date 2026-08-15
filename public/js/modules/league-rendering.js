@@ -1,14 +1,13 @@
 import { finalScores } from "../teams.js";
 import { getCrownInfo } from "../utilityFunctions.js";
 import { browserLogger } from "../logger.js";
-import { fetchNflTeams } from "./nfl-data.js";
 import { sortUsersByTracksLeft } from "./league-stats.js";
+import { loadTeamLogo } from "./team-logos.js";
 
 let i;
 let p;
 let t;
 let x;
-let y;
 
 // Updated leagueUserTableHandler function
 export async function leagueUserTableHandler() {
@@ -231,7 +230,7 @@ export async function leagueUserTableHandler() {
 
         // @ts-ignore
         viewUsersTable.appendChild(mainTable);
-        displayTeamLogo();
+        void displayTeamLogos();
         // @ts-ignore
         finalScores({ year: leagueView.leagueSeason.year, week: currentWeekNumber, seasonType: leagueView.leagueSeason.schedulePhase === "PRESEASON" ? "preseason" : "regular" });
       });
@@ -241,33 +240,25 @@ export async function leagueUserTableHandler() {
   });
 }
 
-async function displayTeamLogo() {
-  fetchNflTeams().then(function (response) {
-    if (response.ok) {
-      response.json().then(function (data) {
-        let textPicks = document.getElementsByClassName("teamNames");
-        // @ts-ignore
-        for (x = 0; x < textPicks.length; x++) {
-          // @ts-ignore
-          for (y = 0; y < data.sports[0].leagues[0].teams.length; y++) {
-            // @ts-ignore
-            if (
-              textPicks[x].children[0].innerText ===
-              data.sports[0].leagues[0].teams[y].team.displayName
-            ) {
-              let logoImg = document.createElement("img");
-              logoImg.className = "teamLogos";
-              // @ts-ignore
-              logoImg.src =
-                data.sports[0].leagues[0].teams[y].team.logos[0].href;
-              // @ts-ignore
-              textPicks[x].appendChild(logoImg);
-            }
-          }
-        }
-      });
-    } else {
-      alert("Could Not Connect");
-    }
-  });
+export async function displayTeamLogos({
+  root = document,
+  createImage = () => document.createElement("img"),
+  loadLogo = loadTeamLogo,
+} = {}) {
+  const warnedTeamNames = new Set();
+  const tasks = [...root.getElementsByClassName("teamNames")]
+    .filter((cell) => cell.children[0]?.innerText)
+    .map((cell) => {
+      const fallback = cell.children[0];
+      const image = createImage();
+      image.className = "teamLogos";
+      cell.appendChild(image);
+      return Promise.resolve().then(() => loadLogo({
+        teamName: fallback.innerText,
+        image,
+        fallback,
+        warnedTeamNames,
+      }));
+    });
+  return Promise.allSettled(tasks);
 }

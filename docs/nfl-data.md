@@ -12,6 +12,10 @@ The browser reads ESPN NFL data only through these public, same-origin routes:
 | `GET /api/nfl/teams` | ESPN NFL Teams | Upstream JSON unchanged |
 | `GET /api/nfl/schedule?year=<year>&week=<week>` | ESPN NFL Scoreboard | Normalized schedule JSON |
 
+League and matchup pages use the checked-in Team-logo manifest in
+`public/js/modules/team-logos.js`; they do not render ESPN image-CDN URLs. The
+Teams route remains the public metadata and activation-audit interface.
+
 Schedule requests may add `seasonType=preseason`. Preseason maps to ESPN season
 type 1; omitting the parameter preserves the regular/postseason behavior.
 
@@ -72,6 +76,18 @@ ESPN's scoreboard shape from the existing browser rendering contract.
   is sent upstream.
 
 ## Operations
+
+Before enabling preseason or activating a regular League Season:
+
+1. Request `/api/nfl/teams` and compare its 32 public Team display names with
+   every key in `public/js/modules/team-logos.js`.
+2. Verify each manifest path exists under `public/css/assets/logos/` and that
+   the checked-in artwork still represents the current Team name and logo.
+3. If ESPN reports a rename or changed logo, update the manifest and asset in a
+   reviewed repository change before activation. Do not make a deployed
+   application download or rewrite versioned artwork.
+4. Run `node --test test/unit/team-logo-browser.test.js` so the complete
+   manifest and on-disk files are checked together.
 
 After deployment:
 
