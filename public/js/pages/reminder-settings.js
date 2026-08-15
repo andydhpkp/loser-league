@@ -1,12 +1,13 @@
 import { loadChannelStatuses, enablePushOnDevice, formatResendDelay, mutateEmpty } from "../modules/reminder-settings.js";
 import { CALENDAR_INSTRUCTIONS } from "../modules/calendar-instructions.js";
 import { logout } from "../logout.js";
-import { registerPwa } from "../modules/pwa-registration.js";
+import { activateWaitingServiceWorker, registerPwa } from "../modules/pwa-registration.js";
 
 const byId = (id) => document.getElementById(id);
 let pushConfiguration;
 let currentPushSubscription;
 let emailCountdown;
+let updateRegistration;
 function stateText(state) { return ({ AVAILABLE: "Setup required", OFF: "Off", VERIFICATION_REQUIRED: "Verification required", VERIFICATION_PENDING: "Verification pending. The link expires after 24 hours.", ENABLED: "Enabled", USER_DISABLED: "User-disabled", TEMPORARILY_UNAVAILABLE: "Temporarily unavailable", ENABLED_CURRENT_DEVICE: "Enabled on this device", SETUP_REQUIRED: "Setup required", PERMISSION_DENIED: "Permission denied or blocked" })[state] || "Temporarily unavailable"; }
 function setVisible(id, value) { byId(id).hidden = !value; }
 function renderPush(value) { pushConfiguration = value; const supported = "serviceWorker" in globalThis.navigator && "PushManager" in globalThis && "Notification" in globalThis; let state = supported ? value.state : "UNSUPPORTED"; if (globalThis.Notification?.permission === "denied") state = "PERMISSION_DENIED"; byId("pushStatus").textContent = state === "UNSUPPORTED" ? "Unsupported on this browser or device" : stateText(state); setVisible("enablePush", supported && value.state === "AVAILABLE" && globalThis.Notification.permission !== "denied"); byId("pushInstructions").textContent = /iPhone|iPad|iPod/.test(globalThis.navigator.userAgent) ? "On iPhone or iPad: open Loser League in Safari, use Share, choose Add to Home Screen, open the installed app, return here, then enable push." : /Android/.test(globalThis.navigator.userAgent) ? "On Android: use Install or Add to Home Screen, open the installed app, return here, then enable push." : "If your desktop browser offers Install, install Loser League before enabling push."; }
@@ -63,6 +64,6 @@ byId("disableEmail").addEventListener("click", (event) => pending(event.currentT
 byId("copyCalendar").addEventListener("click", async (event) => { try { await globalThis.navigator.clipboard.writeText(event.currentTarget.dataset.url); byId("calendarStatus").textContent = "Subscription link provided"; } catch (_error) { byId("calendarStatus").textContent = "Copy was unavailable. Use Subscribe to Pick Deadline Calendar instead."; } });
 byId("subscribeCalendar").addEventListener("click", () => { byId("calendarStatus").textContent = "Subscription link provided"; });
 byId("logoutBtn").addEventListener("click", logout);
-byId("reloadUpdate").addEventListener("click", () => location.reload());
-registerPwa({ onUpdate: () => { byId("updateAvailable").hidden = false; } });
+byId("reloadUpdate").addEventListener("click", () => { if (!activateWaitingServiceWorker({ registration: updateRegistration })) location.reload(); });
+registerPwa({ onUpdate: (registration) => { updateRegistration = registration; byId("updateAvailable").hidden = false; } });
 load();

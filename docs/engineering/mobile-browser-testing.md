@@ -69,7 +69,7 @@ Never include personal User, Track, Pick, payment, contact, session, or producti
 
 ## Checklist for future browser changes
 
-For the hidden PR 3 PWA seam, verify manifest/icons, standalone detection, iPhone/iPad Home Screen guidance, Android install guidance, direct-gesture notification permission, denial recovery, update-ready signaling, notification focus/open behavior, and an offline page with no authenticated content. Use controlled APIs and fake transport only.
+For the hidden PR 3 PWA seam, verify manifest/icons, standalone detection, iPhone/iPad Home Screen guidance, Android install guidance, direct-gesture notification permission, denial recovery, update-ready signaling, user-initiated waiting-worker activation and reload, notification focus/open behavior, and an offline page with no authenticated content. Use controlled APIs and fake transport only.
 
 For hidden PR 4, verify the public verification success/failure and neutral
 opt-out landings at every portrait width, landscape, 200% text, keyboard focus,

@@ -7,4 +7,10 @@ export async function registerPwa({ navigatorValue = globalThis.navigator, onUpd
     return { supported: true, registration };
   } catch (_error) { return { supported: true, unavailable: true }; }
 }
+export function activateWaitingServiceWorker({ registration, navigatorValue = globalThis.navigator, reload = () => globalThis.location.reload() } = {}) {
+  if (!registration?.waiting || !("serviceWorker" in navigatorValue)) return false;
+  navigatorValue.serviceWorker.addEventListener("controllerchange", reload, { once: true });
+  registration.waiting.postMessage({ type: "SKIP_WAITING" });
+  return true;
+}
 export async function requestPushPermissionFromUserGesture({ notificationApi = globalThis.Notification } = {}) { return notificationApi.requestPermission(); }
