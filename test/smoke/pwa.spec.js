@@ -12,3 +12,18 @@ test("manifest, local icons, and privacy-safe service worker shell are available
   const cacheEntries = await page.evaluate(async () => { const names = await caches.keys(); const entries = []; for (const name of names) entries.push(...(await (await caches.open(name)).keys()).map((request) => new URL(request.url).pathname)); return entries; });
   expect(cacheEntries).not.toContain("/api/user/dashboard"); expect(cacheEntries).not.toContain("/dashboard.html"); expect(cacheEntries).toContain("/offline.html");
 });
+
+test("cached shared CSS refreshes from the network when a new version is deployed", async ({ page }) => {
+  await page.route("**/api/user/dashboard", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(summary) }));
+  await page.goto("/dashboard.html");
+  await page.waitForFunction(() => navigator.serviceWorker?.ready && navigator.serviceWorker.controller);
+  await page.evaluate(async () => {
+    const cache = await caches.open("loser-league-shell-v1");
+    await cache.put("/css/styles.css", new Response("stale-stylesheet", { headers: { "Content-Type": "text/css" } }));
+  });
+
+  const stylesheet = await page.evaluate(async () => (await fetch("/css/styles.css")).text());
+
+  expect(stylesheet).toContain(".table .teamLogos");
+  expect(stylesheet).not.toContain("stale-stylesheet");
+});

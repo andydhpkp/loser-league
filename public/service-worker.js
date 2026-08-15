@@ -7,6 +7,13 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
   if (request.mode === "navigate") { event.respondWith(fetch(request).catch(() => caches.match("/offline.html"))); return; }
   if (!STATIC_SHELL.includes(url.pathname)) return;
+  if (url.pathname === "/css/styles.css") {
+    event.respondWith(fetch(request).then((response) => {
+      if (response.ok) event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone())));
+      return response;
+    }).catch(() => caches.match(request)));
+    return;
+  }
   event.respondWith(caches.match(request).then((cached) => cached || fetch(request)));
 });
 self.addEventListener("push", (event) => {
