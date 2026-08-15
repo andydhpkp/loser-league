@@ -7,8 +7,13 @@ permanently deleted. Users and winner history are preserved.
 
 Each preseason week is an independent Pick round. Games already underway stay
 visible but are disabled. The Pick and one-time automatic-Pick deadline is the
-earliest remaining kickoff. Closing a week skips later weeks that are already
-complete. After the final preseason week, the application waits for the admin.
+earliest kickoff in the complete validated weekly schedule and never advances
+after a game starts. At that kickoff, submission closes for the complete round
+and automatic Picks use only Teams from games that have not started. Enabling
+a preseason week after its first kickoff therefore opens it in a closed state
+and normal evaluator catch-up processes the one-time automatic Picks. Closing
+a week skips later weeks that are already complete. After the final preseason
+week, the application waits for the admin.
 
 Preseason also serves as a complete buyback testing ground. A Track currently
 eliminated by a Wrong Pick from any preseason week may receive the User's one

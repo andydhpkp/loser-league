@@ -25,10 +25,11 @@ Season weeks 1–18 map to ESPN regular-season weeks; weeks 19–22 map to ESPN
 postseason weeks 1–4.
 
 The active League Season's schedule phase is authoritative for Picks,
-automatic Picks, results, and closure. In a preseason or late-cutover round,
-games already underway remain in the response for display and results, but
-only Teams with a future kickoff are eligible for a new Pick. The deadline is
-the earliest remaining kickoff.
+automatic Picks, results, and closure. Games already underway remain in the
+response for display and results, but only Teams with a future kickoff are
+eligible for a new Pick. Preseason uses the earliest kickoff in the complete
+validated weekly schedule as its fixed deadline. Late-cutover regular Week 1
+retains its next-future-kickoff deadline.
 
 `GET /api/proxy/nfl` is the browser's Fixture Download feed. It
 resolves the stored open League Season year on the server; the browser cannot

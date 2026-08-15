@@ -2,6 +2,7 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 
 const { LeagueSeason } = require("../../models");
+const { normalizeEspnFixtureSchedule } = require("../../server/nfl/fixture-download-client");
 const {
   createAutoPickEvaluator,
   createDefaultAutoPickEvaluator,
@@ -32,6 +33,36 @@ test("evaluator refreshes on the five-minute cadence and every 30 seconds near d
   await evaluator();
 
   assert.equal(fetches, 3);
+});
+
+test("preseason evaluator becomes due at the first kickoff while retaining only unstarted Teams", async () => {
+  const currentTime = new Date("2026-08-02T00:00:00.000Z");
+  let executedSchedule;
+  const evaluator = createAutoPickEvaluator({
+    findSeason: async () => ({ id: 1, year: 2026, current_week: 2, state: "ACTIVE", schedule_phase: "PRESEASON" }),
+    fetchSchedule: async ({ now }) => ({
+      ...normalizeEspnFixtureSchedule({ events: [
+        { date: "2026-08-01T00:00:00Z", status: { type: { completed: false } }, competitions: [{ competitors: [{ homeAway: "home", team: { displayName: "Broncos" } }, { homeAway: "away", team: { displayName: "Raiders" } }] }] },
+        { date: "2026-08-03T00:00:00Z", status: { type: { completed: false } }, competitions: [{ competitors: [{ homeAway: "home", team: { displayName: "Chiefs" } }, { homeAway: "away", team: { displayName: "Chargers" } }] }] },
+      ] }, 2, now),
+      year: 2026,
+      week: 2,
+      seasonPhase: "PRESEASON",
+      fetchedAt: now,
+    }),
+    persistSchedule: async () => {},
+    execute: async ({ schedule }) => {
+      executedSchedule = schedule;
+      return { status: currentTime >= schedule.earliestKickoff ? "COMPLETED" : "NOT_DUE" };
+    },
+    now: () => currentTime,
+  });
+
+  const result = await evaluator();
+
+  assert.equal(result.status, "COMPLETED");
+  assert.equal(result.deadline.toISOString(), "2026-08-01T00:00:00.000Z");
+  assert.deepEqual(executedSchedule.teams, ["Chargers", "Chiefs"]);
 });
 
 test("default evaluator stays dormant without an active League Season", async (t) => {

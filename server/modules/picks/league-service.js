@@ -21,7 +21,7 @@ async function getSubmissionState({ userId, now = new Date(), onboardingPresenta
   const latest = season.current_week > 0 ? await ScheduleSnapshot.findOne({ where: { league_season_id: season.id, week: season.current_week }, order: [["fetched_at", "DESC"]] }) : null;
   const autoPickOperation = season.current_week > 0 ? await LeagueWeekOperation.findOne({ where: { league_season_id: season.id, week: season.current_week, phase: "AUTO_PICK" } }) : null;
   const scheduledTeams = latest ? [...new Set(latest.normalized_schedule.games.flatMap((game) => [game.homeTeam, game.awayTeam]))].sort() : [];
-  const rollingDeadline = season.schedule_phase === "PRESEASON" || season.late_week_one_enrollment;
+  const rollingDeadline = season.late_week_one_enrollment;
   const futureKickoffs = latest?.normalized_schedule?.games?.map((game) => new Date(game.kickoff)).filter((kickoff) => !Number.isNaN(kickoff.getTime()) && kickoff > now) || [];
   const deadline = rollingDeadline && futureKickoffs.length ? new Date(Math.min(...futureKickoffs.map((kickoff) => kickoff.getTime()))) : earliestScheduleKickoff(latest);
   const submissionOpen = season.state === "ACTIVE" && deadline instanceof Date && !Number.isNaN(deadline.getTime()) && now < deadline;

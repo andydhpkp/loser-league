@@ -78,6 +78,45 @@ test("submission state derives the current deadline and eligible Teams for each 
   });
 });
 
+test("preseason submission state stays closed at the first kickoff instead of rolling forward", async (t) => {
+  const season = { id: 23, year: 2026, current_week: 2, state: "ACTIVE", schedule_phase: "PRESEASON" };
+  const snapshot = { normalized_schedule: { games: [
+    { homeTeam: "Denver Broncos", awayTeam: "Las Vegas Raiders", kickoff: "2026-08-01T00:00:00.000Z" },
+    { homeTeam: "Kansas City Chiefs", awayTeam: "Los Angeles Chargers", kickoff: "2026-08-03T00:00:00.000Z" },
+  ] } };
+  t.mock.method(LeagueSeason, "findOne", async () => season);
+  t.mock.method(Track, "findAll", async () => []);
+  t.mock.method(Pick, "findAll", async () => []);
+  t.mock.method(ScheduleSnapshot, "findOne", async () => snapshot);
+  t.mock.method(LeagueWeekOperation, "findOne", async () => null);
+  t.mock.method(buybackService, "getUserBuyback", async () => null);
+
+  const state = await getSubmissionState({ userId: 7, now: new Date("2026-08-02T00:00:00.000Z") });
+
+  assert.equal(state.deadline, "2026-08-01T00:00:00.000Z");
+  assert.equal(state.submissionOpen, false);
+  assert.equal(state.autoPickStatus, "PENDING");
+});
+
+test("late regular Week 1 enrollment keeps the next future kickoff as its deadline", async (t) => {
+  const season = { id: 23, year: 2026, current_week: 1, state: "ACTIVE", schedule_phase: "REGULAR", late_week_one_enrollment: true };
+  const snapshot = { normalized_schedule: { games: [
+    { homeTeam: "Denver Broncos", awayTeam: "Las Vegas Raiders", kickoff: "2026-09-10T00:00:00.000Z" },
+    { homeTeam: "Kansas City Chiefs", awayTeam: "Los Angeles Chargers", kickoff: "2026-09-11T00:00:00.000Z" },
+  ] } };
+  t.mock.method(LeagueSeason, "findOne", async () => season);
+  t.mock.method(Track, "findAll", async () => []);
+  t.mock.method(Pick, "findAll", async () => []);
+  t.mock.method(ScheduleSnapshot, "findOne", async () => snapshot);
+  t.mock.method(LeagueWeekOperation, "findOne", async () => null);
+  t.mock.method(buybackService, "getUserBuyback", async () => null);
+
+  const state = await getSubmissionState({ userId: 7, now: new Date("2026-09-10T12:00:00.000Z") });
+
+  assert.equal(state.deadline, "2026-09-11T00:00:00.000Z");
+  assert.equal(state.submissionOpen, true);
+});
+
 test("League view rejects before loading standings until the viewing User completes every active Track", async (t) => {
   const season = {
     id: 23,

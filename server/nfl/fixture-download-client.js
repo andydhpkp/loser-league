@@ -50,8 +50,7 @@ function normalizeEspnFixtureSchedule(scoreboard, week, now = new Date()) {
   const contentHash = crypto.createHash("sha256").update(JSON.stringify(normalizedSchedule)).digest("hex");
   const selectableGames = games.filter((game) => new Date(game.kickoff) > now);
   const teams = [...new Set(selectableGames.flatMap((game) => [game.homeTeam, game.awayTeam]))].sort();
-  const deadlineGame = selectableGames[0] || games[0];
-  return { contentHash, earliestKickoff: new Date(deadlineGame.kickoff), normalizedSchedule, teams, completed: games.every((game) => game.completed) };
+  return { contentHash, earliestKickoff: new Date(games[0].kickoff), normalizedSchedule, teams, completed: games.every((game) => game.completed) };
 }
 
 async function fetchFixtureSchedule({ year, week, seasonPhase = "REGULAR", allowStartedGames = false, fetchImpl = global.fetch, now = new Date(), timeoutMs = 10_000 }) {

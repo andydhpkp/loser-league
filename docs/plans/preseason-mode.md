@@ -1,5 +1,8 @@
 # Change contract: Preseason mode
 
+The rolling preseason deadline decision in this historical change contract is
+superseded by [`fixed-preseason-pick-deadline.md`](fixed-preseason-pick-deadline.md).
+
 ## Problem and outcome
 
 - Loser League is most safely exercised each year against live NFL preseason
