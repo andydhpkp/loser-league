@@ -66,12 +66,17 @@ publishing an admin interface with a fallback credential.
    commit.
 3. The serialized deploy job verifies that the tested SHA is still current
    `main`; stale queued runs exit without deploying.
-4. The job records the current Heroku release and pushes that exact SHA to
-   Heroku Git.
+4. The job compares the tested SHA with the Heroku Git `main` ref. A rerun of
+   an already-deployed SHA skips the redundant push and verifies that SHA's
+   existing successful deploy release. Otherwise, the job records the current
+   Heroku release and pushes that exact SHA to Heroku Git.
 5. Heroku runs the `release` command, applying reviewed forward migrations
-   before activating the new web release. A migration failure blocks release.
-6. The workflow verifies that a new Heroku release reached `succeeded`; Git
-   push success and health from the prior release are not sufficient.
+   before activating a new web release. An idempotent rerun creates no release
+   and therefore runs no duplicate migration command. A migration failure
+   blocks release.
+6. The workflow verifies that a new Heroku release reached `succeeded`, or
+   that an idempotent rerun's exact existing deploy release succeeded; Git push
+   success and health from a different release are not sufficient.
 7. The web process verifies database connectivity without synchronizing schema.
 8. The workflow polls the production homepage and `/api/nfl/teams`.
 

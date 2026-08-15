@@ -28,3 +28,19 @@ test("deployment verifies the new Heroku release before HTTP health", () => {
   assert.ok(healthIndex > releaseIndex, "health checks must follow release verification");
   assert.match(workflow, /release status is \$release_status, expected succeeded/);
 });
+
+test("deployment reruns verify an already-deployed successful SHA", () => {
+  const workflow = fs.readFileSync(
+    path.join(repositoryRoot, ".github/workflows/test-and-deploy.yml"),
+    "utf8"
+  );
+
+  assert.match(workflow, /git ls-remote heroku refs\/heads\/main/);
+  assert.match(workflow, /already_deployed=true/);
+  assert.match(
+    workflow,
+    /if: .*steps\.prior_release\.outputs\.already_deployed != 'true'/
+  );
+  assert.match(workflow, /Deploy \$\{GITHUB_SHA:0:8\}/);
+  assert.match(workflow, /Existing Heroku release .* is succeeded/);
+});
