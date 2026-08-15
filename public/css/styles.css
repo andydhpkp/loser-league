@@ -250,6 +250,7 @@ h3 {
 .teamLogos {
   width: 100px;
   height: auto;
+  object-fit: contain;
 }
 
 .trackContainer {
