@@ -101,18 +101,8 @@ select.form-select {
   margin: 0;
 }
 
-.loading-spinner {
+.matchup-loading-spinner {
   flex: 0 0 auto;
-  width: 1rem;
-  height: 1rem;
-  margin-right: 0.5rem;
-  vertical-align: -0.125em;
-}
-
-.matchup-page-state .loading-spinner {
-  width: 2rem;
-  height: 2rem;
-  margin-right: 0;
 }
 
 #games[data-matchup-state="loading"] #gameMatchups,
@@ -122,7 +112,6 @@ select.form-select {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .loading-spinner,
   .matchup-loading-spinner {
     animation: none;
   }

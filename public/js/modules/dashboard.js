@@ -1,5 +1,3 @@
-import { showLoading } from "./loading-indicator.js";
-
 export function formatDeadline(timestamp, locale = undefined) {
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return null;
@@ -35,7 +33,7 @@ export function renderDashboard(document, summary) {
 export async function loadDashboard({ document, fetchImpl = fetch, location = window.location }) {
   const status = document.getElementById("dashboardStatus");
   const retry = document.getElementById("retryDashboard");
-  retry.hidden = true; status.setAttribute("aria-busy", "true"); showLoading(status, "Loading your League Season summary…");
+  retry.hidden = true; status.setAttribute("aria-busy", "true"); status.textContent = "Loading your League Season summary…";
   try {
     const response = await fetchImpl("/api/user/dashboard", { headers: { Accept: "application/json" } });
     if (response.status === 401) { location.href = "/index.html"; return; }

@@ -10,7 +10,6 @@ import {
   undoAdminAction,
 } from "./admin-management.js";
 import { computeAdminStatistics, computeRiskiestPick } from "./admin-statistics.js";
-import { showLoading } from "./loading-indicator.js";
 
 const help = {
   user: {
@@ -418,7 +417,7 @@ async function showStatisticsModal() {
 async function reloadStatisticsOdds() {
   const status = document.getElementById("statisticsOddsStatus");
   const button = document.getElementById("reloadStatisticsOdds");
-  showLoading(status, "Loading game odds…");
+  status.textContent = "Loading game odds…";
   button.disabled = true;
   try {
     const response = await fetch("/api/proxy/nfl-odds", { cache: "no-store" });
@@ -485,7 +484,7 @@ export async function initializeAdminWorkflows() {
     releaseButton.onclick = async () => { if (await runAdminAction("SET_PICK_REMINDERS_PUBLIC_RELEASE", { enabled: !state.publicReleased })) await loadRelease(); };
   };
   const renderOperationalStatus = async () => {
-    const target = document.getElementById("reminderOperationsStatus"); showLoading(target, "Loading aggregate reminder status…");
+    const target = document.getElementById("reminderOperationsStatus"); target.textContent = "Loading aggregate reminder status…";
     try {
       const response = await fetch("/api/admin/reminders", { cache: "no-store" }); if (!response.ok) throw new Error();
       const counts = (await response.json()).counts || {};
