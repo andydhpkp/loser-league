@@ -357,7 +357,7 @@ h3 {
 
 .table .teamLogos {
   width: 70px;
-  height: 70px;
+  height: auto;
 }
 
 td {

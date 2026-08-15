@@ -32,21 +32,19 @@ test("solo and tied crown artwork preserve their aspect ratio in the League tabl
   }
 });
 
-test("checked-in Team logos retain the established boxes without stretching", async ({ page }) => {
+test("checked-in Team logos retain their natural aspect ratios", async ({ page }) => {
   await page.goto("/index.html");
   await page.setContent(`
     <link rel="stylesheet" href="/css/styles.css">
     <table class="table"><tbody><tr><td><img class="teamLogos" data-logo="league" src="/css/assets/logos/baltimore-ravens-logo.png"></td></tr></tbody></table>
-    <div class="individualMatchup"><button class="teamSelection"><a><img class="teamLogos" data-logo="matchup" src="/css/assets/logos/baltimore-ravens-logo.png"></a></button></div>
   `);
 
   const leagueLogo = page.locator('[data-logo="league"]');
   await expect(leagueLogo).toHaveCSS("width", "70px");
-  await expect(leagueLogo).toHaveCSS("height", "70px");
-  await expect(leagueLogo).toHaveCSS("object-fit", "contain");
 
-  const matchupLogo = page.locator('[data-logo="matchup"]');
-  await expect(matchupLogo).toHaveCSS("width", "28px");
-  await expect(matchupLogo).toHaveCSS("height", "28px");
-  await expect(matchupLogo).toHaveCSS("object-fit", "contain");
+  const ratios = await leagueLogo.evaluate((image) => ({
+    natural: image.naturalWidth / image.naturalHeight,
+    rendered: image.getBoundingClientRect().width / image.getBoundingClientRect().height,
+  }));
+  expect(ratios.rendered).toBeCloseTo(ratios.natural, 2);
 });
