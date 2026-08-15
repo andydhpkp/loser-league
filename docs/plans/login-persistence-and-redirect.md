@@ -24,8 +24,9 @@
 
 ## Behavior
 
-- Username and password have visible labels, form names, and `username` and
-  `current-password` autocomplete tokens.
+- Username and password have accessible, visually hidden labels, form names,
+  and `username` and `current-password` autocomplete tokens. Their visible
+  prompts remain the input placeholders.
 - Every successful login creates a 180-day cookie. Persistence is not exposed
   as a User choice.
 - The browser does not send a persistence field. A legacy `staySignedIn` field
@@ -99,7 +100,8 @@
 
 - Resolved: server-side login-page redirect; mandatory fixed 180-day duration
   with no User choice; sanitized login and registration responses; active
-  cookie clearing; visible semantic credential controls; both login URLs;
+  cookie clearing; accessible credential controls with visually hidden labels;
+  both login URLs;
   unchanged invalid-credential messages; focused module boundaries; and the
   verification seams above.
 - Open questions: none.
