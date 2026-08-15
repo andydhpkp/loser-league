@@ -24,9 +24,10 @@
 
 ## Behavior
 
-- Username and password have accessible, visually hidden labels, form names,
-  and `username` and `current-password` autocomplete tokens. Their visible
-  prompts remain the input placeholders.
+- Username and password have accessible names supplied through `aria-label`,
+  form names, and `username` and `current-password` autocomplete tokens. Their
+  visible prompts remain the input placeholders; no separate label elements
+  are rendered.
 - Every successful login creates a 180-day cookie. Persistence is not exposed
   as a User choice.
 - The browser does not send a persistence field. A legacy `staySignedIn` field
@@ -100,7 +101,7 @@
 
 - Resolved: server-side login-page redirect; mandatory fixed 180-day duration
   with no User choice; sanitized login and registration responses; active
-  cookie clearing; accessible credential controls with visually hidden labels;
+  cookie clearing; accessible credential controls without separate labels;
   both login URLs;
   unchanged invalid-credential messages; focused module boundaries; and the
   verification seams above.
