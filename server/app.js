@@ -101,6 +101,13 @@ function createApp({
   });
   if (calendarService) app.use("/calendar", createPublicCalendarRouter({ service: calendarService, available: () => featureConfiguration.pickRemindersCalendarAvailable === true && calendarConfiguration.ready }));
   app.use(sessionMiddleware, createReminderSettingsPageRouter({ getAccess: getPickRemindersAccess, featureConfiguration, pagePath: path.join(__dirname, "../public/reminder-settings.html") }));
+  app.get(["/", "/index.html"], sessionMiddleware, (req, res) => {
+    if (req.session?.loggedIn === true && Number.isInteger(req.session.user_id)) {
+      res.redirect("/dashboard.html");
+      return;
+    }
+    res.sendFile(path.join(__dirname, "../public/index.html"));
+  });
   app.get("/admin.html", sessionMiddleware, (req, res) => {
     if (req.session.adminAuthenticated !== true) {
       res.redirect("/index.html");

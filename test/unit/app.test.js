@@ -116,6 +116,49 @@ test("authenticated User pages redirect until a User session exists", async () =
   }
 });
 
+test("login pages redirect only an authenticated User session", async () => {
+  const routes = express.Router();
+  routes.post("/authenticate-user", (req, res) => {
+    req.session.loggedIn = true;
+    req.session.user_id = 42;
+    req.session.save(() => res.status(204).end());
+  });
+  routes.post("/malformed-user", (req, res) => {
+    req.session.loggedIn = true;
+    req.session.user_id = "42";
+    req.session.save(() => res.status(204).end());
+  });
+  routes.post("/expired-user", (req, res) => {
+    req.session.loggedIn = true;
+    req.session.user_id = 42;
+    req.session.cookie.maxAge = -1;
+    req.session.save(() => res.status(204).end());
+  });
+  const application = createTestApp({ routes });
+
+  for (const path of ["/", "/index.html"]) {
+    const anonymous = await request(application).get(path);
+    assert.equal(anonymous.status, 200);
+    assert.match(anonymous.text, /class="login-form"/);
+  }
+
+  const authenticated = request.agent(application);
+  await authenticated.post("/authenticate-user").expect(204);
+  for (const path of ["/", "/index.html?returnTo=%2Freminder-settings.html"]) {
+    const response = await authenticated.get(path);
+    assert.equal(response.status, 302);
+    assert.equal(response.headers.location, "/dashboard.html");
+  }
+
+  const malformed = request.agent(application);
+  await malformed.post("/malformed-user").expect(204);
+  assert.equal((await malformed.get("/index.html")).status, 200);
+  const expired = request.agent(application);
+  await expired.post("/expired-user").expect(204);
+  assert.equal((await expired.get("/index.html")).status, 200);
+  assert.equal((await request(application).get("/index.html").set("Cookie", "connect.sid=invalid")).status, 200);
+});
+
 test("admin login rejects malformed credentials with one generic response", async () => {
   const app = createTestApp({
     routes: express.Router(),

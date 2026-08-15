@@ -33,21 +33,40 @@
       <!-- Login Form -->
       <form class="login-form">
         <div class="mb-3">
+          <label class="form-label" for="inputUsername">Username</label>
           <input
             type="text"
             class="form-control"
             id="inputUsername"
-            aria-describedby="emailHelp"
+            name="username"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
             placeholder="Username"
           />
         </div>
         <div class="mb-3">
+          <label class="form-label" for="inputPassword">Password</label>
           <input
             type="password"
             class="form-control"
             id="inputPassword"
+            name="password"
+            autocomplete="current-password"
             placeholder="Password"
           />
+        </div>
+        <div class="form-check mb-3">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            id="staySignedIn"
+            name="staySignedIn"
+            checked
+          />
+          <label class="form-check-label" for="staySignedIn">
+            Keep me signed in for six months
+          </label>
         </div>
         <button type="submit" class="btn btn-primary login-btn">Login</button>
         <div class="mb-3">

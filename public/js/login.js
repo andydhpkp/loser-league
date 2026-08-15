@@ -3,8 +3,8 @@
 export async function loginFormHandler(event) {
   event.preventDefault();
   const username = document.querySelector("#inputUsername").value.trim();
-  const password = document.querySelector("#inputPassword").value.trim();
-  const staySignedIn = true;
+  const password = document.querySelector("#inputPassword").value;
+  const staySignedIn = document.querySelector("#staySignedIn").checked;
 
   if (username && password) {
     const response = await fetch("/api/users/login", {
@@ -19,12 +19,16 @@ export async function loginFormHandler(event) {
 
     if (response.ok) {
       await response.json();
-      const returnTo = new globalThis.URLSearchParams(location.search).get("returnTo");
-      location.href = returnTo === "/reminder-settings.html" ? returnTo : "/dashboard.html";
+      location.href = resolveLoginDestination(location.search);
     } else {
       alert("Sorry, incorrect username or password");
     }
   }
+}
+
+export function resolveLoginDestination(search) {
+  const returnTo = new globalThis.URLSearchParams(search).get("returnTo");
+  return returnTo === "/reminder-settings.html" ? returnTo : "/dashboard.html";
 }
 
 export function revealLoginPassword() {
