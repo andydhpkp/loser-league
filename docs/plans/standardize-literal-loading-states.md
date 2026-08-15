@@ -1,5 +1,9 @@
 # Change contract: Standardize literal loading states
 
+> Superseded for spinner rollout scope by
+> [`reduce-loading-indicators.md`](./reduce-loading-indicators.md). The later
+> contract retains a spinner only for the whole-matchup loading workflow.
+
 ## Problem and outcome
 
 - Several browser pages display only literal loading text while asynchronous

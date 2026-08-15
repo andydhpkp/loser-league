@@ -1,5 +1,3 @@
-import { showLoading } from "./loading-indicator.js";
-
 const LOADING_MESSAGE = "Loading this week's matchups…";
 const ERROR_MESSAGE = "Unable to load this week's matchups. Please retry or refresh the page.";
 
@@ -29,7 +27,14 @@ export function showMatchupLoading() {
   region.setAttribute("role", "status");
   region.setAttribute("aria-live", "polite");
   region.setAttribute("aria-atomic", "true");
-  showLoading(region, LOADING_MESSAGE, { spinnerClass: "matchup-loading-spinner" });
+  region.replaceChildren();
+
+  const spinner = document.createElement("span");
+  spinner.className = "spinner-border matchup-loading-spinner";
+  spinner.setAttribute("aria-hidden", "true");
+  const message = document.createElement("span");
+  message.textContent = LOADING_MESSAGE;
+  region.append(spinner, message);
   document.getElementById("games")?.setAttribute("data-matchup-state", "loading");
 }
 
