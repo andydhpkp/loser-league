@@ -85,7 +85,7 @@ test("User routes preserve successful CRUD, authentication, and win contracts", 
 
   const login = await agent
     .post("/api/users/login")
-    .send({ username: "alice", password: "secret", staySignedIn: true });
+    .send({ username: "alice", password: "secret" });
   assert.equal(login.status, 200);
   assert.equal(login.body.message, "You are now logged in!");
   assert.deepEqual(login.body.user, { id: 3, username: "alice" });
@@ -140,7 +140,7 @@ test("User routes preserve successful CRUD, authentication, and win contracts", 
   assert.ok(calls.some(([name, query]) => name === "findOne" && query.attributes));
 });
 
-test("User login applies explicit persistence consent and clears either cookie on logout", async (t) => {
+test("User login always persists for six months and clears the cookie on logout", async (t) => {
   const app = createRouteApp("/api/users", userRoutes);
   t.mock.method(User, "findOne", async () => ({
     id: 3,
@@ -152,7 +152,7 @@ test("User login applies explicit persistence consent and clears either cookie o
   const persistentStartedAt = Date.now();
   const persistent = await request(app)
     .post("/api/users/login")
-    .send({ username: "alice", password: "secret", staySignedIn: true });
+    .send({ username: "alice", password: "secret" });
   assert.equal(persistent.status, 200);
   const persistentCookie = persistent.headers["set-cookie"][0];
   const expires = persistentCookie.match(/Expires=([^;]+)/);
@@ -162,30 +162,21 @@ test("User login applies explicit persistence consent and clears either cookie o
   assert.match(persistentCookie, /HttpOnly/);
   assert.match(persistentCookie, /SameSite=Lax/);
 
-  for (const body of [
-    { username: "alice", password: "secret", staySignedIn: false },
-    { username: "alice", password: "secret" },
-  ]) {
+  for (const staySignedIn of [false, "false", null]) {
     const agent = request.agent(app);
-    const login = await agent.post("/api/users/login").send(body);
+    const login = await agent.post("/api/users/login").send({
+      username: "alice",
+      password: "secret",
+      staySignedIn,
+    });
     assert.equal(login.status, 200);
-    assert.doesNotMatch(login.headers["set-cookie"][0], /Expires=/);
+    assert.match(login.headers["set-cookie"][0], /Expires=/);
     const logout = await agent.post("/api/users/logout");
     assert.equal(logout.status, 204);
     assert.match(logout.headers["set-cookie"][0], /^connect\.sid=;/);
     assert.match(logout.headers["set-cookie"][0], /Path=\//);
   }
 
-  for (const staySignedIn of ["true", 1, null]) {
-    const response = await request(app)
-      .post("/api/users/login")
-      .send({ username: "alice", password: "secret", staySignedIn });
-    assert.equal(response.status, 400);
-    assert.deepEqual(response.body, {
-      error: "INVALID_REQUEST",
-      message: "Keep-signed-in choice must be a boolean",
-    });
-  }
 });
 
 test("User routes characterize validation, authentication, and not-found responses", async (t) => {

@@ -101,17 +101,6 @@ router.post("/", (req, res) => {
 
 //login route
 router.post("/login", (req, res) => {
-  if (
-    Object.hasOwn(req.body, "staySignedIn") &&
-    typeof req.body.staySignedIn !== "boolean"
-  ) {
-    res.status(400).json({
-      error: "INVALID_REQUEST",
-      message: "Keep-signed-in choice must be a boolean",
-    });
-    return;
-  }
-
   User.findOne({
     where: {
       username: req.body.username,
@@ -130,11 +119,7 @@ router.post("/login", (req, res) => {
       return;
     }
 
-    if (req.body.staySignedIn === true) {
-      req.session.cookie.maxAge = USER_SESSION_MAX_AGE_MS;
-    } else {
-      req.session.cookie.maxAge = null;
-    }
+    req.session.cookie.maxAge = USER_SESSION_MAX_AGE_MS;
     req.session.user_id = dbUser.id;
     req.session.username = dbUser.username;
     req.session.loggedIn = true;

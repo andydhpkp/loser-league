@@ -9,11 +9,10 @@ malformed sessions remain on login. Autofilled fields and browser storage are
 never treated as authentication evidence.
 
 The login form exposes standards-compatible username and current-password
-autofill metadata. **Keep me signed in for six months** is checked by default.
-When checked, a successful login issues a 180-day session cookie; when
-unchecked, it issues a browser-session-only cookie. The cookie remains
-`HttpOnly`, `SameSite=Lax`, and `Secure` in production. Logout destroys the
-server session and clears either form of the cookie.
+autofill metadata. Every successful User login issues a 180-day session cookie;
+persistence is not a User-facing option. The cookie remains `HttpOnly`,
+`SameSite=Lax`, and `Secure` in production. Logout destroys the server session
+and clears the cookie.
 
 Successful login and registration land on `/dashboard.html`. A fresh login
 may return to `/reminder-settings.html` only when that exact safe `returnTo`

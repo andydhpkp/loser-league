@@ -1,12 +1,11 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-test("login submits the exact persistence choice and preserves password whitespace", async (t) => {
+test("login submits credentials without a persistence choice and preserves password whitespace", async (t) => {
   const requests = [];
   const fields = {
     "#inputUsername": { value: "  alice  " },
     "#inputPassword": { value: " secret " },
-    "#staySignedIn": { checked: false },
   };
   t.mock.method(globalThis, "fetch", async (url, options) => {
     requests.push({ url, options });
@@ -25,7 +24,6 @@ test("login submits the exact persistence choice and preserves password whitespa
   assert.deepEqual(JSON.parse(requests[0].options.body), {
     username: "alice",
     password: " secret ",
-    staySignedIn: false,
   });
   assert.equal(globalThis.location.href, "/dashboard.html");
 });
