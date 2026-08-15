@@ -73,8 +73,8 @@ test("login and registration navigate to the dashboard", async ({ page }) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
   });
   await page.goto("/index.html");
-  await expect(page.locator('label[for="inputUsername"]')).toHaveClass(/\bvisually-hidden\b/);
-  await expect(page.locator('label[for="inputPassword"]')).toHaveClass(/\bvisually-hidden\b/);
+  expect(await page.locator('label[for="inputUsername"]').boundingBox()).toBeNull();
+  expect(await page.locator('label[for="inputPassword"]').boundingBox()).toBeNull();
   await expect(page.getByRole("textbox", { name: "Username", exact: true })).toHaveAttribute("autocomplete", "username");
   await expect(page.getByLabel("Password", { exact: true })).toHaveAttribute("autocomplete", "current-password");
   await expect(page.getByRole("checkbox")).toHaveCount(0);
