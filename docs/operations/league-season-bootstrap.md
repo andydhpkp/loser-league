@@ -9,6 +9,9 @@ create SETUP Week 0, enroll Users and Tracks, then use **Start Week 1**. The CLI
 workflow below remains required when existing unassigned legacy Tracks must be
 adopted or reconciled.
 
+Before either activation path, complete the Team-name and checked-in-logo audit
+in [`../nfl-data.md`](../nfl-data.md#operations).
+
 ## Deployment migration
 
 Heroku runs the `release` command from `Procfile` before starting the new web

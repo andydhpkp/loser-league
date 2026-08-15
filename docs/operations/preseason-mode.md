@@ -5,6 +5,9 @@ League workflows against live preseason games. The preview identifies the
 earliest unfinished preseason week and the current Tracks that will be
 permanently deleted. Users and winner history are preserved.
 
+Before enabling preseason, complete the Team-name and checked-in-logo audit in
+[`../nfl-data.md`](../nfl-data.md#operations).
+
 Each preseason week is an independent Pick round. Games already underway stay
 visible but are disabled. The Pick and one-time automatic-Pick deadline is the
 earliest kickoff in the complete validated weekly schedule and never advances

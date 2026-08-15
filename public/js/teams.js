@@ -3,10 +3,8 @@ import { nflTeams } from "./data/nfl-teams.js";
 
 import { getUserId, handleSubmitPicks } from "./modules/track-actions.js";
 import { browserLogger } from "./logger.js";
-import {
-  fetchNflSchedule,
-  fetchNflTeams,
-} from "./modules/nfl-data.js";
+import { fetchNflSchedule } from "./modules/nfl-data.js";
+import { loadTeamLogo, resolveTeamLogo } from "./modules/team-logos.js";
 import { renderOnboardingPanel } from "./modules/zero-track-onboarding.js";
 import { renderBuyback } from "./modules/week-two-buyback.js";
 import {
@@ -208,20 +206,21 @@ async function deleteAllTeams() {
   }
 }
 
-async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submissionOpen, currentWeek, buybackBlocked = false, seasonYear, schedulePhase = "REGULAR") {
-  let nflObj = {};
-  try {
-    const response = await fetchNflTeams();
-    if (response.ok) {
-      nflObj = await response.json();
-    } else {
-      throw new Error("Failed to retrieve nflObj");
-    }
-  } catch (error) {
-    browserLogger.error("Error fetching the ESPN API", error);
-    throw error;
-  }
+export function loadMatchupTeamLogos({
+  root,
+  loadLogo = loadTeamLogo,
+} = {}) {
+  const warnedTeamNames = new Set();
+  return Promise.allSettled([...root.querySelectorAll("img.teamLogos")].map((image) => loadLogo({
+    teamName: image.dataset.teamName,
+    image,
+    fallback: image.nextElementSibling,
+    keepFallbackVisible: true,
+    warnedTeamNames,
+  })));
+}
 
+async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submissionOpen, currentWeek, buybackBlocked = false, seasonYear, schedulePhase = "REGULAR") {
   let containerNumber = totalTracks;
   const container = document.getElementById("gameMatchups");
   const actions = document.getElementById("trackActions");
@@ -270,24 +269,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
             );
           }
 
-          let matchupsLogos = [];
-          let matchupRecords = [];
-          let teamSlugs = []; // Store team slugs for reliable matching
-
-          for (l = 0; l < thisWeeksMatchups.length; l++) {
-            for (x = 0; x < nflObj.sports[0].leagues[0].teams.length; x++) {
-              if (
-                thisWeeksMatchups[l] ===
-                nflObj.sports[0].leagues[0].teams[x].team.displayName
-              ) {
-                matchupsLogos.push(
-                  nflObj.sports[0].leagues[0].teams[x].team.logos[0].href
-                );
-                matchupRecords.push([0, 0]);
-                teamSlugs.push(nflObj.sports[0].leagues[0].teams[x].team.slug);
-              }
-            }
-          }
+          const matchupRecords = thisWeeksMatchups.map(() => [0, 0]);
 
           let matchupRecordsFormat = [];
           let matchups = [];
@@ -304,13 +286,13 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
 
           while (matchups.length < thisWeeksMatchups.length) {
             let firstTeam = thisWeeksMatchups[chooser];
-            let firstTeamLogo = matchupsLogos[chooser];
+            let firstTeamLogo = resolveTeamLogo(firstTeam);
             let firstTeamRecord = matchupRecordsFormat[chooser];
 
             chooser++;
 
             let secondTeam = thisWeeksMatchups[chooser];
-            let secondTeamLogo = matchupsLogos[chooser];
+            let secondTeamLogo = resolveTeamLogo(secondTeam);
             let secondTeamRecord = matchupRecordsFormat[chooser];
 
             matchups.push(firstTeam);
@@ -413,8 +395,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
               firstTeamButton.dataset.logo = firstTeamLogoSrc;
 
               teamLogoFirst.setAttribute("class", "teamLogos");
-              teamLogoFirst.src = firstTeamLogoSrc;
-              teamLogoFirst.alt = `${firstTeamNameStr} logo`;
+              teamLogoFirst.dataset.teamName = firstTeamNameStr;
 
               firstTeamName.innerText = firstTeamNameStr;
               firstTeamInfo.innerText = firstTeamRecordStr;
@@ -461,8 +442,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
               secondTeamButton.dataset.logo = secondTeamLogoSrc;
 
               teamLogoSecond.setAttribute("class", "teamLogos");
-              teamLogoSecond.src = secondTeamLogoSrc;
-              teamLogoSecond.alt = `${secondTeamNameStr} logo`;
+              teamLogoSecond.dataset.teamName = secondTeamNameStr;
 
               secondTeamName.innerText = secondTeamNameStr;
               secondTeamInfo.innerText = secondTeamRecordStr;
@@ -532,17 +512,7 @@ async function matchup(totalTracks, trackIds, usedPicksMap, trackStateMap, submi
           } else {
             throw new Error("Unable to determine the League Season year");
           }
-          await Promise.all([...stagingContainer.querySelectorAll("img.teamLogos")].map((image) => {
-            if (image.complete) {
-              return image.naturalWidth > 0
-                ? Promise.resolve()
-                : Promise.reject(new Error("Unable to load Team logo"));
-            }
-            return new Promise((imageResolve, imageReject) => {
-              image.addEventListener("load", imageResolve, { once: true });
-              image.addEventListener("error", () => imageReject(new Error("Unable to load Team logo")), { once: true });
-            });
-          }));
+          await loadMatchupTeamLogos({ root: stagingContainer });
           container.replaceChildren(...stagingContainer.children);
           headerHelp.appendChild(currentWeekDiv);
           actions.insertBefore(submitBtn, document.getElementById("logoutBtn"));
@@ -581,8 +551,13 @@ function selectTeam(
   trackDropdown.classList.add("successfulPick", "selected-track");
 
   // Update selected team logo
-  selectedTeamLogo.src = logoSrc;
-  selectedTeamLogo.classList.remove("hidden");
+  if (logoSrc) {
+    selectedTeamLogo.src = logoSrc;
+    selectedTeamLogo.classList.remove("hidden");
+  } else {
+    selectedTeamLogo.removeAttribute("src");
+    selectedTeamLogo.classList.add("hidden");
+  }
 
   // Collapse the dropdown
   trackContent.classList.add("collapsed");
