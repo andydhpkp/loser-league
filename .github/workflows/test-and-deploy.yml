@@ -108,20 +108,48 @@ jobs:
         if: steps.freshness.outputs.deploy == 'true'
         id: prior_release
         run: |
+          remote_sha="$(git ls-remote heroku refs/heads/main | awk '{print $1}')"
+          if [ -z "$remote_sha" ]; then
+            echo "Unable to resolve the Heroku main commit" >&2
+            exit 1
+          fi
           release_version="$(heroku releases --json --app "$HEROKU_APP_NAME" | jq -r '.[0].version // empty')"
           if [ -z "$release_version" ]; then
             echo "Unable to resolve the current Heroku release" >&2
             exit 1
           fi
           echo "version=$release_version" >> "$GITHUB_OUTPUT"
+          if [ "$remote_sha" = "$GITHUB_SHA" ]; then
+            echo "already_deployed=true" >> "$GITHUB_OUTPUT"
+            echo "Heroku already contains tested commit $GITHUB_SHA"
+          else
+            echo "already_deployed=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Deploy tested commit
-        if: steps.freshness.outputs.deploy == 'true'
+        if: steps.freshness.outputs.deploy == 'true' && steps.prior_release.outputs.already_deployed != 'true'
         run: git push heroku "$GITHUB_SHA:refs/heads/main"
 
       - name: Verify Heroku release succeeded
         if: steps.freshness.outputs.deploy == 'true'
         run: |
+          if [ "${{ steps.prior_release.outputs.already_deployed }}" = true ]; then
+            release_json="$(heroku releases --json --app "$HEROKU_APP_NAME")"
+            deploy_description="Deploy ${GITHUB_SHA:0:8}"
+            release_version="$(jq -r --arg description "$deploy_description" \
+              '[.[] | select(.description == $description)][0].version // empty' \
+              <<< "$release_json")"
+            release_status="$(jq -r --arg description "$deploy_description" \
+              '[.[] | select(.description == $description)][0].status // empty' \
+              <<< "$release_json")"
+            if [ -n "$release_version" ] && [ "$release_status" = succeeded ]; then
+              echo "Existing Heroku release $release_version is succeeded"
+              exit 0
+            fi
+            echo "Existing Heroku release status is $release_status, expected succeeded" >&2
+            exit 1
+          fi
+
           release_status="pending"
           for attempt in {1..12}; do
             release_json="$(heroku releases --json --app "$HEROKU_APP_NAME")"
