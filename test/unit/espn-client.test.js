@@ -19,10 +19,31 @@ test("ESPN client converts timeout to a safe upstream error", async () => {
       client.fetchTeams(),
       (error) =>
         error instanceof UpstreamError &&
-        error.message === "NFL data is unavailable"
+        error.message === "NFL data is unavailable" &&
+        error.upstreamFailure === "UPSTREAM_TIMEOUT"
     );
   } finally {
     clearTimeout(keepEventLoopAlive);
+  }
+});
+
+test("ESPN client classifies safe upstream diagnostics without raw failure details", async () => {
+  const failures = [
+    [async () => ({ ok: false, status: 429 }), "UPSTREAM_HTTP_STATUS", 429],
+    [async () => { const error = new Error("private DNS detail"); error.code = "ENOTFOUND"; throw error; }, "UPSTREAM_DNS"],
+    [async () => { const error = new Error("private TLS detail"); error.code = "CERT_HAS_EXPIRED"; throw error; }, "UPSTREAM_TLS"],
+    [async () => { const error = new Error("private connection detail"); error.code = "ECONNRESET"; throw error; }, "UPSTREAM_CONNECTION"],
+    [async () => { throw new Error("private unknown detail"); }, "UPSTREAM_UNKNOWN"],
+  ];
+
+  for (const [fetchImpl, expectedFailure, expectedStatus] of failures) {
+    const client = createEspnClient({ fetchImpl });
+    await assert.rejects(client.fetchTeams(), (error) => {
+      assert.equal(error.upstreamFailure, expectedFailure);
+      assert.equal(error.upstreamStatus, expectedStatus);
+      assert.doesNotMatch(JSON.stringify(error), /private|ENOTFOUND|CERT_HAS_EXPIRED|ECONNRESET/);
+      return true;
+    });
   }
 });
 

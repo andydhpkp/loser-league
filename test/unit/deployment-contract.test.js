@@ -44,3 +44,21 @@ test("deployment reruns verify an already-deployed successful SHA", () => {
   assert.match(workflow, /Deploy \$\{GITHUB_SHA:0:8\}/);
   assert.match(workflow, /Existing Heroku release .* is succeeded/);
 });
+
+test("deployment attempts one bounded web recovery for an isolated NFL health failure", () => {
+  const workflow = fs.readFileSync(
+    path.join(repositoryRoot, ".github/workflows/test-and-deploy.yml"),
+    "utf8"
+  );
+
+  assert.match(workflow, /check_health "\/"/);
+  assert.match(workflow, /check_health "\/api\/nfl\/teams"/);
+  assert.match(workflow, /Upstream health check failed; restarting the web process type once/);
+  assert.match(workflow, /heroku ps:restart --process-type web --app "\$HEROKU_APP_NAME"/);
+  assert.match(workflow, /Production health recovered after one web process restart/);
+  assert.equal(
+    workflow.match(/heroku ps:restart --process-type web/g)?.length,
+    1,
+    "workflow must not introduce a restart loop"
+  );
+});

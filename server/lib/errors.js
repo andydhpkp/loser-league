@@ -1,3 +1,12 @@
+const UPSTREAM_FAILURES = new Set([
+  "UPSTREAM_HTTP_STATUS",
+  "UPSTREAM_TIMEOUT",
+  "UPSTREAM_DNS",
+  "UPSTREAM_TLS",
+  "UPSTREAM_CONNECTION",
+  "UPSTREAM_UNKNOWN",
+]);
+
 class AppError extends Error {
   constructor({ code, message, status = 500, cause }) {
     super(message, { cause });
@@ -32,8 +41,19 @@ class ConflictError extends AppError {
 }
 
 class UpstreamError extends AppError {
-  constructor(message = "NFL schedule data is unavailable", cause) {
+  constructor(message = "NFL schedule data is unavailable", cause, diagnostics = {}) {
     super({ code: "UPSTREAM_ERROR", message, status: 502, cause });
+    if (UPSTREAM_FAILURES.has(diagnostics.upstreamFailure)) {
+      this.upstreamFailure = diagnostics.upstreamFailure;
+    }
+    if (
+      diagnostics.upstreamFailure === "UPSTREAM_HTTP_STATUS" &&
+      Number.isInteger(diagnostics.upstreamStatus) &&
+      diagnostics.upstreamStatus >= 100 &&
+      diagnostics.upstreamStatus <= 599
+    ) {
+      this.upstreamStatus = diagnostics.upstreamStatus;
+    }
   }
 }
 

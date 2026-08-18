@@ -4,6 +4,7 @@ const express = require("express");
 const request = require("supertest");
 
 const { createApp } = require("../../server/app");
+const { UpstreamError } = require("../../server/lib/errors");
 
 function createTestApp(options = {}) {
   return createApp({
@@ -451,4 +452,33 @@ test("unexpected route failures use one safe error interface", async () => {
   assert.equal(entries[0].context.route, "/explode");
   assert.equal(entries[0].context.errorCode, "INTERNAL_ERROR");
   assert.doesNotMatch(JSON.stringify(entries[0]), /database password leaked/);
+});
+
+test("classified upstream failures log only allowlisted diagnostics", async () => {
+  const routes = express.Router();
+  const entries = [];
+  routes.get("/upstream", () => {
+    const error = new UpstreamError("NFL data is unavailable", new Error("private network detail"), {
+      upstreamFailure: "UPSTREAM_DNS",
+    });
+    throw error;
+  });
+
+  const app = createTestApp({
+    routes,
+    sessionSecret: "test-session-secret",
+    logger: {
+      error(event, context) { entries.push({ event, context }); },
+      warn() {},
+      info() {},
+      debug() {},
+    },
+  });
+
+  const response = await request(app).get("/upstream");
+
+  assert.equal(response.status, 502);
+  assert.equal(entries[0].context.upstreamFailure, "UPSTREAM_DNS");
+  assert.equal(entries[0].context.upstreamStatus, undefined);
+  assert.doesNotMatch(JSON.stringify(entries), /private network detail/);
 });
