@@ -174,18 +174,36 @@ jobs:
         env:
           PRODUCTION_ORIGIN: https://${{ vars.HEROKU_APP_NAME }}.herokuapp.com
         run: |
-          for path in / /api/nfl/teams; do
-            healthy=false
+          check_health() {
+            path="$1"
             for attempt in {1..12}; do
               if curl --fail --silent --show-error --max-time 10 \
                 "$PRODUCTION_ORIGIN$path" > /dev/null; then
-                healthy=true
-                break
+                return 0
               fi
               sleep 5
             done
-            if [ "$healthy" != true ]; then
-              echo "Production health check failed for $path" >&2
-              exit 1
-            fi
-          done
+            return 1
+          }
+
+          if ! check_health "/"; then
+            echo "Production health check failed for /; no automatic restart attempted" >&2
+            exit 1
+          fi
+
+          if check_health "/api/nfl/teams"; then
+            exit 0
+          fi
+
+          echo "Upstream health check failed; restarting the web process type once" >&2
+          heroku ps:restart --process-type web --app "$HEROKU_APP_NAME"
+
+          if ! check_health "/"; then
+            echo "Production health check failed for / after web process restart" >&2
+            exit 1
+          fi
+          if ! check_health "/api/nfl/teams"; then
+            echo "Upstream health check failed after one web process restart" >&2
+            exit 1
+          fi
+          echo "Production health recovered after one web process restart"

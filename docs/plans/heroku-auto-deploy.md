@@ -38,8 +38,13 @@
   SHA is still current `main`, so rapid merges cannot release stale code.
 - After deployment, the workflow polls the production homepage and
   `/api/nfl/teams` with bounded retries.
-- A failed health check fails the workflow and requires guided diagnosis or
-  explicit rollback; it does not trigger a blind automatic rollback.
+- If only the live ESPN-backed health check remains unhealthy, the workflow
+  restarts the Heroku `web` process type once and repeats both bounded checks.
+  Recovery succeeds the deployment; persistent failure stops without another
+  restart or automatic rollback.
+- A failed homepage check, or a failed ESPN check after the one bounded web
+  restart, fails the workflow and requires guided diagnosis or explicit
+  rollback; it does not trigger a blind automatic rollback.
 
 ## Interfaces and data
 

@@ -1,4 +1,4 @@
-const { AppError } = require("../lib/errors");
+const { AppError, UpstreamError } = require("../lib/errors");
 
 function createErrorHandler(logger) {
   return function errorHandler(error, req, res, _next) {
@@ -16,6 +16,12 @@ function createErrorHandler(logger) {
       status,
       errorCode: code,
       errorType: error.name,
+      ...(error instanceof UpstreamError && error.upstreamFailure
+        ? {
+            upstreamFailure: error.upstreamFailure,
+            ...(error.upstreamStatus ? { upstreamStatus: error.upstreamStatus } : {}),
+          }
+        : {}),
     });
 
     res.status(status).json({ error: code, message });

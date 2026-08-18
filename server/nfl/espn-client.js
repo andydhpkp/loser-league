@@ -24,6 +24,15 @@ function normalizeSchedule(scoreboard) {
 }
 
 function createEspnClient({ fetchImpl = global.fetch, timeoutMs = 5000 } = {}) {
+  function classifyFailure(error) {
+    if (error?.name === "AbortError" || error?.name === "TimeoutError") return "UPSTREAM_TIMEOUT";
+    const code = error?.code || error?.cause?.code;
+    if (code === "ENOTFOUND" || code === "EAI_AGAIN") return "UPSTREAM_DNS";
+    if (typeof code === "string" && (code.includes("CERT") || code.includes("TLS") || code.startsWith("ERR_SSL_"))) return "UPSTREAM_TLS";
+    if (["ECONNREFUSED", "ECONNRESET", "EHOSTUNREACH", "ENETUNREACH", "UND_ERR_CONNECT_TIMEOUT", "UND_ERR_SOCKET"].includes(code)) return "UPSTREAM_CONNECTION";
+    return "UPSTREAM_UNKNOWN";
+  }
+
   async function fetchJson(url) {
     try {
       const response = await fetchImpl(url, {
@@ -31,14 +40,19 @@ function createEspnClient({ fetchImpl = global.fetch, timeoutMs = 5000 } = {}) {
       });
 
       if (!response.ok) {
-        throw new UpstreamError("NFL data is unavailable");
+        throw new UpstreamError("NFL data is unavailable", undefined, {
+          upstreamFailure: "UPSTREAM_HTTP_STATUS",
+          upstreamStatus: response.status,
+        });
       }
 
       return await response.json();
     } catch (error) {
       throw error instanceof UpstreamError
         ? error
-        : new UpstreamError("NFL data is unavailable", error);
+        : new UpstreamError("NFL data is unavailable", error, {
+          upstreamFailure: classifyFailure(error),
+        });
     }
   }
 

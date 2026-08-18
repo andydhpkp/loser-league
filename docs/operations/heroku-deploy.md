@@ -79,6 +79,10 @@ publishing an admin interface with a fallback credential.
    success and health from a different release are not sufficient.
 7. The web process verifies database connectivity without synchronizing schema.
 8. The workflow polls the production homepage and `/api/nfl/teams`.
+9. If the homepage is healthy but the NFL Teams check exhausts its retries,
+   the workflow records an upstream-health failure, restarts the `web` process
+   type once, and repeats both bounded checks. It records recovery when both
+   pass; otherwise it fails without another restart or rollback.
 
 League Season foundation deployments require the separate explicit bootstrap
 documented in [`league-season-bootstrap.md`](league-season-bootstrap.md).
@@ -86,8 +90,9 @@ Migrations intentionally do not infer or populate production lifecycle state.
 
 A failed test prevents deployment. A failed Heroku build or release leaves the
 prior release active and fails the workflow before HTTP health checks. A failed
-health check marks the workflow failed but does not perform an automatic
-rollback.
+homepage check does not trigger recovery. An isolated ESPN health failure gets
+one bounded `web` process restart; persistent failure marks the workflow failed
+without an automatic rollback.
 
 ## Verification
 
@@ -105,6 +110,11 @@ bodies, sessions, or production data.
 
 Determine whether the failure occurred in validation, Heroku build/release, or
 post-deploy health checking before taking action.
+
+ESPN adapter failures log only an allowlisted category (HTTP status, timeout,
+DNS, TLS, connection, or unknown) and an optional numeric HTTP status. Never
+add response bodies, headers, raw exception messages, query parameters,
+network addresses, or configuration values to these diagnostics.
 
 Prefer a forward fix through a pull request when the previous release remains
 healthy. For rollback:
