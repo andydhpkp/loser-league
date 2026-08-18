@@ -18,9 +18,9 @@ test("dashboard summary exposes minimal authoritative counts and capability", ()
   assert.deepEqual(dashboardSummary(state()), {
     leagueSeason: { year: 2026, week: 4, state: "ACTIVE" },
     deadline: { available: true, timestamp: "2026-09-10T00:00:00.000Z" },
-    tracks: { active: 2, missingPicks: 1 },
+    tracks: { active: 2, picksSubmitted: false },
     leagueView: { allowed: false, label: "Submit Picks for all active Tracks before viewing the League." },
-    makePicks: { code: "PICKS_REQUIRED", label: "1 Pick still needed" },
+    makePicks: { code: "PICKS_REQUIRED", label: "Submit this week's Picks" },
     features: { pickReminders: false },
   });
 });
@@ -41,15 +41,21 @@ test("dashboard Make Picks status follows lifecycle precedence", () => {
     [state({ scheduleAvailable: false, deadline: null }), "LIFECYCLE_UNAVAILABLE", "Pick status is temporarily unavailable"],
     [state({ leagueSeason: { year: 2026, week: 0, state: "SETUP" }, tracks: [] }), "SEASON_NOT_STARTED", "Season has not started"],
     [state({ leagueSeason: { year: 2026, week: 18, state: "COMPLETED" } }), "SEASON_COMPLETE", "League Season is complete"],
-    [state({ tracks: [] }), "NO_ACTIVE_TRACKS", "No active Tracks"],
+    [state({ tracks: [] }), "NO_ACTIVE_TRACKS", "No Picks required"],
     [state({ buyback: { pickBlocked: true } }), "BUYBACK_BLOCKED", "Resolve your Week 2 buyback first"],
     [state({ submissionOpen: false }), "SUBMISSION_CLOSED", "Pick submission is closed"],
     [state({ tracks: [{ status: "SUBMITTED" }] }), "ALL_SUBMITTED", "All Picks submitted"],
-    [state({ tracks: [{ status: "NOT_SUBMITTED" }, { status: "NOT_SUBMITTED" }] }), "PICKS_REQUIRED", "2 Picks still needed"],
+    [state({ tracks: [{ status: "NOT_SUBMITTED" }, { status: "NOT_SUBMITTED" }] }), "PICKS_REQUIRED", "Submit this week's Picks"],
   ];
   for (const [input, code, label] of cases) {
     assert.deepEqual(dashboardSummary(input).makePicks, { code, label });
   }
+});
+
+test("dashboard Pick completion is not required outside an active round", () => {
+  assert.equal(dashboardSummary(state({ tracks: [] })).tracks.picksSubmitted, null);
+  assert.equal(dashboardSummary(state({ leagueSeason: { year: 2026, week: 0, state: "SETUP" } })).tracks.picksSubmitted, null);
+  assert.equal(dashboardSummary(state({ leagueSeason: { year: 2026, week: 18, state: "COMPLETED" } })).tracks.picksSubmitted, null);
 });
 
 test("dashboard uses preseason buyback wording", () => {

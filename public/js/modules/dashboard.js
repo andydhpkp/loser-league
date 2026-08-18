@@ -11,7 +11,8 @@ export function renderDashboard(document, summary) {
   const heading = document.createElement("p");
   heading.textContent = `${summary.leagueSeason.year} League Season · ${summary.leagueSeason.week === 0 ? "Week 0" : `Week ${summary.leagueSeason.week}`}`;
   const deadline = document.createElement("p"); deadline.textContent = `Next Pick deadline: ${formattedDeadline || "Unavailable"}`;
-  const counts = document.createElement("p"); counts.textContent = `Active Tracks: ${summary.tracks.active} · Missing Picks: ${summary.tracks.missingPicks}`;
+  const pickCompletion = summary.tracks.picksSubmitted === null ? "Not required" : summary.tracks.picksSubmitted ? "Yes" : "No";
+  const counts = document.createElement("p"); counts.textContent = `Active Tracks: ${summary.tracks.active} · Picks submitted this week: ${pickCompletion}`;
   status.append(heading, deadline, counts);
   status.setAttribute("aria-busy", "false");
   const viewLeague = document.getElementById("viewLeagueAction");

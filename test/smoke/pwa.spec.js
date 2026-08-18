@@ -1,5 +1,5 @@
 const { expect, test } = require("@playwright/test");
-const summary = { leagueSeason: { year: 2026, week: 4, state: "ACTIVE" }, deadline: { available: false }, tracks: { active: 0, missingPicks: 0 }, leagueView: { allowed: true, label: "View League" }, makePicks: { label: "No Picks due" }, features: { pickReminders: false } };
+const summary = { leagueSeason: { year: 2026, week: 4, state: "ACTIVE" }, deadline: { available: false }, tracks: { active: 0, picksSubmitted: null }, leagueView: { allowed: true, label: "View League" }, makePicks: { label: "No Picks required" }, features: { pickReminders: false } };
 test("manifest, local icons, and privacy-safe service worker shell are available", async ({ page, context }) => {
   await page.route("**/api/user/dashboard", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(summary) }));
   await page.goto("/dashboard.html");

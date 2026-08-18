@@ -28,10 +28,10 @@ test("dashboard summary derives its actions from the User submission state", asy
 
   assert.deepEqual(summary.makePicks, {
     code: "PICKS_REQUIRED",
-    label: "1 Pick still needed",
+    label: "Submit this week's Picks",
   });
   assert.equal(summary.leagueSeason.week, 2);
   assert.equal(summary.tracks.active, 1);
-  assert.equal(summary.tracks.missingPicks, 1);
+  assert.equal(summary.tracks.picksSubmitted, false);
   assert.equal(summary.features.pickReminders, false);
 });
