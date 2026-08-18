@@ -21,8 +21,8 @@ async function installSyntheticApi(page) {
     else if (url.includes("/api/user/dashboard")) body = {
       leagueSeason: { year: 2026, week: 2, state: "ACTIVE" },
       deadline: { available: true, timestamp: "2026-09-17T00:00:00.000Z" },
-      tracks: { active: 8, missingPicks: 4 },
-      makePicks: { code: "PICKS_REQUIRED", label: "4 Picks still needed" },
+      tracks: { active: 8, picksSubmitted: false },
+      makePicks: { code: "PICKS_REQUIRED", label: "Submit this week's Picks" },
       features: { pickReminders: false },
     };
     else if (url.includes("/api/user/league/support")) body = { contacts: [] };

@@ -25,7 +25,7 @@
 
 ## Interfaces and data
 
-- `GET /api/user/dashboard` requires a User session and returns only League Season year/week/state, deadline availability/value, active/missing Pick counts, canonical Pick action status, and feature capabilities.
+- `GET /api/user/dashboard` requires a User session and returns only League Season year/week/state, deadline availability/value, the active Track count, tri-state weekly Pick completion, canonical Pick action status, and feature capabilities.
 - `/dashboard.html` and `/help.html` require a User session at the server page boundary. Expired API sessions return the existing safe unauthorized response and navigate to login.
 - Help uses only sanitized configured authenticated contact options and contains no admin or reminder material.
 - No models, migrations, or stored data change.

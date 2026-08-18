@@ -1,13 +1,13 @@
 const { expect, test } = require("@playwright/test");
 
-const summary = { leagueSeason: { year: 2026, week: 4, state: "ACTIVE" }, deadline: { available: true, timestamp: "2026-09-10T00:00:00.000Z" }, tracks: { active: 3, missingPicks: 2 }, leagueView: { allowed: false, label: "Submit Picks for all active Tracks before viewing the League." }, makePicks: { code: "PICKS_REQUIRED", label: "2 Picks still needed" }, features: { pickReminders: false } };
+const summary = { leagueSeason: { year: 2026, week: 4, state: "ACTIVE" }, deadline: { available: true, timestamp: "2026-09-10T00:00:00.000Z" }, tracks: { active: 3, picksSubmitted: false }, leagueView: { allowed: false, label: "Submit Picks for all active Tracks before viewing the League." }, makePicks: { code: "PICKS_REQUIRED", label: "Submit this week's Picks" }, features: { pickReminders: false } };
 
 test("dashboard renders authoritative summary and approved action order", async ({ page }) => {
   await page.route("**/api/user/dashboard", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(summary) }));
   await page.goto("/dashboard.html");
   await expect(page.getByRole("navigation", { name: "Primary" }).locator(".dashboard-action:visible")).toHaveText([/View League/, /Make Picks/, /Help/]);
-  await expect(page.getByText("Active Tracks: 3 · Missing Picks: 2")).toBeVisible();
-  await expect(page.getByText("2 Picks still needed")).toBeVisible();
+  await expect(page.getByText("Active Tracks: 3 · Picks submitted this week: No")).toBeVisible();
+  await expect(page.getByText("Submit this week's Picks")).toBeVisible();
   await expect(page.getByText("Submit Picks for all active Tracks before viewing the League.")).toBeVisible();
   await expect(page.getByText("View League").locator("..")).toHaveAttribute("aria-disabled", "true");
   await expect(page.getByText(/Text Pick Reminder/i)).toHaveCount(0);
@@ -32,10 +32,19 @@ test("blocked direct League visits return to the dashboard with an explanation",
 });
 
 test("dashboard links to the League when every active Track has a Pick", async ({ page }) => {
-  const allowed = { ...summary, tracks: { active: 3, missingPicks: 0 }, leagueView: { allowed: true, label: "See the current league standings and visible Picks." } };
+  const allowed = { ...summary, tracks: { active: 3, picksSubmitted: true }, leagueView: { allowed: true, label: "See the current league standings and visible Picks." } };
   await page.route("**/api/user/dashboard", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(allowed) }));
   await page.goto("/dashboard.html");
+  await expect(page.getByText("Active Tracks: 3 · Picks submitted this week: Yes")).toBeVisible();
   await expect(page.getByRole("link", { name: /View League/ })).toHaveAttribute("href", "/league-page.html");
+});
+
+test("dashboard shows Pick completion as not required when there are no active Tracks", async ({ page }) => {
+  const notRequired = { ...summary, tracks: { active: 0, picksSubmitted: null }, leagueView: { allowed: true, label: "See the current league standings and visible Picks." }, makePicks: { code: "NO_ACTIVE_TRACKS", label: "No Picks required" } };
+  await page.route("**/api/user/dashboard", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(notRequired) }));
+  await page.goto("/dashboard.html");
+  await expect(page.getByText("Active Tracks: 0 · Picks submitted this week: Not required")).toBeVisible();
+  await expect(page.getByText("No Picks required")).toBeVisible();
 });
 
 test("dashboard failure is recoverable and expired sessions return to login", async ({ page }) => {
@@ -47,7 +56,7 @@ test("dashboard failure is recoverable and expired sessions return to login", as
   await page.goto("/dashboard.html");
   await expect(page.getByText("We could not load your current summary. Try again.")).toBeVisible();
   await page.getByRole("button", { name: "Retry" }).click();
-  await expect(page.getByText("Active Tracks: 3 · Missing Picks: 2")).toBeVisible();
+  await expect(page.getByText("Active Tracks: 3 · Picks submitted this week: No")).toBeVisible();
 
   await page.route("**/api/user/dashboard", (route) => route.fulfill({ status: 401, body: "{}" }));
   await page.reload();
