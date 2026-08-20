@@ -8,6 +8,7 @@ function createAutoPickCoordinator({
   setTimeoutFn = setTimeout,
   clearTimeoutFn = clearTimeout,
   logger,
+  onError = () => {},
 }) {
   let interval;
   let deadlineTimer;
@@ -30,6 +31,7 @@ function createAutoPickCoordinator({
       if (result.status === "COMPLETED") logger.info("auto_pick_completed", { assignedCount: result.assignedCount, week: result.week });
       return result;
     } catch (error) {
+      void onError(error);
       state = { status: "BLOCKED", deadline: state.deadline };
       const reason = error.code || error.name;
       if (reason !== blockedReason) logger.warn("auto_pick_blocked", { reason });

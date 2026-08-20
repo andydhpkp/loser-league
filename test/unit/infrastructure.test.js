@@ -1,6 +1,7 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
 const express = require("express");
+const session = require("express-session");
 const request = require("supertest");
 
 const {
@@ -14,6 +15,7 @@ const {
 const { createLogger, redact } = require("../../server/lib/logger");
 const { createApp } = require("../../server/app");
 const { startServer } = require("../../server/start");
+const { DATABASE_POOL } = require("../../config/connection-options");
 
 function createTestApp(options = {}) {
   return createApp({
@@ -21,6 +23,66 @@ function createTestApp(options = {}) {
     ...options,
   });
 }
+
+class RecordingSessionStore extends session.Store {
+  constructor() {
+    super();
+    this.reads = 0;
+    this.writes = 0;
+    this.sessions = new Map();
+  }
+
+  get(sessionId, callback) {
+    this.reads += 1;
+    callback(null, this.sessions.get(sessionId) || null);
+  }
+
+  set(sessionId, value, callback) {
+    this.writes += 1;
+    this.sessions.set(sessionId, value);
+    callback?.();
+  }
+
+  destroy(_sessionId, callback) {
+    callback?.();
+  }
+}
+
+test("production database pool retains capacity headroom", () => {
+  assert.deepEqual(DATABASE_POOL, {
+    max: 2,
+    min: 0,
+    acquire: 10_000,
+    idle: 10_000,
+  });
+});
+
+test("public assets and unchanged anonymous pages do not persist sessions", async () => {
+  const store = new RecordingSessionStore();
+  const routes = express.Router();
+  routes.post("/test-login", (req, res) => {
+    req.session.loggedIn = true;
+    req.session.user_id = 42;
+    res.sendStatus(204);
+  });
+  const app = createTestApp({
+    routes,
+    sessionSecret: "test-secret",
+    sessionStore: store,
+  });
+
+  const agent = request.agent(app);
+  assert.equal((await agent.post("/test-login")).status, 204);
+  store.reads = 0;
+  store.writes = 0;
+
+  assert.equal((await agent.get("/service-worker.js")).status, 200);
+  assert.equal(store.reads, 0);
+  assert.equal(store.writes, 0);
+
+  assert.equal((await request(app).get("/")).status, 200);
+  assert.equal(store.writes, 0);
+});
 
 test("web startup verifies the database without synchronizing schema", async () => {
   const calls = [];
@@ -109,6 +171,29 @@ test("expected application errors use their public contract", async () => {
   });
   assert.equal(entries.length, 1);
   assert.equal(entries[0].context.status, 409);
+});
+
+test("database capacity failures use a safe temporary-unavailability contract", async () => {
+  const observed = [];
+  const routes = express.Router();
+  routes.get("/capacity", (_req, _res, next) => {
+    const error = new Error("User has exceeded the 'max_user_connections' resource (current value: 10)");
+    error.name = "SequelizeConnectionError";
+    next(error);
+  });
+  const response = await request(createTestApp({
+    routes,
+    sessionSecret: "test-secret",
+    onDatabaseCapacityFailure: (error) => observed.push(error),
+  })).get("/capacity");
+
+  assert.equal(response.status, 503);
+  assert.equal(response.headers["retry-after"], "30");
+  assert.deepEqual(response.body, {
+    error: "SERVICE_UNAVAILABLE",
+    message: "Loser League is temporarily unavailable. Try again shortly.",
+  });
+  assert.equal(observed.length, 1);
 });
 
 test("schedule proxy maps rejected and thrown upstream calls to safe 502 errors", async () => {

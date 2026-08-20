@@ -127,6 +127,29 @@ healthy. For rollback:
 
 Never automate rollback or infer the target solely from relative position.
 
+### Database connection capacity
+
+The production database User permits ten concurrent connections. Each Loser
+League process has a fixed Sequelize pool maximum of two, leaving headroom for
+overlapping web, release, and bounded one-off processes. Startup logs only the
+safe pool maximum and acquisition timeout; it never logs the database URL,
+host, User, or credentials.
+
+An exact `max_user_connections` capacity failure returns a generic HTTP 503
+with `Retry-After`. Three such failures within 60 seconds cause that web process
+to stop lifecycle coordinators, stop accepting requests, wait at most ten
+seconds for in-flight work, close its pool, and exit. Heroku replaces the dyno
+and owns repeated-crash backoff. Generic connection failures, query errors,
+pool acquisition timeouts, and provider failures do not trigger this recovery.
+
+If recovery repeats, inspect sanitized `database_capacity_*` events and dyno
+process overlap. Do not repeatedly invoke one-off commands, retrieve database
+configuration, or increase the application pool. Disable optional high-rate
+diagnostics, preserve aggregate evidence, and prefer a forward correction. A
+manual `web.1` restart remains available for an isolated incident after the
+exact target is confirmed; verify the homepage, `/api/nfl/teams`, calendar
+feed, login, and dashboard afterward.
+
 ## Credential rotation
 
 Create a replacement dedicated Heroku authorization, update the

@@ -1,4 +1,11 @@
-export async function registerPwa({ navigatorValue = globalThis.navigator, onUpdate = () => {} } = {}) {
+async function clearSupportedAppBadge(navigatorValue) {
+  if (typeof navigatorValue?.clearAppBadge !== "function") return;
+  try { await navigatorValue.clearAppBadge(); } catch (_error) {}
+}
+
+export async function registerPwa({ navigatorValue = globalThis.navigator, documentValue = globalThis.document, onUpdate = () => {} } = {}) {
+  await clearSupportedAppBadge(navigatorValue);
+  documentValue?.addEventListener?.("visibilitychange", () => { if (documentValue.visibilityState === "visible") void clearSupportedAppBadge(navigatorValue); });
   if (!("serviceWorker" in navigatorValue)) return { supported: false };
   try {
     const registration = await navigatorValue.serviceWorker.register("/service-worker.js", { scope: "/" });

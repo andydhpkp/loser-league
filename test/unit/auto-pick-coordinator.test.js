@@ -39,3 +39,16 @@ test("coordinator bounds a distant deadline to Node's maximum timer delay", asyn
   await coordinator.evaluate();
   assert.deepEqual(timeouts, [2_147_483_647]);
 });
+
+test("coordinator reports blocked database work to infrastructure recovery", async () => {
+  const failures = [];
+  const error = new Error("capacity");
+  const coordinator = createAutoPickCoordinator({
+    evaluate: async () => { throw error; },
+    setIntervalFn: () => 1, clearIntervalFn() {}, setTimeoutFn: () => 2, clearTimeoutFn() {},
+    logger: { info() {}, warn() {} },
+    onError: (observed) => failures.push(observed),
+  });
+  assert.equal((await coordinator.evaluate()).status, "BLOCKED");
+  assert.deepEqual(failures, [error]);
+});

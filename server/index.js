@@ -1,4 +1,5 @@
 const sequelize = require("../config/connection.js");
+const { DATABASE_POOL } = require("../config/connection-options");
 const session = require("express-session");
 const SequelizeStore = require("connect-session-sequelize")(session.Store);
 const { createApp } = require("./app");
@@ -31,6 +32,7 @@ const { calculatePickReminderReadiness } = require("./features/pick-reminder-rea
 const { createCalendarScheduleLoader } = require("./modules/calendar/calendar-schedule-loader");
 const { createCalendarService } = require("./modules/calendar/calendar-service");
 const { createCalendarCoordinator } = require("./modules/calendar/calendar-coordinator");
+const { createDatabaseCapacityRecovery, recoverDatabaseProcess } = require("./infrastructure/database-capacity-recovery");
 
 const PORT = process.env.PORT || 3001;
 const logger = createLogger();
@@ -46,10 +48,12 @@ const emailCryptography = emailConfiguration.currentKey ? createEmailTokenCrypto
 const emailProviderHealth = emailConfiguration.credentialVersion ? createEmailProviderHealthService({ credentialVersion: emailConfiguration.credentialVersion, logger }) : null;
 const gmailTransport = emailConfiguration.ready ? createGmailTransport({ nodemailer, configuration: emailConfiguration }) : null;
 const emailTransports = gmailTransport ? createEmailTransports({ gmailTransport, configuration: emailConfiguration }) : null;
+let databaseRecovery;
+const reportDatabaseFailure = (error) => databaseRecovery?.record(error);
 const unavailableEmailService = { status: async () => ({ state: "TEMPORARILY_UNAVAILABLE", maskedDestination: null, retryAfterSeconds: 0, hasPreviousRequest: false }), requestVerification: async () => ({ state: "TEMPORARILY_UNAVAILABLE" }), setEnabled: async () => ({ state: "TEMPORARILY_UNAVAILABLE", maskedDestination: null }), consumeVerification: async () => ({ success: false }), optOut: async () => ({ state: "USER_DISABLED" }), deliveryEligibility: async () => ({ eligible: false, reason: "EMAIL_UNAVAILABLE", defer: true }), cleanup: async () => ({ requestsDeleted: 0, optOutTokensDeleted: 0 }), operationalStatus: async () => ({ email: { state: "EMAIL_UNCONFIGURED", verified: 0, verification: {} } }) };
 const emailReminderService = emailCryptography && emailProviderHealth ? createEmailReminderService({ cryptography: emailCryptography, setupTransport: emailTransports || { sendVerification: async () => ({ classification: "UNKNOWN" }) }, providerHealth: emailProviderHealth, configuration: emailConfiguration, logger }) : unavailableEmailService;
 const providers = {};
-if (pushConfiguration.ready) providers.PUSH = createPushReminderProvider({ cryptography: pushCryptography, transport: createWebPushTransport({ webPush, configuration: pushConfiguration }), configuration: pushConfiguration });
+if (pushConfiguration.ready) providers.PUSH = createPushReminderProvider({ cryptography: pushCryptography, transport: createWebPushTransport({ webPush, configuration: pushConfiguration, logger }), configuration: pushConfiguration });
 if (emailConfiguration.ready) providers.EMAIL = createEmailReminderProvider({ emailService: emailReminderService, transport: emailTransports, providerHealth: emailProviderHealth });
 const reminderService = createReminderService({
   loadAuthoritativeContext: loadAuthoritativeReminderContext,
@@ -65,16 +69,19 @@ const reminderCoordinator = createReminderCoordinator({
   processDue: reminderService.processDue,
   cleanup: reminderService.cleanup,
   logger,
+  onError: reportDatabaseFailure,
 });
 const calendarService = createCalendarService({ loadSchedule: createCalendarScheduleLoader(), configuration: calendarConfiguration, logger });
-const calendarCoordinator = createCalendarCoordinator({ refresh: calendarService.refresh, cleanup: calendarService.cleanup, logger });
+const calendarCoordinator = createCalendarCoordinator({ refresh: calendarService.refresh, cleanup: calendarService.cleanup, logger, onError: reportDatabaseFailure });
 const autoPickCoordinator = createAutoPickCoordinator({
   evaluate: createDefaultAutoPickEvaluator(),
   logger,
+  onError: reportDatabaseFailure,
 });
 const weekClosureCoordinator = createWeekClosureCoordinator({
   evaluate: createDefaultWeekClosureEvaluator(),
   logger,
+  onError: reportDatabaseFailure,
 });
 const lifecycleCoordinator = {
   start() {
@@ -90,6 +97,11 @@ const lifecycleCoordinator = {
     calendarCoordinator.stop();
   },
 };
+let server;
+databaseRecovery = createDatabaseCapacityRecovery({
+  logger,
+  recover: () => recoverDatabaseProcess({ server, lifecycleCoordinator, database: sequelize, logger }),
+});
 const app = createApp({
   sessionStore,
   logger,
@@ -106,10 +118,15 @@ const app = createApp({
   emailConfiguration,
   calendarConfiguration,
   calendarService,
+  onDatabaseCapacityFailure: reportDatabaseFailure,
 });
 
-startServer({ app, database: sequelize, port: PORT, logger, lifecycleCoordinator })
-  .catch((error) => {
+async function start() {
+  logger.info("database_pool_configured", { max: DATABASE_POOL.max, acquireMilliseconds: DATABASE_POOL.acquire });
+  server = await startServer({ app, database: sequelize, port: PORT, logger, lifecycleCoordinator });
+}
+
+void start().catch((error) => {
     logger.error("server_start_failed", { errorType: error.name });
     process.exitCode = 1;
   });

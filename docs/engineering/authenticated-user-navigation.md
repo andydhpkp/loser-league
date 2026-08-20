@@ -14,6 +14,11 @@ persistence is not a User-facing option. The cookie remains `HttpOnly`,
 `SameSite=Lax`, and `Secure` in production. Logout destroys the server session
 and clears the cookie.
 
+Anonymous page and asset requests do not persist an empty server session.
+Static assets never require session-store access. Routes that need User or
+shared-admin authority load the same database-backed session at their protected
+boundary, preserving authenticated redirects and authorization.
+
 Successful login and registration land on `/dashboard.html`. A fresh login
 may return to `/reminder-settings.html` only when that exact safe `returnTo`
 value was supplied; arbitrary return values fall back to the dashboard. The

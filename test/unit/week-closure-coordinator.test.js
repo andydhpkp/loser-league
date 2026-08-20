@@ -29,6 +29,7 @@ test("week closure coordinator runs startup catch-up and schedules the evaluator
 
 test("week closure coordinator reports one sanitized blocked reason and recovers", async () => {
   const warnings = [];
+  const errors = [];
   let attempts = 0;
   const coordinator = createWeekClosureCoordinator({
     evaluate: async () => { attempts += 1; if (attempts < 3) throw Object.assign(new Error("private upstream detail"), { code: "UPSTREAM_ERROR" }); return { status: "PENDING", nextCheckAt: null }; },
@@ -37,12 +38,14 @@ test("week closure coordinator reports one sanitized blocked reason and recovers
     setTimeoutFn: () => 2,
     clearTimeoutFn() {},
     logger: { info() {}, warn: (event, context) => warnings.push({ event, context }) },
+    onError: (error) => errors.push(error.code),
   });
 
   assert.equal((await coordinator.evaluate()).status, "BLOCKED");
   assert.equal((await coordinator.evaluate()).status, "BLOCKED");
   assert.equal((await coordinator.evaluate()).status, "PENDING");
   assert.deepEqual(warnings, [{ event: "week_closure_blocked", context: { reason: "UPSTREAM_ERROR" } }]);
+  assert.deepEqual(errors, ["UPSTREAM_ERROR", "UPSTREAM_ERROR"]);
 });
 
 test("week closure coordinator logs one sanitized completion summary", async () => {

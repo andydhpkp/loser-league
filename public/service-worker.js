@@ -20,9 +20,13 @@ self.addEventListener("fetch", (event) => {
 self.addEventListener("push", (event) => {
   let notification = null; try { notification = event.data?.json()?.notification; } catch (_error) { notification = null; }
   if (!notification) return;
-  event.waitUntil(self.registration.showNotification(notification.title, { body: notification.body, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", data: { navigate: notification.navigate }, tag: "pick-reminder" }));
+  const show = self.registration.showNotification(notification.title, { body: notification.body, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", data: { navigate: notification.navigate }, tag: "pick-reminder" });
+  const badge = typeof self.navigator?.setAppBadge === "function" ? self.navigator.setAppBadge().catch(() => {}) : Promise.resolve();
+  event.waitUntil(Promise.all([show, badge]));
 });
 self.addEventListener("notificationclick", (event) => {
   event.notification.close(); const navigate = event.notification.data?.navigate || "/dashboard.html";
-  event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => { const existing = clients.find((client) => new URL(client.url).origin === self.location.origin); return existing ? existing.focus() : self.clients.openWindow(navigate); }));
+  const clear = typeof self.navigator?.clearAppBadge === "function" ? self.navigator.clearAppBadge().catch(() => {}) : Promise.resolve();
+  const open = self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => { const existing = clients.find((client) => new URL(client.url).origin === self.location.origin); return existing ? existing.focus() : self.clients.openWindow(navigate); });
+  event.waitUntil(Promise.all([clear, open]));
 });

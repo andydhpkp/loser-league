@@ -69,7 +69,18 @@ Never include personal User, Track, Pick, payment, contact, session, or producti
 
 ## Checklist for future browser changes
 
-For the hidden PR 3 PWA seam, verify manifest/icons, standalone detection, iPhone/iPad Home Screen guidance, Android install guidance, direct-gesture notification permission, denial recovery, update-ready signaling, user-initiated waiting-worker activation and reload, notification focus/open behavior, and an offline page with no authenticated content. Use controlled APIs and fake transport only.
+For the hidden PR 3 PWA seam, verify manifest/icons, standalone detection,
+iPhone/iPad Home Screen guidance, Android install guidance, direct-gesture
+notification permission, denial recovery, update-ready signaling,
+user-initiated waiting-worker activation and reload, notification focus/open
+behavior, app-badge set/clear behavior, and an offline page with no authenticated
+content. Badge coverage must prove the notification still displays if badging
+is unsupported or rejected, and that open, foreground return, and notification
+activation clear a supported badge. Existing opted-in
+subscriptions may be replaced without another prompt when the server has
+invalidated their endpoint or their application-server key is stale. Verify
+that repair and also prove a browser with no subscription is never
+auto-enrolled. Use controlled APIs and fake transport only.
 
 For hidden PR 4, verify the public verification success/failure and neutral
 opt-out landings at every portrait width, landscape, 200% text, keyboard focus,

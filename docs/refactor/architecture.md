@@ -37,6 +37,11 @@ binding. The shared HTTP client owns request/error normalization.
   listener lifecycle. The web process verifies database connectivity but never
   synchronizes shared schema. Heroku's release phase applies reviewed forward
   migrations first.
+- Production uses an explicit two-connection Sequelize pool so overlapping web,
+  release, or one-off processes retain headroom beneath the database User's
+  ten-connection limit. Three exact capacity failures within 60 seconds trigger
+  one bounded graceful process exit; Heroku owns replacement and crash backoff.
+  Generic database failures do not trigger restart.
 - League Season and normalized Pick models provide durable year/week, ordered
   weekly Pick, elimination, schedule-version, and exactly-once lifecycle seams.
   Existing Track Pick fields remain compatibility projections during the
@@ -82,6 +87,9 @@ binding. The shared HTTP client owns request/error normalization.
 - `models/index.js` and `models/my-index.js` now share one model graph rather
   than constructing incompatible graphs.
 - Error middleware maps uncaught application errors to HTTP.
+- Session middleware is scoped to protected page and API boundaries. Static
+  assets remain sessionless, and unchanged anonymous requests do not persist a
+  database-backed session.
 - One structured logger owns redaction, levels, and output shape.
 - External NFL odds are fetched by a server proxy so `ODDS_API_KEY` is never
   shipped in browser assets.
