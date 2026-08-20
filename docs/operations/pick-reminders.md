@@ -52,7 +52,29 @@ PR 6 copy is maintained in `public/js/modules/calendar-instructions.js`. It is b
 
 For rotation, configure the new current key/version and the old key/version in `REMINDER_DATA_PREVIOUS_ENCRYPTION_KEY` and `REMINDER_DATA_PREVIOUS_ENCRYPTION_KEY_VERSION`. New registration updates encrypt with current; old rows remain readable only during the bounded rotation. After sanitized counts confirm no old-version rows, remove the prior pair. If a needed prior key is lost, restore it or invalidate affected subscriptions and require setup again.
 
-HTTP 404/410 invalidates only the exact device. 408, 429, and 5xx are temporary; timeout or connection ambiguity becomes unknown and is never blindly resent. Emergency disablement uses the push switch first or the master switch for the feature; neither erases consent. Cleanup removes subscriptions on User deletion or after lost-access grace, while season rollover preserves them. Incident records and logs must never contain endpoints, keys, ciphertext, payloads, or request bodies.
+HTTP 404/410 invalidates only the exact device. 401/403 identifies a retryable
+provider-authorization incident and never invalidates a device. An Apple 403
+with the allowlisted `BadJwtToken` reason receives one immediate retry using the
+canonical HTTPS application origin as its VAPID subject; continued rejection
+uses the ordinary bounded retry policy. 408, 429, and 5xx are temporary; timeout
+or connection ambiguity becomes unknown and is never blindly resent. Existing
+opted-in browser subscriptions repair on settings load when the server has
+invalidated the endpoint or the application-server key changed; a browser with
+no subscription is never auto-enrolled and permission is never requested
+outside a direct User gesture. Sanitized rejection logs contain only provider
+family, integer status, allowlisted reason, and outcome. Emergency disablement
+uses the push switch first or the master switch for the feature; neither erases
+consent. Cleanup removes subscriptions on User deletion or after lost-access
+grace, while season rollover preserves them. Incident records and logs must
+never contain endpoints, keys, ciphertext, payloads, provider bodies, headers,
+or request bodies.
+
+Supporting installed apps receive a binary attention badge with a reminder
+Push. The badge is best effort and is not acceptance or reading evidence. It
+clears when the app starts, returns to the foreground, or the notification is
+activated. Platforms may render `1` instead of a dot, and Users may disable
+badges independently in system notification settings. Badge API failure must
+never suppress the required user-visible notification.
 
 PR 4 keeps the feature hidden and adds verified email. It still
 cannot send while owner configuration and both operational controls remain

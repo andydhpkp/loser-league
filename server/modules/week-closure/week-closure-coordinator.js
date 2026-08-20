@@ -8,6 +8,7 @@ function createWeekClosureCoordinator({
   setIntervalFn = setInterval,
   clearIntervalFn = clearInterval,
   logger,
+  onError = () => {},
 }) {
   let timer;
   let recovery;
@@ -32,6 +33,7 @@ function createWeekClosureCoordinator({
       }
       return result;
     } catch (error) {
+      void onError(error);
       state = { status: "BLOCKED", nextCheckAt: state.nextCheckAt };
       const reason = error.code || error.name;
       if (reason !== blockedReason) logger.warn("week_closure_blocked", { reason });

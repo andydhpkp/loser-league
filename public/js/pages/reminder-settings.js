@@ -1,4 +1,4 @@
-import { loadChannelStatuses, enablePushOnDevice, formatResendDelay, mutateEmpty } from "../modules/reminder-settings.js";
+import { loadChannelStatuses, enablePushOnDevice, formatResendDelay, mutateEmpty, reconcileExistingPushSubscription } from "../modules/reminder-settings.js";
 import { CALENDAR_INSTRUCTIONS } from "../modules/calendar-instructions.js";
 import { logout } from "../logout.js";
 import { activateWaitingServiceWorker, registerPwa } from "../modules/pwa-registration.js";
@@ -15,11 +15,10 @@ async function refreshPushDevice({ timeoutMs = 5_000 } = {}) {
   if (pushConfiguration?.state !== "AVAILABLE" || !("serviceWorker" in globalThis.navigator)) return;
   const registration = await Promise.race([globalThis.navigator.serviceWorker.ready, new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs))]);
   if (!registration?.pushManager) return;
-  currentPushSubscription = await registration.pushManager.getSubscription();
-  if (!currentPushSubscription) return;
-  const response = await fetch("/api/user/reminders/push/status", { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify({ endpoint: currentPushSubscription.endpoint }) });
-  if (!response.ok) return;
-  const status = await response.json(); byId("pushStatus").textContent = `${stateText(status.state)}. ${status.deviceCount} device${status.deviceCount === 1 ? "" : "s"} set up.`; setVisible("enablePush", !status.currentDeviceEnabled); setVisible("disablePush", status.currentDeviceEnabled); setVisible("disableAllPush", status.deviceCount > 0);
+  const result = await reconcileExistingPushSubscription({ configuration: pushConfiguration });
+  currentPushSubscription = result.subscription;
+  if (!result.status) return;
+  const status = result.status; byId("pushStatus").textContent = `${stateText(status.state)}. ${status.deviceCount} device${status.deviceCount === 1 ? "" : "s"} set up.`; setVisible("enablePush", !status.currentDeviceEnabled); setVisible("disablePush", status.currentDeviceEnabled); setVisible("disableAllPush", status.deviceCount > 0);
 }
 function renderEmail(value) {
   byId("emailStatus").textContent = stateText(value.state); byId("maskedEmail").textContent = value.maskedDestination ? `Account email: ${value.maskedDestination}` : "";

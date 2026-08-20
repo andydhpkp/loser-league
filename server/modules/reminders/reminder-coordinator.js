@@ -3,7 +3,7 @@ const { boundedTimeoutDelay } = require("../../lib/timers");
 const RECOVERY_MS = 30_000;
 const CLEANUP_MS = 24 * 60 * 60 * 1000;
 
-function createReminderCoordinator({ evaluate, processDue, cleanup, now = () => new Date(), setTimeoutFn = setTimeout, clearTimeoutFn = clearTimeout, setIntervalFn = setInterval, clearIntervalFn = clearInterval, logger }) {
+function createReminderCoordinator({ evaluate, processDue, cleanup, now = () => new Date(), setTimeoutFn = setTimeout, clearTimeoutFn = clearTimeout, setIntervalFn = setInterval, clearIntervalFn = clearInterval, logger, onError = () => {} }) {
   let targetedTimer;
   let recoveryTimer;
   let cleanupTimer;
@@ -21,6 +21,7 @@ function createReminderCoordinator({ evaluate, processDue, cleanup, now = () => 
       if (result.nextCheckAt) targetedTimer = setTimeoutFn(run, boundedTimeoutDelay(result.nextCheckAt, now()));
       return result;
     } catch (error) {
+      void onError(error);
       const reason = error.code || error.name;
       if (reason !== blockedReason) logger.warn("reminder_evaluation_blocked", { reason });
       blockedReason = reason;
@@ -29,7 +30,7 @@ function createReminderCoordinator({ evaluate, processDue, cleanup, now = () => 
   }
 
   async function runCleanup() {
-    try { await cleanup(); } catch (error) { logger.warn("reminder_cleanup_blocked", { reason: error.code || error.name }); }
+    try { await cleanup(); } catch (error) { void onError(error); logger.warn("reminder_cleanup_blocked", { reason: error.code || error.name }); }
   }
 
   return {

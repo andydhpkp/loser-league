@@ -3,7 +3,7 @@ const test = require("node:test");
 const { buildPushConfiguration } = require("../../server/modules/reminders/push-configuration");
 const { createSubscriptionCryptography } = require("../../server/modules/reminders/push-subscription-cryptography");
 const { validatePushSubscription } = require("../../server/modules/reminders/push-subscription-validation");
-const { buildPushMessage, classifyWebPushResult } = require("../../server/modules/reminders/web-push-provider");
+const { buildPushMessage, classifyWebPushResult, createWebPushTransport } = require("../../server/modules/reminders/web-push-provider");
 const { aggregate } = require("../../server/modules/reminders/push-reminder-provider");
 
 const key = Buffer.alloc(32, 7).toString("base64");
@@ -40,14 +40,55 @@ test("push content, TTL, topic, and provider classifications are bounded", () =>
   const message = buildPushMessage({ now: new Date("2026-09-10T23:59:58.100Z"), deadline, seasonYear: 2026, round: 3, navigateUrl: "https://example.test/dashboard.html" });
   assert.equal(message.options.TTL, 1);
   assert.equal(message.options.topic, "ll-2026-3");
-  assert.deepEqual(JSON.parse(message.payload), { web_push: 8030, notification: { title: "Loser League reminder", body: "You may still have Picks to complete. Open Loser League.", navigate: "https://example.test/dashboard.html" } });
+  assert.deepEqual(JSON.parse(message.payload), { web_push: 8030, notification: { title: "Loser League reminder", body: "You may still have Picks to complete. Open Loser League.", navigate: "https://example.test/dashboard.html", app_badge: "1" } });
   assert.throws(() => buildPushMessage({ now: deadline, deadline, seasonYear: 2026, round: 3, navigateUrl: "https://example.test/dashboard.html" }));
   assert.equal(classifyWebPushResult({ statusCode: 201 }), "ACCEPTED");
   assert.equal(classifyWebPushResult({ statusCode: 410 }), "GONE");
+  assert.equal(classifyWebPushResult({ statusCode: 401 }), "TEMPORARY_FAILURE");
+  assert.equal(classifyWebPushResult({ statusCode: 403 }), "TEMPORARY_FAILURE");
   assert.equal(classifyWebPushResult({ statusCode: 429 }), "TEMPORARY_FAILURE");
   assert.equal(classifyWebPushResult({ statusCode: 400 }), "PERMANENT_FAILURE");
   assert.equal(classifyWebPushResult({ error: { code: "ETIMEDOUT" } }), "UNKNOWN");
   assert.equal(aggregate(["ACCEPTED", "UNKNOWN"]), "UNKNOWN");
   assert.equal(aggregate(["ACCEPTED", "TEMPORARY_FAILURE"]), "TEMPORARY_FAILURE");
   assert.equal(aggregate(["ACCEPTED", "PERMANENT_FAILURE"]), "ACCEPTED");
+});
+
+test("push transport logs only allowlisted provider diagnostics", async () => {
+  const warnings = [];
+  const webPush = {
+    setVapidDetails() {},
+    async sendNotification() {
+      const error = new Error("contains unsafe provider detail");
+      error.statusCode = 403;
+      error.body = '{"reason":"BadJwtToken","token":"must-not-log"}';
+      throw error;
+    },
+  };
+  const transport = createWebPushTransport({
+    webPush,
+    configuration: { ready: true, vapidSubject: "https://example.test", vapidPublicKey: "public", vapidPrivateKey: "private" },
+    logger: { warn(event, context) { warnings.push({ event, context }); } },
+  });
+  assert.deepEqual(await transport.send({ endpoint: "https://web.push.apple.com/secret" }, { payload: "secret payload", options: {} }), { outcome: "TEMPORARY_FAILURE" });
+  assert.deepEqual(warnings, [{ event: "push_provider_rejected", context: { provider: "APPLE", status: 403, reason: "BAD_JWT_TOKEN", outcome: "TEMPORARY_FAILURE" } }]);
+  assert.doesNotMatch(JSON.stringify(warnings), /secret|must-not-log|unsafe/i);
+});
+
+test("Apple BadJwtToken retries once with the canonical HTTPS VAPID subject", async () => {
+  const calls = [];
+  const webPush = {
+    setVapidDetails() {},
+    async sendNotification(_subscription, _payload, options) {
+      calls.push(options);
+      if (calls.length === 1) {
+        const error = new Error("rejected"); error.statusCode = 403; error.body = '{"reason":"BadJwtToken"}'; throw error;
+      }
+      return { statusCode: 201 };
+    },
+  };
+  const transport = createWebPushTransport({ webPush, configuration: { ready: true, publicAppOrigin: "https://example.test", vapidSubject: "mailto:owner@example.test", vapidPublicKey: "public", vapidPrivateKey: "private" }, logger: { warn() {}, info() {} } });
+  assert.deepEqual(await transport.send({ endpoint: "https://web.push.apple.com/device" }, { payload: "payload", options: { TTL: 30 } }), { outcome: "ACCEPTED" });
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls[1].vapidDetails, { subject: "https://example.test", publicKey: "public", privateKey: "private" });
 });

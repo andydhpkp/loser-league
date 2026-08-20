@@ -56,6 +56,7 @@ function createApp({
   loadManualReminderContext,
   getReminderOperationalStatus = async () => ({ counts: {} }),
   getReminderReleaseReadiness = async () => ({ ready: false, checks: {} }),
+  onDatabaseCapacityFailure,
   inspectAdminTrack = inspectTrack,
   inspectAdminUserWorkspace = inspectUserWorkspace,
   userDashboardService = dashboardService,
@@ -96,11 +97,12 @@ function createApp({
       secure: isProduction,
     },
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false,
     ...(sessionStore ? { store: sessionStore } : {}),
   });
   if (calendarService) app.use("/calendar", createPublicCalendarRouter({ service: calendarService, available: () => featureConfiguration.pickRemindersCalendarAvailable === true && calendarConfiguration.ready }));
-  app.use(sessionMiddleware, createReminderSettingsPageRouter({ getAccess: getPickRemindersAccess, featureConfiguration, pagePath: path.join(__dirname, "../public/reminder-settings.html") }));
+  app.get("/reminder-settings.html", sessionMiddleware);
+  app.use(createReminderSettingsPageRouter({ getAccess: getPickRemindersAccess, featureConfiguration, pagePath: path.join(__dirname, "../public/reminder-settings.html") }));
   app.get(["/", "/index.html"], sessionMiddleware, (req, res) => {
     if (req.session?.loggedIn === true && Number.isInteger(req.session.user_id)) {
       res.redirect("/dashboard.html");
@@ -209,7 +211,7 @@ function createApp({
 
   app.use("/api/nfl", createNflRouter({ fetchImpl }));
   app.use(routes || require("../controllers"));
-  app.use(createErrorHandler(logger));
+  app.use(createErrorHandler(logger, { onDatabaseCapacityFailure }));
 
   return app;
 }

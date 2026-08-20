@@ -24,3 +24,23 @@ test("reminder coordinator performs startup catch-up, exact wakeup, periodic rec
   coordinator.stop();
   assert.ok(calls.includes("clear-timeout-1"));
 });
+
+test("reminder coordinator reports evaluation and cleanup failures", async () => {
+  const failures = [];
+  const evaluationError = new Error("evaluation");
+  const cleanupError = new Error("cleanup");
+  const intervals = [];
+  const coordinator = createReminderCoordinator({
+    evaluate: async () => { throw evaluationError; },
+    processDue: async () => {},
+    cleanup: async () => { throw cleanupError; },
+    setTimeoutFn: () => 1, clearTimeoutFn() {},
+    setIntervalFn: (callback) => { intervals.push(callback); return intervals.length; }, clearIntervalFn() {},
+    logger: { warn() {}, info() {} },
+    onError: (error) => failures.push(error),
+  });
+  coordinator.start();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(failures, [evaluationError, cleanupError]);
+  coordinator.stop();
+});

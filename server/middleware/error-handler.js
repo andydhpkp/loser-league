@@ -1,13 +1,22 @@
 const { AppError, UpstreamError } = require("../lib/errors");
+const { isDatabaseCapacityError } = require("../infrastructure/database-capacity-recovery");
 
-function createErrorHandler(logger) {
+function createErrorHandler(logger, { onDatabaseCapacityFailure } = {}) {
   return function errorHandler(error, req, res, _next) {
+    const databaseCapacityFailure = isDatabaseCapacityError(error);
     const expected = error instanceof AppError;
-    const status = expected ? error.status : 500;
-    const code = expected ? error.code : "INTERNAL_ERROR";
-    const message = expected
+    const status = databaseCapacityFailure ? 503 : expected ? error.status : 500;
+    const code = databaseCapacityFailure ? "SERVICE_UNAVAILABLE" : expected ? error.code : "INTERNAL_ERROR";
+    const message = databaseCapacityFailure
+      ? "Loser League is temporarily unavailable. Try again shortly."
+      : expected
       ? error.message
       : "An unexpected error occurred";
+
+    if (databaseCapacityFailure) {
+      res.set("Retry-After", "30");
+      void onDatabaseCapacityFailure?.(error);
+    }
 
     logger.error("request_failed", {
       requestId: req.requestId,
