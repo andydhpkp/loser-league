@@ -98,6 +98,43 @@ test("a pending mutation disables affected controls and announces progress", asy
   await expect(page.getByRole("status").last()).toHaveText("Updating…");
 });
 
+test("admin buyback choices render as separate checkbox rows", async ({ page }) => {
+  await page.route("**/api/admin/buybacks?view=*", (route) => {
+    const status = new URL(route.request().url()).searchParams.get("view") === "eligible" ? "ELIGIBLE" : "PENDING_USER_REQUEST";
+    return route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify({ decisions: [{
+      id: 87,
+      status,
+      stateVersion: 1,
+      user: { id: 3, displayName: "Alice Able", username: "alice" },
+      tracks: [
+        { trackId: 1200, weekOnePick: "A Very Long Synthetic NFL Team Name" },
+        { trackId: 1201, weekOnePick: "Another Very Long Synthetic NFL Team Name" },
+      ],
+    }] }),
+    });
+  });
+  await page.getByRole("button", { name: "Manage Buybacks" }).click();
+  await page.getByRole("button", { name: "Pending requests" }).click();
+
+  const choices = page.locator("#buybackQueue fieldset .form-check");
+  await expect(choices).toHaveCount(3);
+  await expect(choices.nth(0)).toContainText("Requested Track 1");
+  await expect(choices.nth(1)).toContainText("Requested Track 2");
+  await expect(choices.nth(2)).toContainText("External payment confirmed");
+  await expect(choices.nth(0).locator("input")).toHaveCount(1);
+  await expect(choices.nth(1).locator("input")).toHaveCount(1);
+  await expect(choices.nth(2).locator("input")).toHaveCount(1);
+
+  await page.getByRole("button", { name: "Eligible Users" }).click();
+  await expect(choices).toHaveCount(3);
+  await expect(choices.nth(0)).toContainText("Eligible Track 1");
+  await expect(choices.nth(1)).toContainText("Eligible Track 2");
+  await expect(choices.nth(2)).toContainText("External payment confirmed");
+});
+
 test("deleting a User preserves the search and returns to the filtered list", async ({ page }) => {
   await page.getByRole("button", { name: "Make Changes for a User" }).click();
   const search = page.getByLabel("Find a User");

@@ -127,8 +127,16 @@ async function loadBuybacks(view = "pending") {
     section.append(heading, summary);
     if (decision.status === "PENDING_USER_REQUEST") {
       const choices = document.createElement("fieldset"); const legend = document.createElement("legend"); legend.className = "h6"; legend.textContent = "$10 each — select only Tracks with confirmed external payment"; choices.append(legend);
-      for (const [index, track] of decision.tracks.entries()) { const label = document.createElement("label"); label.className = "form-check-label me-3"; const input = document.createElement("input"); input.type = "checkbox"; input.className = "form-check-input me-1 admin-buyback-track"; input.value = track.trackId; label.append(input, document.createTextNode(`Requested Track ${index + 1} — ${pickLabel}: ${track.weekOnePick}`)); choices.append(label); }
-      const paymentLabel = document.createElement("label"); paymentLabel.className = "form-check-label d-block my-2"; const payment = document.createElement("input"); payment.type = "checkbox"; payment.className = "form-check-input me-1 admin-buyback-payment"; paymentLabel.append(payment, document.createTextNode("External payment confirmed for every selected Track")); choices.append(paymentLabel);
+      for (const [index, track] of decision.tracks.entries()) {
+        const row = document.createElement("div"); row.className = "form-check mb-2";
+        const input = document.createElement("input"); input.type = "checkbox"; input.className = "form-check-input admin-buyback-track"; input.id = `pendingBuyback${decision.id}Track${track.trackId}`; input.value = track.trackId;
+        const label = document.createElement("label"); label.className = "form-check-label"; label.htmlFor = input.id; label.textContent = `Requested Track ${index + 1} — ${pickLabel}: ${track.weekOnePick}`;
+        row.append(input, label); choices.append(row);
+      }
+      const paymentRow = document.createElement("div"); paymentRow.className = "form-check mb-3";
+      const payment = document.createElement("input"); payment.type = "checkbox"; payment.className = "form-check-input admin-buyback-payment"; payment.id = `pendingBuyback${decision.id}Payment`;
+      const paymentLabel = document.createElement("label"); paymentLabel.className = "form-check-label"; paymentLabel.htmlFor = payment.id; paymentLabel.textContent = "External payment confirmed for every selected Track";
+      paymentRow.append(payment, paymentLabel); choices.append(paymentRow);
       section.append(choices);
       const complete = document.createElement("button"); complete.className = "btn btn-success me-2"; complete.textContent = "Complete selected paid subset";
       complete.addEventListener("click", async () => { const fulfilledTrackIds = [...section.querySelectorAll(".admin-buyback-track:checked")].map((input) => Number(input.value)); const paymentConfirmed = section.querySelector(".admin-buyback-payment").checked; if (!paymentConfirmed || !fulfilledTrackIds.length || !window.confirm(`Reactivate ${fulfilledTrackIds.map((id) => `Track ${id}`).join(", ")} at $10 each and close every other requested Track as unfulfilled?`)) return; await fetch(`/api/admin/buybacks/${decision.id}/complete`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stateVersion: decision.stateVersion, fulfilledTrackIds, paymentConfirmed }) }); await loadBuybacks(); });
@@ -137,8 +145,16 @@ async function loadBuybacks(view = "pending") {
       section.append(complete, cancel);
     } else if (decision.status === "ELIGIBLE") {
       const choices = document.createElement("fieldset"); const legend = document.createElement("legend"); legend.className = "h6"; legend.textContent = "Select Tracks with confirmed external payment"; choices.append(legend);
-      for (const [index, track] of decision.tracks.entries()) { const label = document.createElement("label"); label.className = "form-check-label me-3"; const input = document.createElement("input"); input.type = "checkbox"; input.className = "form-check-input me-1 admin-buyback-track"; input.value = track.trackId; label.append(input, document.createTextNode(`Eligible Track ${index + 1}${track.weekOnePick ? ` — ${pickLabel}: ${track.weekOnePick}` : ""}`)); choices.append(label); }
-      const paymentLabel = document.createElement("label"); paymentLabel.className = "form-check-label d-block my-2"; const payment = document.createElement("input"); payment.type = "checkbox"; payment.className = "form-check-input me-1 admin-buyback-payment"; paymentLabel.append(payment, document.createTextNode("External payment confirmed for every selected Track")); choices.append(paymentLabel);
+      for (const [index, track] of decision.tracks.entries()) {
+        const row = document.createElement("div"); row.className = "form-check mb-2";
+        const input = document.createElement("input"); input.type = "checkbox"; input.className = "form-check-input admin-buyback-track"; input.id = `eligibleBuyback${decision.id}Track${track.trackId}`; input.value = track.trackId;
+        const label = document.createElement("label"); label.className = "form-check-label"; label.htmlFor = input.id; label.textContent = `Eligible Track ${index + 1}${track.weekOnePick ? ` — ${pickLabel}: ${track.weekOnePick}` : ""}`;
+        row.append(input, label); choices.append(row);
+      }
+      const paymentRow = document.createElement("div"); paymentRow.className = "form-check mb-3";
+      const payment = document.createElement("input"); payment.type = "checkbox"; payment.className = "form-check-input admin-buyback-payment"; payment.id = `eligibleBuyback${decision.id}Payment`;
+      const paymentLabel = document.createElement("label"); paymentLabel.className = "form-check-label"; paymentLabel.htmlFor = payment.id; paymentLabel.textContent = "External payment confirmed for every selected Track";
+      paymentRow.append(payment, paymentLabel); choices.append(paymentRow);
       const complete = document.createElement("button"); complete.className = "btn btn-warning"; complete.type = "button"; complete.textContent = "Complete selected buybacks";
       complete.addEventListener("click", async () => { const trackIds = [...section.querySelectorAll(".admin-buyback-track:checked")].map((input) => Number(input.value)); if (!payment.checked || !trackIds.length || !window.confirm(`Reactivate ${trackIds.length} selected Tracks for ${decision.user.displayName}?`)) return; const response = await fetch("/api/admin/buybacks/direct/complete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: decision.user.id, trackIds, stateVersion: decision.stateVersion, paymentConfirmed: true }) }); if (response.ok) await loadBuybacks("eligible"); });
       section.append(choices, complete);

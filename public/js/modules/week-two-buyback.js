@@ -32,10 +32,10 @@ export function renderBuyback(buyback, { fetchImpl = fetch, modalApi = window.bo
   banner.firstChild.textContent = `Resolve your ${view.schedulePhase === "PRESEASON" ? "preseason" : "Week 2"} buyback decision before making Picks. `;
   banner.hidden = !view.pickBlocked;
   document.getElementById("reopenBuyback").onclick = () => modalApi.getOrCreateInstance(modalElement).show();
-  form.replaceChildren(...view.tracks.map((track) => {
+  form.replaceChildren(...view.tracks.map((track, index) => {
     const wrapper = document.createElement("div"); wrapper.className = "form-check";
     const input = document.createElement("input"); input.type = "checkbox"; input.className = "form-check-input buyback-track"; input.id = `buybackTrack${track.trackId}`; input.value = String(track.trackId); input.disabled = view.status !== "ELIGIBLE";
-    const label = document.createElement("label"); label.className = "form-check-label"; label.htmlFor = input.id; label.textContent = `Track ${track.trackId} — ${view.pickLabel}: ${track.weekOnePick}${track.resolution ? ` (${track.resolution.toLowerCase()})` : ""}`;
+    const label = document.createElement("label"); label.className = "form-check-label"; label.htmlFor = input.id; label.textContent = `Track ${index + 1} — ${view.pickLabel}: ${track.weekOnePick}${track.resolution ? ` (${track.resolution.toLowerCase()})` : ""}`;
     wrapper.append(input, label); return wrapper;
   }));
   const total = document.getElementById("buybackTotal");
@@ -43,23 +43,54 @@ export function renderBuyback(buyback, { fetchImpl = fetch, modalApi = window.bo
   form.addEventListener("change", updateTotal); updateTotal();
   const actions = document.getElementById("buybackContactActions"); actions.replaceChildren(); addContactActions(actions, view);
   const request = document.getElementById("requestBuyback"); const decline = document.getElementById("declineBuyback");
+  const confirm = document.getElementById("confirmBuybackRequest");
+  let mutationPending = false;
   request.hidden = view.status !== "ELIGIBLE"; decline.hidden = view.status !== "ELIGIBLE";
   request.onclick = () => {
     const selected = [...form.querySelectorAll(".buyback-track:checked")].map((input) => Number(input.value));
     const error = document.getElementById("buybackError");
     if (!selected.length) { error.textContent = "Select at least one eligible Track."; error.hidden = false; return; }
-    document.getElementById("buybackConfirmationSummary").textContent = `${selected.map((id) => `Track ${id}`).join(", ")}; ${view.unitPrice} each; ${dollars(selected.length * view.unitPriceCents)} total. Payment is manual and Picks stay blocked until admin resolution.`;
+    const selectedLabels = selected.map((id) => `Track ${view.tracks.findIndex((track) => track.trackId === id) + 1}`);
+    document.getElementById("buybackConfirmationSummary").textContent = `${selectedLabels.join(", ")}; ${view.unitPrice} each; ${dollars(selected.length * view.unitPriceCents)} total. Payment is manual and Picks stay blocked until admin resolution.`;
     document.getElementById("buybackConfirmation").hidden = false;
-    document.getElementById("confirmBuybackRequest").onclick = async () => mutate("request", { trackIds: selected });
+    confirm.onclick = async () => mutate("request", { trackIds: selected });
   };
   decline.onclick = () => {
     document.getElementById("buybackConfirmationSummary").textContent = view.declineConfirmation;
     document.getElementById("buybackConfirmation").hidden = false;
-    document.getElementById("confirmBuybackRequest").onclick = async () => mutate("decline", {});
+    confirm.onclick = async () => mutate("decline", {});
   };
   async function mutate(action, body) {
-    const response = await fetchImpl(`/api/user/league/buyback/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, stateVersion: view.stateVersion }) });
-    if (!response.ok) { const payload = await response.json(); const error = document.getElementById("buybackError"); error.textContent = payload.message || "Buyback decision failed"; error.hidden = false; return; }
+    if (mutationPending) return;
+    mutationPending = true;
+    const controls = [...modalElement.querySelectorAll("button, input")];
+    const previousDisabled = controls.map((control) => control.disabled);
+    controls.forEach((control) => { control.disabled = true; });
+    const previousConfirmText = confirm.textContent;
+    confirm.textContent = "Submitting…";
+    modalElement.setAttribute("aria-busy", "true");
+    const error = document.getElementById("buybackError");
+    error.hidden = true;
+    try {
+      const response = await fetchImpl(`/api/user/league/buyback/${action}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...body, stateVersion: view.stateVersion }) });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        error.textContent = payload.message || "Buyback decision failed";
+        error.hidden = false;
+        return;
+      }
+    } catch {
+      error.textContent = "Buyback decision failed";
+      error.hidden = false;
+      return;
+    } finally {
+      if (!error.hidden) {
+        controls.forEach((control, index) => { control.disabled = previousDisabled[index]; });
+        confirm.textContent = previousConfirmText;
+        modalElement.removeAttribute("aria-busy");
+        mutationPending = false;
+      }
+    }
     window.location.reload();
   }
   if (["ELIGIBLE", "PENDING_USER_REQUEST"].includes(view.status)) modalApi.getOrCreateInstance(modalElement).show();
