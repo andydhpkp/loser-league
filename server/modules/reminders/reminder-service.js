@@ -54,7 +54,7 @@ function createReminderService({
     const { evaluated, deliveries } = await buildCandidates({ season: context.season, deadline: context.deadline, currentTime });
     const campaign = await repository.createCampaignWithDeliveries({ season: context.season, deadline: context.deadline, kind: "AUTOMATIC", candidates: deliveries, evaluated, now: currentTime });
     const summary = { status: campaign.created ? "CREATED" : "ALREADY_CREATED", nextCheckAt: context.deadline, evaluated, eligible: deliveries.length };
-    logger.info("reminder_evaluation_completed", summary);
+    if (campaign.created) logger.info("reminder_evaluation_completed", summary);
     return summary;
   }
 
