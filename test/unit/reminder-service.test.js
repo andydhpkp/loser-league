@@ -32,6 +32,32 @@ test("automatic evaluation catches up once and creates all eligible personalized
   assert.equal(Object.hasOwn(created, "message"), false);
 });
 
+test("automatic evaluation logs campaign creation but suppresses unchanged recovery passes", async () => {
+  const events = [];
+  let created = true;
+  const service = createReminderService({
+    repository: repository({
+      createCampaignWithDeliveries: async ({ candidates }) => {
+        const wasCreated = created;
+        created = false;
+        return { created: wasCreated, deliveryCount: candidates.length };
+      },
+    }),
+    loadAuthoritativeContext: async () => ({ season, deadline }),
+    getAccess: async () => ({ effective: true }),
+    configuration,
+    logger: { info: (event, context) => events.push({ event, context }), warn() {} },
+    now: () => new Date("2026-09-10T12:00:00Z"),
+  });
+
+  assert.equal((await service.evaluateAutomatic()).status, "CREATED");
+  assert.equal((await service.evaluateAutomatic()).status, "ALREADY_CREATED");
+  assert.deepEqual(events, [{
+    event: "reminder_evaluation_completed",
+    context: { status: "CREATED", nextCheckAt: deadline, evaluated: 1, eligible: 2 },
+  }]);
+});
+
 test("a retry rechecks eligibility and suppresses before provider invocation", async () => {
   const finished = [];
   let claims = 0;

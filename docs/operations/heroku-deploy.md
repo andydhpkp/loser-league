@@ -7,6 +7,10 @@ PR 6 adds the integrated UI and fail-closed readiness gate but authorizes no Her
 Loser League deploys the exact tested `main` commit through
 `.github/workflows/test-and-deploy.yml`.
 
+Papertrail ingestion measurement, budgets, filter canaries, and recovery are
+documented in [`papertrail-log-volume.md`](papertrail-log-volume.md). Production
+filter, alert, and plan mutations always require explicit owner approval.
+
 ## GitHub configuration
 
 Create a GitHub Environment named `production` with no required reviewer:

@@ -19,6 +19,7 @@ const { UpstreamError } = require("./lib/errors");
 const { createLogger } = require("./lib/logger");
 const { createErrorHandler } = require("./middleware/error-handler");
 const { requestContext } = require("./middleware/request-context");
+const { createRequestVolumeMiddleware } = require("./middleware/request-volume");
 const { createNflRouter } = require("./nfl/routes");
 const { createDefaultManualClosureContextLoader } = require("./modules/week-closure/manual-closure-context");
 const { inspectTrack, inspectUserWorkspace } = require("./modules/admin-repairs/inspector-service");
@@ -86,6 +87,7 @@ function createApp({
   }
 
   app.use(requestContext);
+  app.use(createRequestVolumeMiddleware({ logger }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   const sessionMiddleware = session({
