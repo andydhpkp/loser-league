@@ -11,6 +11,13 @@ Papertrail ingestion measurement, budgets, filter canaries, and recovery are
 documented in [`papertrail-log-volume.md`](papertrail-log-volume.md). Production
 filter, alert, and plan mutations always require explicit owner approval.
 
+Seasonal shutdown and reactivation are owner-run production operations. They
+can reduce off-season cost, but they intentionally make the web application
+unavailable while preserving the database and League history. Follow
+[`#seasonal-shutdown`](#seasonal-shutdown) and
+[`#seasonal-reactivation`](#seasonal-reactivation); never improvise a JawsDB
+deprovisioning workflow.
+
 ## GitHub configuration
 
 Create a GitHub Environment named `production` with no required reviewer:
@@ -109,6 +116,245 @@ For each deployment, record:
 
 Do not record Heroku configuration values, credentials, database URLs, request
 bodies, sessions, or production data.
+
+## Seasonal operations
+
+Use seasonal operations only after the production owner confirms the exact
+target app and the current provider plan names/prices. Prices and add-on tier
+names are planning inputs, not source-controlled constants.
+
+Authorized production operator: the production owner with Heroku and GitHub
+production access. A helper can prepare status output, but only the production
+owner can approve shutdown, reactivation, Papertrail plan changes, dyno
+formation changes, rollback, or recovery mutations.
+
+Approved seasonal states:
+
+- Active season:
+  - Heroku `web` formation runs on the approved Basic-size formation.
+  - JawsDB stays on the capacity-appropriate paid plan.
+  - Papertrail uses the smallest currently available tier that satisfies the
+    active-season volume model in [`papertrail-log-volume.md`](papertrail-log-volume.md).
+- Off-season:
+  - Heroku `web` formation is scaled to zero.
+  - JawsDB stays attached on the approved paid plan. Do not deprovision,
+    downgrade, destroy, detach, or restore JawsDB as part of seasonal shutdown.
+  - Papertrail is downgraded to the approved free tier after current plan names,
+    quotas, retention, and prices are verified.
+
+While the `web` formation is zero:
+
+- the website is unavailable;
+- Pick Reminder Settings are unavailable;
+- email verification and opt-out pages are unavailable;
+- calendar feeds are unavailable;
+- reminder, auto-pick, calendar, and week-closure coordinators do not run; and
+- production HTTP health checks cannot pass until `web` is scaled back up.
+
+The GitHub-to-Heroku deployment contract remains unchanged during hibernation.
+Merges to `main` still run the complete gate and push the exact tested commit
+to Heroku. The release phase can run while the `web` formation is zero, but
+HTTP health checks are expected to fail unless the owner temporarily restores a
+web dyno for verification. Reactivation must verify the intended tested commit
+or deploy a new tested commit before the next League Season is activated.
+
+### Read-only seasonal status
+
+Run local Heroku status from a trusted checkout with the Heroku CLI
+authenticated to the production owner:
+
+```sh
+npm run heroku:seasonal:status -- --app loser-league --origin https://loser-league.herokuapp.com
+```
+
+This command reads process formation, add-on names and plan names, the latest
+release, the Heroku Git `main` ref, and bounded HTTP health. It does not call
+Heroku config-var commands and does not read configuration values.
+
+Run the database preflight inside a Heroku one-off dyno so it uses production
+configuration without printing configuration values:
+
+```sh
+heroku run --app loser-league --no-tty "npm run heroku:seasonal:database-preflight -- --mode shutdown"
+```
+
+For reactivation:
+
+```sh
+heroku run --app loser-league --no-tty "npm run heroku:seasonal:database-preflight -- --mode reactivation"
+```
+
+The database preflight reports only database reachability, sanitized League
+Season state, aggregate pending-operation counts, and blocking categories. It
+exits non-zero for a blocked shutdown. It must not print User data, Track data,
+Pick details, request bodies, sessions, database URLs, credentials, or
+configuration values.
+
+Do not automate Heroku config-var verification through CLI or API calls because
+Heroku returns values with config-var reads. During reactivation, the production
+owner verifies required config-var names in the Heroku dashboard without
+copying values into chat, issues, logs, or documents.
+
+### Seasonal shutdown
+
+Shutdown is permitted only when the current League Season is `COMPLETE` or
+`ROLLED_OVER`, and no pending deadline, delivery, closure, migration, release,
+or admin-confirmation operation remains. Shutdown is blocked when the current
+League Season is `SETUP` or `ACTIVE`.
+
+1. Confirm there is no release currently running and no pull request is about
+   to merge to `main`.
+2. Run read-only seasonal status:
+
+   ```sh
+   npm run heroku:seasonal:status -- --app loser-league --origin https://loser-league.herokuapp.com
+   ```
+
+3. Run the production database preflight:
+
+   ```sh
+   heroku run --app loser-league --no-tty "npm run heroku:seasonal:database-preflight -- --mode shutdown"
+   ```
+
+4. Verify the preflight result:
+   - `shutdown.allowed` is `true`;
+   - current League Season state is `COMPLETE` or `ROLLED_OVER`;
+   - pending admin previews, reminder deliveries, and push device deliveries
+     are zero;
+   - JawsDB is attached and on the approved retained paid plan;
+   - Papertrail's current plan and free-tier target have been checked against
+     current provider pricing and retention.
+5. Owner confirmation: state the exact Heroku app name, current and target
+   Papertrail plan names, current JawsDB plan name, and the target web
+   formation of zero. Stop unless the production owner approves those exact
+   values immediately before mutation.
+6. Downgrade only Papertrail to the approved free tier:
+
+   ```sh
+   heroku addons:upgrade <papertrail-free-plan-name> --app loser-league
+   ```
+
+7. Scale only the web process type to zero:
+
+   ```sh
+   heroku ps:scale web=0 --app loser-league
+   ```
+
+8. Re-run seasonal status without expecting HTTP health to pass:
+
+   ```sh
+   npm run heroku:seasonal:status -- --app loser-league --origin https://loser-league.herokuapp.com
+   ```
+
+9. Record the sanitized status output, formation, add-on plan names, latest
+   release identifier, Heroku Git `main` ref, shutdown approver, date, and any
+   expected unavailable health checks.
+
+Shutdown must not run:
+
+- `heroku addons:destroy`;
+- `heroku addons:detach`;
+- any JawsDB plan mutation;
+- any database write or cleanup command;
+- any command that prints config vars, database URLs, credentials, sessions,
+  request bodies, User data, Track data, Pick details, or production records.
+
+### Seasonal reactivation
+
+Reactivation restores production capacity and proves readiness before the next
+League Season is activated. Do not start a new League Season until every
+reactivation verification item has passed.
+
+1. Verify current Heroku and provider pricing, plan names, quotas, and
+   retention. Choose the smallest active-season Papertrail plan that satisfies
+   [`papertrail-log-volume.md`](papertrail-log-volume.md).
+2. Check the intended release:
+   - identify the exact tested GitHub SHA intended for production;
+   - confirm the matching GitHub Actions run passed every required gate; and
+   - deploy or verify that exact commit through the existing tested-main
+     workflow.
+3. Run read-only seasonal status:
+
+   ```sh
+   npm run heroku:seasonal:status -- --app loser-league --origin https://loser-league.herokuapp.com
+   ```
+
+4. Owner dashboard check: verify required config-var names exist without
+   copying or reading values into a transcript. At minimum, confirm the names
+   documented in the application configuration section of this runbook and the
+   reminder/calendar operations runbooks for any enabled feature controls.
+5. Owner confirmation: state the exact Heroku app name, current and target
+   Papertrail plan names, current JawsDB plan name, target web formation, and
+   intended tested commit/release. Stop unless the production owner approves
+   those exact values immediately before mutation.
+6. Upgrade Papertrail to the approved active-season tier when needed:
+
+   ```sh
+   heroku addons:upgrade <papertrail-active-season-plan-name> --app loser-league
+   ```
+
+7. Restore the web process type:
+
+   ```sh
+   heroku ps:scale web=1:Basic --app loser-league
+   ```
+
+8. Confirm release-phase migrations are current without printing config:
+
+   ```sh
+   heroku run --app loser-league --no-tty "npm run db:migrate"
+   ```
+
+9. Run the production database reactivation preflight:
+
+   ```sh
+   heroku run --app loser-league --no-tty "npm run heroku:seasonal:database-preflight -- --mode reactivation"
+   ```
+
+10. Run seasonal status and require both HTTP health checks to pass:
+
+    ```sh
+    npm run heroku:seasonal:status -- --app loser-league --origin https://loser-league.herokuapp.com
+    ```
+
+11. Verify coordinator readiness by inspecting sanitized startup and readiness
+    events only:
+    - database connectivity succeeded;
+    - auto-pick coordinator is not blocked;
+    - week-closure coordinator is not blocked;
+    - reminder coordinator startup/catch-up completed or reported unavailable
+      only because owner controls remain off;
+    - calendar refresh completed, changed, unchanged, fallback, or unavailable
+      according to the documented controls, without exposing provider data.
+12. Record sanitized status/preflight output, the Heroku release, GitHub SHA,
+    formation, add-on plan names, health-check results, coordinator readiness,
+    approver, and date.
+
+Only after all reactivation checks pass may the owner create, start, or activate
+the next League Season.
+
+### Seasonal recovery
+
+Partial shutdown recovery:
+
+1. Stop further seasonal mutations.
+2. Restore `web=1:Basic` if availability is needed.
+3. Restore the prior Papertrail plan if the downgrade failed or removed needed
+   diagnostics.
+4. Re-run seasonal status and database preflight.
+5. Record the exact failed step and sanitized provider state.
+
+Partial reactivation recovery:
+
+1. Keep the next League Season inactive.
+2. If HTTP health fails, follow the deployment failure guidance in this
+   runbook before retrying.
+3. If migrations fail, do not roll back by guess. Confirm the failed release
+   state and prepare a forward fix or exact approved rollback.
+4. If Papertrail upgrade fails, keep web availability decision separate from
+   log-capacity recovery and monitor current quota.
+5. If JawsDB is missing, treat it as an incident. Do not create a replacement
+   database or restore backups without a separate owner-approved recovery plan.
 
 ## Failure and recovery
 
