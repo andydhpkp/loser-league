@@ -83,7 +83,7 @@ test("a failed mutation restores controls and preserves User and Track selection
   await expect(page.getByRole("heading", { name: /Alice Able/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Track 1 actions" })).toBeVisible();
   await expect(replace).toBeEnabled();
-  await expect(page.getByRole("status").last()).toContainText("Unable to preview admin action");
+  await expect(page.getByRole("status").last()).toContainText("Track changed; refresh and review it.");
 });
 
 test("a pending mutation disables affected controls and announces progress", async ({ page }) => {

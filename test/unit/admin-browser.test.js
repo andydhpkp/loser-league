@@ -227,6 +227,61 @@ test("admin official-result and manual-close workflows use registered preview an
   ]);
 });
 
+test("manual reminder action confirms aggregate-only preview contract", async () => {
+  const { runAdminAction } = await import("../../public/js/modules/admin-management.js");
+  const calls = [];
+  const confirmations = [];
+  const previewBody = {
+    action: "SEND_PICK_REMINDERS",
+    leagueSeason: { year: 2026 },
+    round: 3,
+    schedulePhase: "REGULAR",
+    authoritativeDeadline: "2026-09-11T00:00:00.000Z",
+    eligibleDeliveries: { email: 2, push: 1 },
+    warnings: ["Automatic reminder is also near."],
+    confirmationKey: "a".repeat(64),
+  };
+
+  const result = await runAdminAction("SEND_PICK_REMINDERS", {}, {
+    confirmImpl(message) {
+      confirmations.push(message);
+      return true;
+    },
+    async fetchImpl(url, options) {
+      calls.push({ url, body: JSON.parse(options.body) });
+      if (url.endsWith("/preview")) return { ok: true, json: async () => previewBody };
+      return { ok: true, json: async () => ({ action: "SEND_PICK_REMINDERS", operationId: 81, summary: { eligibleDeliveries: { email: 2, push: 1 } } }) };
+    },
+  });
+
+  assert.deepEqual(confirmations, [
+    "Send Pick Reminders\nLeague Season: 2026 REGULAR round 3\nEligible deliveries: 2 email, 1 push\nAutomatic reminder is also near.",
+  ]);
+  assert.deepEqual(calls, [
+    { url: "/api/admin/actions/SEND_PICK_REMINDERS/preview", body: {} },
+    { url: "/api/admin/actions/SEND_PICK_REMINDERS/confirm", body: { confirmationKey: "a".repeat(64) } },
+  ]);
+  assert.equal(result.operationId, 81);
+});
+
+test("admin action preview failures expose safe server messages", async () => {
+  const { runAdminAction } = await import("../../public/js/modules/admin-management.js");
+
+  await assert.rejects(
+    runAdminAction("SEND_PICK_REMINDERS", {}, {
+      confirmImpl: () => true,
+      async fetchImpl() {
+        return {
+          ok: false,
+          status: 409,
+          json: async () => ({ error: "CONFLICT", message: "Pick Reminders manual campaigns are unavailable" }),
+        };
+      },
+    }),
+    /Pick Reminders manual campaigns are unavailable/
+  );
+});
+
 test("season completion and rollover use exact previews and download export before confirmation", async () => {
   const { completeLeagueSeason, rolloverLeagueSeason } = await import("../../public/js/modules/admin-management.js");
   const calls = [];

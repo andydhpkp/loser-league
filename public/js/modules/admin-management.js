@@ -881,6 +881,31 @@ export const rebuildTrackProjections = (intent, options = {}) =>
 export const undoAdminAction = (operationId, options = {}) =>
   runAdminAction("UNDO_ADMIN_ACTION", { operationId: Number(operationId) }, options);
 
+async function adminActionError(response, fallback) {
+  let message = "";
+  try {
+    message = (await response.json())?.message || "";
+  } catch (_error) {}
+  return new Error(message || fallback);
+}
+
+function adminActionPreviewMessage(action, preview, displayName) {
+  if (action === "SEND_PICK_REMINDERS") {
+    const emailCount = preview.eligibleDeliveries?.email ?? 0;
+    const pushCount = preview.eligibleDeliveries?.push ?? 0;
+    return [
+      "Send Pick Reminders",
+      `League Season: ${preview.leagueSeason?.year} ${preview.schedulePhase} round ${preview.round}`,
+      `Eligible deliveries: ${emailCount} email, ${pushCount} push`,
+      ...(preview.warnings || []),
+    ].join("\n");
+  }
+  const unfinished = (preview.unfinishedUnselectedGames || [])
+    .map((game) => `${game.homeTeam} vs ${game.awayTeam}`)
+    .join("\n");
+  return `${preview.description}${displayName ? ` (${displayName})` : ""}\nAffected records: ${(preview.targets || []).length}\n${preview.warnings.join("\n")}${unfinished ? `\nUnfinished unselected games:\n${unfinished}` : ""}`;
+}
+
 export async function runAdminAction(
   action,
   intent,
@@ -891,15 +916,10 @@ export async function runAdminAction(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(intent),
   });
-  if (!previewResponse.ok) throw new Error("Unable to preview admin action");
+  if (!previewResponse.ok) throw await adminActionError(previewResponse, "Unable to preview admin action");
   const preview = await previewResponse.json();
   if (onPreview) onPreview(preview);
-  const unfinished = (preview.unfinishedUnselectedGames || [])
-    .map((game) => `${game.homeTeam} vs ${game.awayTeam}`)
-    .join("\n");
-  const confirmed = confirmImpl(
-    `${preview.description}${displayName ? ` (${displayName})` : ""}\nAffected records: ${preview.targets.length}\n${preview.warnings.join("\n")}${unfinished ? `\nUnfinished unselected games:\n${unfinished}` : ""}`
-  );
+  const confirmed = confirmImpl(adminActionPreviewMessage(action, preview, displayName));
   if (!confirmed) return null;
   const response = await fetchImpl(`/api/admin/actions/${action}/confirm`, {
     method: "POST",
@@ -910,7 +930,7 @@ export async function runAdminAction(
       ...(confirmationPhrase ? { confirmationPhrase } : {}),
     }),
   });
-  if (!response.ok) throw new Error("Unable to confirm admin action");
+  if (!response.ok) throw await adminActionError(response, "Unable to confirm admin action");
   const operation = await response.json();
   if (action === "ADD_USER_WIN") {
     const target = operation.targets.find((item) => item.target_type === "USER");
