@@ -33,6 +33,8 @@
     "dev": "nodemon server/index.js",
     "db:migrate": "sequelize-cli db:migrate",
     "league:bootstrap": "node scripts/bootstrap-league-season.js",
+    "heroku:seasonal:database-preflight": "node scripts/seasonal-heroku-database-preflight.js",
+    "heroku:seasonal:status": "node scripts/heroku-seasonal-status.js",
     "seeds": "node seeds/index.js"
   },
   "repository": {

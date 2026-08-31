@@ -159,6 +159,10 @@ After the owner approves the exact filter:
 
 ## Active-season capacity for issue #85
 
+Seasonal plan changes are executed through
+[`heroku-deploy.md`](heroku-deploy.md#seasonal-operations). This section only
+defines the measurement and sizing input for the active-season Papertrail tier.
+
 Model these profiles:
 
 | Profile | Users | Tracks | Purpose |
