@@ -130,6 +130,11 @@
   - sole owner approval for every provider mutation.
 - Open questions: the dominant ingestion categories and the exact active-season
   Papertrail tier remain evidence-dependent outcomes of diagnosis.
+  - August 31, 2026 fast-follow diagnosis: current aggregate usage still
+    exceeded the free allowance, and visible current logs were dominated by
+    Sequelize SQL query output from `app/web.1`. Production ORM query logging
+    is now explicitly disabled. The exact post-deploy retained daily volume and
+    issue #85 tier recommendation remain evidence-dependent.
 - External dependencies: Heroku, Papertrail/SolarWinds aggregate metrics, and
   issue #85.
 
@@ -140,5 +145,5 @@
   runbook.
 - Residual risk: preseason observations cannot prove active-season volume; the
   synthetic model and mandatory first-week remeasurement mitigate that gap.
-- Next safe step: build and run the sanitized volume feedback loop, rank
-  falsifiable hypotheses, and test them before selecting an implementation.
+- Next safe step: deploy the SQL logging suppression, confirm the deployed SHA,
+  and remeasure aggregate SolarWinds usage after ingestion resets.

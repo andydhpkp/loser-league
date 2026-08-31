@@ -24,6 +24,17 @@ As of August 21, 2026:
   Logplex framing. That is real avoidable volume but cannot explain the full
   observed ingestion.
 
+As of August 31, 2026:
+
+- SolarWinds showed the Logs subscription at 109% used with ingestion stopped.
+- The aggregate Usage dashboard reported 12.1 MB for the past day and 84.3 MB
+  for the past seven days, all under the single `loser-league` log source.
+- The visible current-event stream was dominated by Sequelize SQL query output
+  from `app/web.1` on the background coordinator cadence. This is low-value
+  ORM trace logging rather than an application event contract.
+- Production database connections now explicitly set Sequelize `logging: false`
+  so SQL statements are not emitted to Heroku logs by default.
+
 Do not download archives, export events, open individual event details, or
 copy raw production log lines into an issue, plan, pull request, terminal
 transcript, or documentation while following this runbook.
@@ -180,4 +191,3 @@ If ingestion reaches 100%:
    verify aggregate ingestion resumes.
 6. If retained useful volume legitimately exceeds capacity, follow issue #85's
    owner-approved plan-change procedure; never remove the add-on.
-

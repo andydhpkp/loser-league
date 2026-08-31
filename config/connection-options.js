@@ -5,4 +5,11 @@ const DATABASE_POOL = Object.freeze({
   idle: 10_000,
 });
 
-module.exports = { DATABASE_POOL };
+function createDatabaseOptions() {
+  return {
+    pool: DATABASE_POOL,
+    logging: false,
+  };
+}
+
+module.exports = { DATABASE_POOL, createDatabaseOptions };

@@ -3,7 +3,7 @@ require("dotenv").config();
 const {
   assertDisposableTestDatabase,
 } = require("./test-database");
-const { DATABASE_POOL } = require("./connection-options");
+const { createDatabaseOptions } = require("./connection-options");
 
 //create connection to db
 let sequelize;
@@ -17,7 +17,7 @@ if (process.env.NODE_ENV === "test") {
     logging: false,
   });
 } else if (process.env.JAWSDB_URL) {
-  sequelize = new Sequelize(process.env.JAWSDB_URL, { pool: DATABASE_POOL });
+  sequelize = new Sequelize(process.env.JAWSDB_URL, createDatabaseOptions());
 } else {
   sequelize = new Sequelize(
     process.env.DB_NAME,
@@ -27,7 +27,7 @@ if (process.env.NODE_ENV === "test") {
       host: "127.0.0.1",
       dialect: "mysql",
       port: 3306,
-      pool: DATABASE_POOL,
+      ...createDatabaseOptions(),
     }
   );
 }
