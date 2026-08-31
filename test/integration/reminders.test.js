@@ -6,12 +6,13 @@ if (!databaseUrl) {
 } else {
   process.env.NODE_ENV = "test";
   const assert = require("node:assert/strict");
-  const { sequelize, User, LeagueSeason, ReminderPreference, ReminderCampaign, ReminderDelivery, AdminAuditOperation, PushSubscription } = require("../../models");
+  const { sequelize, User, LeagueSeason, ReminderPreference, ReminderCampaign, ReminderDelivery, AdminAuditOperation, PushSubscription, PushDeviceDelivery } = require("../../models");
   const repository = require("../../server/modules/reminders/reminder-repository");
   const { createPreview, confirmPreview } = require("../../server/admin/action-service");
   const { migrateEmptyTestDatabase } = require("../support/migrate-test-database");
   const { createSubscriptionCryptography } = require("../../server/modules/reminders/push-subscription-cryptography");
   const { createPushSubscriptionService } = require("../../server/modules/reminders/push-subscription-service");
+  const { createPushReminderProvider } = require("../../server/modules/reminders/push-reminder-provider");
 
   test.beforeEach(async () => { await migrateEmptyTestDatabase(sequelize); });
   test.after(async () => sequelize.close());
@@ -117,6 +118,33 @@ if (!databaseUrl) {
     assert.equal((await ReminderPreference.findByPk(target.id)).push_enabled, false);
     await service.register({ userId: target.id, subscription: makeSubscription("three") }); await target.destroy();
     assert.equal(await PushSubscription.count(), 0);
+  });
+
+  test("push delivery invalidates only the exact gone endpoint", async () => {
+    const season = await activeSeason();
+    const target = await user("push-exact-gone");
+    const key = Buffer.alloc(32, 8).toString("base64");
+    const cryptography = createSubscriptionCryptography({ current: { version: "test-v1", key }, digestKey: key });
+    const service = createPushSubscriptionService({ cryptography, now: () => new Date("2026-09-10T12:00:00Z") });
+    const makeSubscription = (suffix) => ({ endpoint: `https://push.example.test/${suffix}`, expirationTime: null, keys: { p256dh: "A".repeat(87), auth: "B".repeat(22) } });
+    await service.register({ userId: target.id, subscription: makeSubscription("gone") });
+    await service.register({ userId: target.id, subscription: makeSubscription("retryable") });
+    const campaign = await ReminderCampaign.create({ league_season_id: season.id, schedule_phase: "REGULAR", round: 3, kind: "AUTOMATIC", window_key: "FIXED_24_HOUR_V1", authoritative_deadline: new Date("2026-09-11T00:00:00Z") });
+    const delivery = await ReminderDelivery.create({ reminder_campaign_id: campaign.id, user_id: target.id, channel: "PUSH" });
+    const provider = createPushReminderProvider({
+      cryptography,
+      configuration: { publicAppOrigin: "https://example.test" },
+      now: () => new Date("2026-09-10T12:00:00Z"),
+      transport: { async send(subscription) { return { outcome: subscription.endpoint.endsWith("/gone") ? "GONE" : "TEMPORARY_FAILURE" }; } },
+    });
+
+    assert.deepEqual(await provider.send({ kind: "PICK_REMINDER", channel: "PUSH", navigateTo: "DASHBOARD" }, { claim: { id: delivery.id, userId: target.id }, context: { season, deadline: campaign.authoritative_deadline } }), { outcome: "TEMPORARY_FAILURE" });
+
+    const rows = await PushSubscription.findAll({ where: { user_id: target.id }, order: [["id", "ASC"]] });
+    assert.deepEqual(rows.map((row) => row.state), ["INVALID", "ACTIVE"]);
+    assert.equal(rows[0].invalidated_at instanceof Date, true);
+    assert.equal(rows[1].invalidated_at, null);
+    assert.deepEqual((await PushDeviceDelivery.findAll({ order: [["push_subscription_id", "ASC"]] })).map((row) => row.state), ["GONE", "TEMPORARILY_FAILED"]);
   });
 
   test("bounded cleanup retains active and previous League Seasons", async () => {
