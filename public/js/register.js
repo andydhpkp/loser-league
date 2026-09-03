@@ -2,6 +2,17 @@ export function capitalizeFirstLetter(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
   }
   
+async function readErrorMessage(response) {
+    try {
+        const payload = await response.json();
+        if (payload && typeof payload.message === "string" && payload.message.trim()) {
+            return payload.message;
+        }
+    } catch (_error) {
+        // Fall through to a stable client-side fallback.
+    }
+    return "We could not create your account. Please check your information and try again.";
+}
 
 export async function signupFormHandler(event) {
     event.preventDefault();
@@ -14,7 +25,7 @@ export async function signupFormHandler(event) {
     const email = document.querySelector('#createEmail').value.trim();
     const password = document.querySelector('#createPassword').value.trim();
 
-    if (first_name && last_name && email && password) {
+    if (first_name && last_name && username && email && password) {
         const response = await fetch('/api/users', {
             method: 'post',
             body: JSON.stringify({
@@ -29,8 +40,10 @@ export async function signupFormHandler(event) {
         if (response.ok) {
             location.href = "/dashboard.html";
         } else {
-            alert(response.statusText);
+            alert(await readErrorMessage(response));
         }
+    } else {
+        alert("Enter your first name, last name, username, email, and password.");
     }
 }
 

@@ -57,6 +57,10 @@ Public `GET /reminders/email/verify?token=...` verifies and enables atomically o
 Browser callers: login, logout, registration, password reset, admin, profile,
 and standings page modules.
 
+Registration preserves successful auto-login and dashboard navigation. Expected
+registration failures return safe, user-actionable JSON messages: duplicate
+email uses HTTP 409, and invalid submitted account fields use HTTP 400.
+
 ## Authenticated User home
 
 `/dashboard.html` and `/help.html` require a valid User session and redirect

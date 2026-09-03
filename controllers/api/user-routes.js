@@ -11,6 +11,27 @@ function publicUser(dbUser) {
   return { id: dbUser.id, username: dbUser.username };
 }
 
+function sendRegistrationError(err, res) {
+  if (err.name === "SequelizeUniqueConstraintError") {
+    res.status(409).json({
+      error: "CONFLICT",
+      message: "An account with that email already exists. Log in or use a different email.",
+    });
+    return;
+  }
+
+  if (err.name === "SequelizeValidationError") {
+    res.status(400).json({
+      error: "VALIDATION_ERROR",
+      message: "Enter a valid first name, last name, username, email, and password.",
+    });
+    return;
+  }
+
+  logger.error("route_operation_failed", { errorType: err.name });
+  res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
+}
+
 router.get("/", requireAdmin, (req, res) => {
   User.findAll({
     attributes: { exclude: ["password", "email"] },
@@ -94,8 +115,7 @@ router.post("/", (req, res) => {
       });
     })
     .catch((err) => {
-      logger.error("route_operation_failed", { errorType: err.name });
-      res.status(500).json({ error: "INTERNAL_ERROR", message: "An unexpected error occurred" });
+      sendRegistrationError(err, res);
     });
 });
 

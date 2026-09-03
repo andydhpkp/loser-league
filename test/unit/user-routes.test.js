@@ -239,6 +239,52 @@ test("User routes characterize validation, authentication, and not-found respons
   assert.equal((await request(app).get("/api/users/999/wins")).status, 404);
 });
 
+test("User registration maps duplicate email to a descriptive conflict", async (t) => {
+  const app = createRouteApp("/api/users", userRoutes);
+  t.mock.method(User, "create", async () => {
+    const error = new Error("duplicate entry");
+    error.name = "SequelizeUniqueConstraintError";
+    throw error;
+  });
+
+  const response = await request(app).post("/api/users").send({
+    first_name: "Alice",
+    last_name: "Able",
+    username: "alice",
+    email: "alice@example.test",
+    password: "secret",
+  });
+
+  assert.equal(response.status, 409);
+  assert.deepEqual(response.body, {
+    error: "CONFLICT",
+    message: "An account with that email already exists. Log in or use a different email.",
+  });
+});
+
+test("User registration maps validation errors to a descriptive client error", async (t) => {
+  const app = createRouteApp("/api/users", userRoutes);
+  t.mock.method(User, "create", async () => {
+    const error = new Error("validation failed");
+    error.name = "SequelizeValidationError";
+    throw error;
+  });
+
+  const response = await request(app).post("/api/users").send({
+    first_name: "",
+    last_name: "Able",
+    username: "alice",
+    email: "not-email",
+    password: "secret",
+  });
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(response.body, {
+    error: "VALIDATION_ERROR",
+    message: "Enter a valid first name, last name, username, email, and password.",
+  });
+});
+
 test("User add-win missing-user response terminates with one 404", async (t) => {
   const app = createRouteApp("/api/users", userRoutes);
   const adminAgent = request.agent(app);
