@@ -196,6 +196,32 @@ test("bulk Track workflow previews and submits quantities for multiple Users", a
   expect(requests).toEqual([{ additions: [{ userId: 3, quantity: 2 }, { userId: 4, quantity: 3 }] }]);
 });
 
+test("bulk Track workflow alphabetizes Users and shows active Track counts", async ({ page }) => {
+  await page.route("**/api/users", (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    body: JSON.stringify([
+      { id: 5, first_name: "zoe", last_name: "Zulu", username: "zoe", tracks: [] },
+      { id: 4, first_name: "Bob", last_name: "Baker", username: "bob", tracks: [
+        { id: 41, wrong_pick: null, eliminated_by_pick_id: null },
+        { id: 42, wrong_pick: "Raiders", eliminated_by_pick_id: 9 },
+      ] },
+      { id: 3, first_name: "alice", last_name: "Able", username: "alice", tracks: [
+        { id: 31, wrong_pick: null, eliminated_by_pick_id: null },
+        { id: 32, wrong_pick: null, eliminated_by_pick_id: null },
+      ] },
+    ]),
+  }));
+
+  await page.getByRole("button", { name: "Add Tracks in Bulk" }).click();
+
+  await expect(page.locator(".admin-bulk-user")).toHaveText([
+    /alice Able@alice2 active Tracks/,
+    /Bob Baker@bob1 active Track/,
+    /zoe Zulu@zoe0 active Tracks/,
+  ]);
+});
+
 test("raw database identifiers are not presented as admin inputs", async ({ page }) => {
   await expect(page.getByLabel("Track ID")).toHaveCount(0);
   await expect(page.getByLabel("Pick ID")).toHaveCount(0);

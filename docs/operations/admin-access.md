@@ -66,11 +66,12 @@ See [`zero-track-onboarding.md`](zero-track-onboarding.md).
 
 Per-User Track creation accepts one quantity and confirms the named User and
 quantity. **Add Tracks in Bulk** accepts quantities from 1 through 100 for any
-number of visible Users, previews the named additions and total, then sends one
-authenticated request to `POST /api/admin/tracks/bulk`. The server reloads and
-locks the open League Season and every selected User, rechecks enrollment, and
-creates the entire batch in one transaction. Invalid or stale input creates no
-Tracks.
+number of visible Users. Its User rows are ordered by displayed name and show
+each User's active, usable Track count beneath the username. The workflow
+previews the named additions and total, then sends one authenticated request to
+`POST /api/admin/tracks/bulk`. The server reloads and locks the open League
+Season and every selected User, rechecks enrollment, and creates the entire
+batch in one transaction. Invalid or stale input creates no Tracks.
 
 Audit history has no actor field because Admin is not a User and the shared
 password intentionally does not identify an individual. Audits exclude email,
