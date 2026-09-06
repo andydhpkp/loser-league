@@ -369,9 +369,15 @@ function renderUserList() {
 
 function renderBulkUsers() {
   const target = document.getElementById("bulkTrackUsers");
-  target.replaceChildren(...users.map((user) => {
+  const sortedUsers = [...users].sort((left, right) => {
+    const byName = displayName(left).localeCompare(displayName(right), undefined, { sensitivity: "base" });
+    return byName || left.username.localeCompare(right.username, undefined, { sensitivity: "base" });
+  });
+  target.replaceChildren(...sortedUsers.map((user) => {
+    const activeTracks = userTracks(user).filter((track) => !track.eliminated_by_pick_id && !track.wrong_pick).length;
+    const trackLabel = activeTracks === 1 ? "active Track" : "active Tracks";
     const label = document.createElement("label"); label.className = "admin-bulk-user";
-    label.innerHTML = `<span><strong>${displayName(user)}</strong><small>@${user.username}</small></span><input class="form-control" inputmode="numeric" pattern="[0-9]*" placeholder="0" aria-label="Tracks for ${displayName(user)}" data-user-id="${user.id}" />`;
+    label.innerHTML = `<span><strong>${displayName(user)}</strong><small>@${user.username}</small><small>${activeTracks} ${trackLabel}</small></span><input class="form-control" inputmode="numeric" pattern="[0-9]*" placeholder="0" aria-label="Tracks for ${displayName(user)}" data-user-id="${user.id}" />`;
     return label;
   }));
 }
