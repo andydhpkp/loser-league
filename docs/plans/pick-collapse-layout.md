@@ -43,3 +43,28 @@ verification remains a handoff check; desktop emulation does not establish it.
   record those results in the pull request before review. No deployment is included.
 - Real-device Safari verification remains pending. Next safe step: review this
   branch and confirm the selection interaction on a phone before release.
+
+## Follow-up: WebKit cancels the return scroll
+
+The User reported that, with ten Tracks, selecting the last matchup in Track 2
+could leave later Tracks at the top after collapse. PR 98's immediate smooth
+scroll passed Chromium but did not resolve this WebKit behavior.
+
+Reproduction: the ten-Track/second-Track regression, with a settled-position
+check, failed in Linux WebKit at 375px and 412px with normal motion. The captured
+375px screenshot showed Track 4 at the top and Track 2 offscreen. The same
+sequence passed in Chromium. This provides direct evidence of a browser-specific
+collapse/scroll interaction, rather than an incorrect Track selector.
+
+The selection handler now waits for the Track's active collapse animations to
+finish (including canceled animations) before starting the return scroll. It
+skips the delayed return if the Track has been removed or any Track has been
+opened in the meantime. Reduced-motion selection still uses instant scrolling.
+No selection, submission, logo, API, or database rules change.
+
+The regression now uses ten Tracks, selects in Track 2, checks the settled
+position, and exercises moving to Track 3 during collapse. The optional WebKit
+project includes this regression so Chromium-only success cannot stand in for
+WebKit evidence. Linux WebKit uses the existing Playwright 1.62 container and an
+isolated source copy, with synthetic API responses and no environment files.
+Real-device Safari verification is still needed before release.

@@ -13,7 +13,7 @@ const mobileProjects = [
 
 const webkitProjects = process.env.MOBILE_WEBKIT === "1" ? [{
   name: "webkit-iphone",
-  testMatch: "mobile-layout.spec.js",
+  testMatch: ["mobile-layout.spec.js", "pick-collapse.spec.js"],
   use: { browserName: "webkit", viewport: { width: 390, height: 844 } },
 }] : [];
 
