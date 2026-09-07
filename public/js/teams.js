@@ -562,8 +562,14 @@ function selectTeam(
   // Collapse the dropdown
   trackContent.classList.add("collapsed");
   trackDropdown.classList.remove("expanded");
-  trackDropdown.querySelector(".track-header").scrollIntoView({
-    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
-    block: "start",
+  // WebKit can cancel a smooth scroll while the collapse changes page height.
+  // Let the layout settle before starting the scroll to the selected Track.
+  const collapseAnimations = trackDropdown.getAnimations({ subtree: true });
+  Promise.allSettled(collapseAnimations.map((animation) => animation.finished)).then(() => {
+    if (!trackDropdown.isConnected || document.querySelector(".track-dropdown.expanded")) return;
+    trackDropdown.querySelector(".track-header").scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+      block: "start",
+    });
   });
 }
