@@ -562,4 +562,8 @@ function selectTeam(
   // Collapse the dropdown
   trackContent.classList.add("collapsed");
   trackDropdown.classList.remove("expanded");
+  trackDropdown.querySelector(".track-header").scrollIntoView({
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+    block: "start",
+  });
 }
