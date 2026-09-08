@@ -10,7 +10,7 @@ let t;
 let x;
 
 // Updated leagueUserTableHandler function
-export async function leagueUserTableHandler() {
+export async function leagueUserTableHandler({ observeLogo = () => {} } = {}) {
   let headerHelp = document.getElementsByTagName("header")[0];
   browserLogger.debug(headerHelp);
   let currentWeekDiv = document.createElement("div");
@@ -230,7 +230,7 @@ export async function leagueUserTableHandler() {
 
         // @ts-ignore
         viewUsersTable.appendChild(mainTable);
-        void displayTeamLogos();
+        void displayTeamLogos({ observeLogo });
         // @ts-ignore
         finalScores({ year: leagueView.leagueSeason.year, week: currentWeekNumber, seasonType: leagueView.leagueSeason.schedulePhase === "PRESEASON" ? "preseason" : "regular" });
       });
@@ -244,6 +244,7 @@ export async function displayTeamLogos({
   root = document,
   createImage = () => document.createElement("img"),
   loadLogo = loadTeamLogo,
+  observeLogo = () => {},
 } = {}) {
   const warnedTeamNames = new Set();
   const tasks = [...root.getElementsByClassName("teamNames")]
@@ -253,12 +254,16 @@ export async function displayTeamLogos({
       const image = createImage();
       image.className = "teamLogos";
       cell.appendChild(image);
-      return Promise.resolve().then(() => loadLogo({
-        teamName: fallback.innerText,
-        image,
-        fallback,
-        warnedTeamNames,
-      }));
+      return Promise.resolve().then(() => {
+        const outcome = loadLogo({
+          teamName: fallback.innerText,
+          image,
+          fallback,
+          warnedTeamNames,
+        });
+        observeLogo(image);
+        return outcome;
+      });
     });
   return Promise.allSettled(tasks);
 }

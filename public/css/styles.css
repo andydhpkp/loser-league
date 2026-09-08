@@ -360,6 +360,11 @@ h3 {
   height: auto;
 }
 
+#leagueMain .teamLogos.logo-repaint {
+  /* Applied briefly in bounded batches; see league-logo-repaint.js. */
+  transform: translateZ(0);
+}
+
 td {
   overflow: hidden;
   text-overflow: ellipsis;
