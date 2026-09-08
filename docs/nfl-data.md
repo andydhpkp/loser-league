@@ -16,6 +16,16 @@ League and matchup pages use the checked-in Team-logo manifest in
 `public/js/modules/team-logos.js`; they do not render ESPN image-CDN URLs. The
 Teams route remains the public metadata and activation-audit interface.
 
+League logos use a temporary `translateZ(0)` painting workaround for Safari,
+where a loaded image can otherwise remain blank. One viewport observer queues
+nearby loaded logos in batches of at most eight. Each batch shares a one-second
+timer; the transform is then removed and each processed image is unobserved.
+Page exit cleans up the work; back-forward cache restoration restarts it.
+Without IntersectionObserver the workaround is skipped. This does not replace
+download retry or Team-name fallback handling. See
+[`plans/safari-league-logo-paint.md`](plans/safari-league-logo-paint.md) for the
+confirmed manual evidence and Safari verification requirements.
+
 Schedule requests may add `seasonType=preseason`. Preseason maps to ESPN season
 type 1; omitting the parameter preserves the regular/postseason behavior.
 
