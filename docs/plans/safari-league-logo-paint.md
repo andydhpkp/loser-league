@@ -14,6 +14,13 @@ Replace the unshipped permanent transform with temporary, viewport-aware
 batches for League logos. Preserve image sizes, downloads, retries, fallbacks,
 Pick data and other pages. No database, API, or asset changes.
 
+## Follow-up
+
+The once-only limit below describes the original implementation. The User
+subsequently confirmed that a later manual repaint recovered persistent blanks
+and requested automatic recovery. See [the follow-up contract](logo-settled-repaint.md)
+for the current two-attempt limit and verification limitations.
+
 ## Behavior
 
 Use one IntersectionObserver relative to the viewport with a 100px vertical

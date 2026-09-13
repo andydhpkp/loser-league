@@ -6,6 +6,8 @@ export function createLeagueLogoRepaint(view = window) {
   const pending = new Set();
   const nearby = new Set();
   const completed = new WeakSet();
+  const firstPass = new WeakSet();
+  let settled = false;
   let active = [];
   let frame = null;
   let timer = null;
@@ -31,23 +33,43 @@ export function createLeagueLogoRepaint(view = window) {
   function startBatch() {
     frame = null;
     if (disposed) return;
+    const initial = [];
+    const followUp = [];
     for (const image of nearby) {
       if (!image.isConnected) {
         forget(image);
         continue;
       }
       if (!image.complete || image.naturalWidth === 0 || image.hidden) continue;
-      image.classList.add("logo-repaint");
-      active.push(image);
-      if (active.length === 8) break;
+      (firstPass.has(image) ? followUp : initial).push(image);
     }
+    if (initial.length) {
+      settled = false;
+      active = initial.slice(0, 8);
+    } else if (followUp.length && !settled) {
+      // A later manual repaint recovered logos after the first pass did not.
+      // Leave a quiet interval before trying once more; never poll or loop.
+      timer = view.setTimeout(() => {
+        timer = null;
+        settled = true;
+        schedule();
+      }, 1000);
+      return;
+    } else {
+      active = followUp.slice(0, 8);
+    }
+    for (const image of active) image.classList.add("logo-repaint");
     if (!active.length) return;
     timer = view.setTimeout(() => {
       timer = null;
       for (const image of active) {
         image.classList.remove("logo-repaint");
-        completed.add(image);
-        forget(image);
+        if (firstPass.has(image)) {
+          completed.add(image);
+          forget(image);
+        } else {
+          firstPass.add(image);
+        }
       }
       active = [];
       schedule();

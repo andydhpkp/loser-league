@@ -111,6 +111,8 @@ test("manual repaint affects only the selection, rejects repeated starts and mak
   await image.scrollIntoViewIfNeeded();
   await expect(image).toHaveClass(/logo-repaint/);
   await expect(image).not.toHaveClass(/logo-repaint/);
+  await expect(image).toHaveClass(/logo-repaint/);
+  await expect(image).not.toHaveClass(/logo-repaint/);
   await selectImage(page);
   const before = await readReport(page);
   const requestsBefore = imageRequests;
@@ -141,6 +143,8 @@ test("page exit cancels an active manual repaint and clears its class", async ({
   await image.scrollIntoViewIfNeeded();
   await expect(image).toHaveClass(/logo-repaint/);
   await expect(image).not.toHaveClass(/logo-repaint/);
+  await expect(image).toHaveClass(/logo-repaint/);
+  await expect(image).not.toHaveClass(/logo-repaint/);
   await selectImage(page);
   await page.locator("#repaintLogo").click();
   await expect(image).toHaveClass(/logo-diagnostic-repaint/);
@@ -156,6 +160,8 @@ test("manual action cannot remove or overlap the automatic repaint class", async
   await openLeague(page);
   const image = page.locator(".teamLogos");
   await image.scrollIntoViewIfNeeded();
+  await expect(image).toHaveClass(/logo-repaint/);
+  await expect(image).not.toHaveClass(/logo-repaint/);
   await expect(image).toHaveClass(/logo-repaint/);
   await expect(image).not.toHaveClass(/logo-repaint/);
   await selectImage(page);

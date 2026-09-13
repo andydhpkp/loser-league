@@ -90,3 +90,32 @@ test("scrolling, animation frames and Stats remain usable during repaint batches
   await page.locator("#viewWeekStatsBtn").click();
   await expect(page.locator("#weekStatsModal")).toBeVisible();
 });
+
+test("League automatically follows up once after initial repaint without diagnostic controls", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.logoPasses = [];
+    new MutationObserver(records => {
+      for (const { target, oldValue } of records) {
+        if (!target.matches?.('img.teamLogos')) continue;
+        const before = (oldValue || '').split(/\s+/).includes('logo-repaint');
+        const after = target.classList.contains('logo-repaint');
+        if (before !== after) window.logoPasses.push({ active: after, time: performance.now() });
+      }
+    }).observe(document, { subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+  });
+  await page.route("**/api/**", route => route.fulfill({ json: {
+    leagueSeason: { year: 2026, week: 1 },
+    users: [{ id: 1, firstName: "Fixture", lastName: "Example", picksSubmitted: true,
+      tracks: [{ id: 1, currentPick: { status: "VISIBLE", teamName: "Cleveland Browns" } }] }],
+  } }));
+  await page.goto("/league-page.html");
+  await page.locator(".teamLogos").scrollIntoViewIfNeeded();
+  await expect.poll(() => page.evaluate(() => window.logoPasses.length), { timeout: 10000 }).toBe(4);
+  const passes = await page.evaluate(() => window.logoPasses);
+  expect(passes.map(pass => pass.active)).toEqual([true, false, true, false]);
+  expect(passes[2].time - passes[1].time).toBeGreaterThanOrEqual(950);
+  await expect(page.locator('#logoDiagnostics')).toHaveCount(0);
+  await expect(page.locator('.teamLogos')).toHaveCSS('transform', 'none');
+  await page.waitForTimeout(1500);
+  expect(await page.evaluate(() => window.logoPasses.length)).toBe(4);
+});
