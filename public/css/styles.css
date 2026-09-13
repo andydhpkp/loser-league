@@ -1215,3 +1215,44 @@ label {
     transition: none;
   }
 }
+
+/* Temporary opt-in League image diagnostics; no markup on normal visits. */
+#logoDiagnostics {
+  position: fixed;
+  z-index: 1060;
+  right: 8px;
+  bottom: 8px;
+  width: calc(100% - 16px);
+  max-width: 32rem;
+  max-height: 70vh;
+  max-height: 70dvh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  border: 2px solid #203747;
+  border-radius: 8px;
+  background: #fff;
+  color: #203747;
+  text-align: left;
+  box-shadow: 0 2px 12px #0003;
+}
+#logoDiagnostics summary {
+  min-height: 44px;
+  padding: 10px 12px;
+  box-sizing: border-box;
+  cursor: pointer;
+  font-weight: bold;
+}
+#logoDiagnostics > div { padding: 0 12px 12px; }
+#logoDiagnostics p { margin: 0 0 8px; overflow-wrap: anywhere; }
+#logoDiagnostics label { display: block; }
+#logoDiagnosticReport {
+  width: 100%;
+  box-sizing: border-box;
+  max-height: 25vh;
+  font: 12px monospace;
+  color: #203747;
+  background: #f5f6f4;
+}
+#logoDiagnostics .logo-diagnostic-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+#logoDiagnostics button { min-width: 44px; min-height: 44px; padding: 8px; }
+#logoDiagnostics :focus-visible { outline: 3px solid #1764a0; outline-offset: -3px; }

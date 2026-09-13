@@ -26,6 +26,22 @@ download retry or Team-name fallback handling. See
 [`plans/safari-league-logo-paint.md`](plans/safari-league-logo-paint.md) for the
 confirmed manual evidence and Safari verification requirements.
 
+For a persistent blank logo, the temporary opt-in URL
+`/league-page.html?logoDiagnostics=1` adds a collapsible diagnostic panel. Tap
+the blank image or its cell, then use **Copy report**. **Refresh report** samples
+the same image again without reloading it. Clipboard denial leaves the report
+selected for manual copying. Normal visits have no diagnostic UI or observers.
+The report includes only image readiness, dimensions, visibility, viewport and
+observed load/error/repaint state. It includes no Team names, Picks, User/Track
+IDs, URLs, sessions or API data, and sends nothing automatically. Observation
+starts with the opt-in page visit and resets after back-forward restoration.
+A loaded image and a completed transform do not establish visible pixels: the
+User must identify which image is blank. The panel does not repair logos.
+Diagnostic observations and panel updates can affect rendering timing, so a
+successful diagnostic visit alone is not evidence that the defect is resolved.
+See [`plans/logo-diagnostics.md`](plans/logo-diagnostics.md) for the approved
+scope, verification and remaining Safari reproduction limitations.
+
 Schedule requests may add `seasonType=preseason`. Preseason maps to ESPN season
 type 1; omitting the parameter preserves the regular/postseason behavior.
 
