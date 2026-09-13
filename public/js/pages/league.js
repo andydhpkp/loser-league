@@ -15,12 +15,14 @@ function startDiagnostics() {
   root.addEventListener("error", diagnostics.recordError, true);
   diagnostics.copyButton.addEventListener("click", diagnostics.copyReport);
   diagnostics.refreshButton.addEventListener("click", diagnostics.refreshReport);
+  diagnostics.repaintButton.addEventListener("click", diagnostics.repaint);
   stopDiagnostics = () => {
     root.removeEventListener("click", diagnostics.inspect);
     root.removeEventListener("load", diagnostics.recordLoad, true);
     root.removeEventListener("error", diagnostics.recordError, true);
     diagnostics.copyButton.removeEventListener("click", diagnostics.copyReport);
     diagnostics.refreshButton.removeEventListener("click", diagnostics.refreshReport);
+    diagnostics.repaintButton.removeEventListener("click", diagnostics.repaint);
     diagnostics.dispose();
   };
 }
