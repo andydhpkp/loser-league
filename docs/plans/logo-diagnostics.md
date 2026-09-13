@@ -129,3 +129,47 @@ style reads and panel updates can affect timing or painting; failure to reproduc
 with the mode enabled is not proof of repair. The report snapshots technical
 state and cannot detect blank pixels. No forced repaint or speculative logo fix
 was introduced.
+
+## Approved follow-up: manual repaint experiment
+
+The User supplied a second report for the same visually blank image after
+120 seconds. It still reported successful loading, visible CSS and one completed
+automatic repaint. A larger working logo had equivalent load/repaint state;
+image dimensions alone do not distinguish success. This establishes a persistent
+failure on the affected device, not its rendering cause.
+
+The User approved adding **Repaint this logo** to the same hidden diagnostic
+panel. This intentionally extends the earlier observation-only scope. Deliver
+through the already-approved tested PR/main deployment workflow so the remote
+User can perform the experiment from the same opt-in URL.
+
+- Apply a separate diagnostic transform class to the selected, loaded, visible
+  image for one second, then remove only that class. Never replace or remove
+  the automatic repaint class, image source, visibility or inline styles.
+- Disable the action without a usable selection, while the automatic repaint
+  is active, and during a manual attempt. Run at most one manual attempt at a
+  time. Ignore new image selections during that one-second attempt.
+- Collapse the panel during the attempt so the User can inspect the image;
+  show a completion message without claiming the pixels were repaired.
+- Keep separate manual start/finish counts in the technical report, mark the
+  manual class state, and advance the report marker to v2. Refresh the snapshot
+  after the manual attempt; copying still occurs only on explicit action.
+- Cancel the timer and remove the diagnostic class on pagehide/disposal.
+  Back-forward restoration starts fresh diagnostic state as before.
+- Normal visits remain unchanged and have no additional controls or observers.
+  No asset resizing, extra downloads, polling, blanket transforms, telemetry,
+  schema or backend changes.
+
+Write failing page-entry tests for selection-only transformation, independent
+automatic/manual counts, repeat-click guarding, no extra image request, cleanup
+during the timer, and disabled failed-image action. Include the new button in
+phone layout checks. Run all five PR gates from committed source plus the
+supported Linux WebKit suite before PR creation. The experiment tests whether a
+late manual repaint helps; it is not a proven fix for the persistent defect.
+
+Follow-up development evidence: the first updated smoke run flagged four
+missing v2/control/layout expectations; after implementation all eight then
+present tests passed, including manual-only transformation, repeat guarding,
+unchanged image source/request count and page-exit cleanup. Browser lint passed.
+An additional overlap test covers refusing a manual attempt while the automatic
+class is active. Final committed-source PR gate results are recorded in the PR.

@@ -360,8 +360,9 @@ h3 {
   height: auto;
 }
 
-#leagueMain .teamLogos.logo-repaint {
-  /* Applied briefly in bounded batches; see league-logo-repaint.js. */
+#leagueMain .teamLogos.logo-repaint,
+#leagueMain .teamLogos.logo-diagnostic-repaint {
+  /* Automatic bounded batches or one opt-in manual diagnostic attempt. */
   transform: translateZ(0);
 }
 
