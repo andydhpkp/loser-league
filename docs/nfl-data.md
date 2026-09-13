@@ -19,12 +19,17 @@ Teams route remains the public metadata and activation-audit interface.
 League logos use a temporary `translateZ(0)` painting workaround for Safari,
 where a loaded image can otherwise remain blank. One viewport observer queues
 nearby loaded logos in batches of at most eight. Each batch shares a one-second
-timer; the transform is then removed and each processed image is unobserved.
+timer, after which the transform is removed. Once eligible first-pass work drains,
+a one-second quiet interval precedes one follow-up pass. Each image is unobserved
+after its second pass; new initial work takes priority. There are no further
+automatic attempts during that visit.
 Page exit cleans up the work; back-forward cache restoration restarts it.
 Without IntersectionObserver the workaround is skipped. This does not replace
 download retry or Team-name fallback handling. See
 [`plans/safari-league-logo-paint.md`](plans/safari-league-logo-paint.md) for the
-confirmed manual evidence and Safari verification requirements.
+original manual evidence and Safari verification requirements. The follow-up
+contract is [`plans/logo-settled-repaint.md`](plans/logo-settled-repaint.md);
+its effectiveness on the affected Safari device remains to be confirmed.
 
 For a persistent blank logo, the temporary opt-in URL
 `/league-page.html?logoDiagnostics=1` adds a collapsible diagnostic panel. Tap
