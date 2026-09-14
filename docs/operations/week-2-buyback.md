@@ -74,3 +74,32 @@ not rewrite the terminal decision.
 Inspect only sanitized status, child resolutions, reactivation links, and audit
 IDs. Never query or log sessions, environment configuration, raw requests,
 User email, or payment details.
+
+## Admin pot counter
+
+The admin page shows the current League Season pot (latest completed season if
+none is open). Refresh pot reads a new snapshot: every non-exempt current-season
+Track contributes $5, including eliminated Tracks, and each fulfilled buyback
+under a completed decision contributes another $10. A bought-back Track therefore
+contributes $15 cumulatively. Pending, cancelled and unfulfilled buybacks do not
+contribute. Re-elimination does not remove either contribution. Exceptional
+reactivation alone is not evidence of a paid buyback.
+
+The approved complimentary account is registered once by account ID in
+`league_pot_exemption`; its Tracks and buybacks contribute zero. Profile fields
+cannot alter the exemption, and a username change preserves it. The migration
+fails before creating the table if an existing user population cannot uniquely
+resolve the approved account. Empty databases may migrate without registration;
+the counter displays unavailable until the exemption is configured. This is
+intentional protection against an incorrect total.
+
+`GET /api/admin/pot` requires shared-admin authentication, disables caching, and
+returns only `leagueSeason` (year/schedulePhase), `trackCount`, `buybackCount`,
+`baseCents`, `buybackCents`, and `totalCents`. With no season it returns
+`{ "leagueSeason": null }`. Queries use one consistent transaction snapshot.
+No account identity or payment details are returned. Errors clear displayed
+amounts instead of leaving a stale total. Preseason values are labelled a test pot.
+
+This is a calculated pot from retained Track/buyback records, not a receipts,
+refunds or historical accounting ledger. Track deletion can change the amount.
+See [the change contract](../plans/admin-league-pot.md).
