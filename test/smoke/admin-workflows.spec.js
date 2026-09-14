@@ -144,7 +144,7 @@ test("deleting a User preserves the search and returns to the filtered list", as
   await page.getByRole("button", { name: "Delete Alice Able" }).click();
   await expect(search).toHaveValue("Alice");
   await expect(page.locator("#adminUserList").getByText("Alice Able")).toHaveCount(0);
-  await expect(page.getByRole("status")).toContainText("User deleted.");
+  await expect(page.locator("#adminUserWorkspace").getByRole("status")).toContainText("User deleted.");
 });
 
 test("View Statistics opens the detailed weekly modal and loads riskiest Pick odds", async ({ page }) => {

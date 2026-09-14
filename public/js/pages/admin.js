@@ -1,3 +1,4 @@
+import { createAdminPot } from "../modules/admin-pot.js";
 import {
   closeCurrentWeek,
   inspectAdminTrack,
@@ -227,3 +228,7 @@ document.getElementById("logoutBtn")?.addEventListener("click", async () => {
 initializeAdminWorkflows().catch(() => {
   document.getElementById("adminHome").insertAdjacentHTML("beforeend", '<p role="alert">Unable to load admin data. Refresh and try again.</p>');
 });
+
+const loadLeaguePot = createAdminPot({ root: document.getElementById("leaguePot") });
+document.getElementById("refreshLeaguePot").addEventListener("click", loadLeaguePot);
+loadLeaguePot();

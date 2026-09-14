@@ -1,3 +1,4 @@
+const { createAdminPotRouter } = require("./admin/pot-routes");
 const path = require("node:path");
 const express = require("express");
 const session = require("express-session");
@@ -148,6 +149,7 @@ function createApp({
   app.use("/api/admin/users", createAdminUserWorkspaceRouter({ inspectUserWorkspace: inspectAdminUserWorkspace }));
   app.use("/api/admin/features", createAdminFeatureRouter());
   app.use("/api/admin/reminders", createAdminReminderRouter({ getOperationalStatus: getReminderOperationalStatus }));
+  app.use("/api/admin/pot", createAdminPotRouter());
   app.use("/api/admin/buybacks", createAdminBuybackRouter(buybackService, { requestAutoPickEvaluation }));
   app.use("/api/admin/tracks/bulk", createBulkTrackRouter());
   app.use("/api/user/league", createPickSubmissionRouter({

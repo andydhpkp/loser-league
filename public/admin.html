@@ -11,6 +11,13 @@
   <body class="admin-page">
     <header><a href="./index.html"><h1>Loser League Admin</h1><img src="css/assets/pumpkin-logo.png" alt="Loser League" class="logo" /></a></header>
     <main id="adminView" class="container my-4">
+      <section id="leaguePot" class="border rounded p-3 mb-4" aria-labelledby="leaguePotHeading">
+        <h2 id="leaguePotHeading">League pot</h2>
+        <p id="leaguePotTotal" class="h2" role="status" aria-live="polite">Loading…</p>
+        <p id="leaguePotBreakdown"></p>
+        <p>Calculated from Tracks and completed buybacks. Complimentary Tracks are excluded; original payment receipts are not tracked.</p>
+        <button id="refreshLeaguePot" class="btn btn-primary" type="button">Refresh pot</button>
+      </section>
       <section id="adminHome" aria-labelledby="adminHomeHeading">
         <h2 id="adminHomeHeading">What do you need to do?</h2>
         <div class="admin-home-grid">
