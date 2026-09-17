@@ -18,7 +18,7 @@ const help = {
       ["What this workflow is for", ["Use this workspace when a specific User needs help with Tracks, Picks, wins, or a buyback.", "It shows only the current League Season. Internal database IDs stay hidden."]],
       ["When to use it", ["A User paid for one or more Tracks.", "A current Pick is missing or incorrect.", "An earlier Pick in this League Season needs a factual correction.", "A valid buyback or win needs to be recorded."]],
       ["Steps", ["Search for the User by name or username.", "Select the User, then review their Track cards.", "Select the affected Track to reveal actions valid for its current state.", "Review the preview carefully before confirming any change."]],
-      ["Actions", ["Add Tracks creates the entered quantity for this User in one batch.", "Add solo win and Add tied win update the User’s visible League Season win history.", "Assign current Pick fills a missing Pick; Replace current Pick changes a pending Pick; Reset current Pick removes the pending Pick so it can be chosen again.", "Correct this Pick changes an earlier current-season Pick using authoritative results and may change Track status.", "Reactivate with confirmed payment is an exceptional correction for an eliminated Track. Ordinary regular Week 2 and preseason buybacks belong in Manage Buybacks.", "Undo appears only for recent operations that are still safely reversible.", "Danger Zone permanently deletes a Track or User and should be used only when deletion is intentional."]],
+      ["Actions", ["Add Tracks creates the entered quantity for this User in one batch.", "Add solo win and Add tied win update the User’s visible League Season win history.", "Assign current Pick fills a missing Pick; Replace current Pick changes a pending Pick; Reset current Pick removes the pending Pick so it can be chosen again.", "Correct this Pick changes an earlier current-season Pick using authoritative results and may change Track status.", "Reactivate with confirmed payment is an exceptional correction for an eliminated Track. Ordinary regular Week 2 and preseason buybacks belong in Manage Buybacks.", "Set Wrong Pick restores historical elimination, voids later Picks, and previews whether to reverse a counted buyback or preserve the pot with an explained adjustment. Available before the current week’s first kickoff.", "Undo appears only for recent operations that are still safely reversible.", "Danger Zone permanently deletes a Track or User and should be used only when deletion is intentional."]],
       ["Warnings", ["Some actions are hidden when they cannot apply safely.", "Refreshing or a stale-data message means the League Season or Track changed; review the new state before trying again.", "Deletion is permanent. Do not use deletion to correct a Pick or process a buyback."]],
     ],
   },
@@ -170,7 +170,7 @@ function renderTrackActions(target, view, ordinal) {
   const actions = document.createElement("div");
   actions.className = "d-flex gap-2 flex-wrap mb-3";
   const run = async (work, message, { preserveTrack = true } = {}) => {
-    const controls = [...target.querySelectorAll("button, select, input")];
+    const controls = [...target.querySelectorAll("button, select, input, textarea")];
     controls.forEach((control) => { control.disabled = true; });
     status.textContent = "Updating…";
     try {
@@ -213,6 +213,48 @@ function renderTrackActions(target, view, ordinal) {
   remove.addEventListener("click", () => run(() => runAdminAction("DELETE_TRACK", { trackId: view.track.id }), `Track ${ordinal} deleted.`, { preserveTrack: false }));
   actions.append(remove);
 
+  const correction = document.createElement("section");
+  const eligibleWrongPicks = view.picks.filter(pick => view.eliminationCorrection?.pickIds.includes(pick.id));
+  if (eligibleWrongPicks.length) {
+    const title = document.createElement("h5");
+    title.textContent = "Set Wrong Pick / reset buyback";
+    correction.append(title);
+    if (view.eliminationCorrection.unavailableReason) {
+      const message = document.createElement("p");
+      message.textContent = view.eliminationCorrection.unavailableReason;
+      correction.append(message);
+    } else {
+      const wrongPick = document.createElement("select");
+      wrongPick.className = "form-select mb-2";
+      wrongPick.setAttribute("aria-label", `Wrong Pick for Track ${ordinal}`);
+      wrongPick.append(option("", "Choose the Pick that eliminated this Track"), ...eligibleWrongPicks.map(pick => option(pick.id, `Week ${pick.week}: ${pick.teamName}`)));
+      const treatment = document.createElement("select");
+      treatment.className = "form-select mb-2";
+      treatment.setAttribute("aria-label", `Pot treatment for Track ${ordinal}`);
+      treatment.append(option("REVERSE", "Reset and reverse counted buyback"), option("KEEP_TOTAL", "Reset and keep pot unchanged (audited adjustment)"));
+      const explanation = document.createElement("textarea");
+      explanation.className = "form-control mb-2";
+      explanation.maxLength = 500;
+      explanation.placeholder = "Explain the correction; no personal or payment details";
+      explanation.setAttribute("aria-label", `Correction explanation for Track ${ordinal}`);
+      const review = document.createElement("button");
+      review.className = "btn btn-warning mb-3";
+      review.textContent = "Review Set Wrong Pick";
+      review.addEventListener("click", () => {
+        if (!wrongPick.value || !explanation.value.trim()) {
+          status.textContent = "Select a Wrong Pick and explain the correction.";
+          return;
+        }
+        run(async () => {
+          const result = await runAdminAction("RESTORE_TRACK_ELIMINATION", { trackId: view.track.id, pickId: Number(wrongPick.value), potTreatment: treatment.value, explanation: explanation.value.trim() });
+          if (result) document.dispatchEvent(new window.Event("league-pot-changed"));
+          return result;
+        }, "Track elimination restored.");
+      });
+      correction.append(wrongPick, treatment, explanation, review);
+    }
+  }
+
   const history = document.createElement("section");
   const historyHeading = document.createElement("h5");
   historyHeading.textContent = "Current-season Pick history";
@@ -220,7 +262,9 @@ function renderTrackActions(target, view, ordinal) {
   view.picks.forEach((pick) => {
     const row = document.createElement("div");
     row.className = "admin-pick-row";
-    row.innerHTML = `<span>Week ${pick.week}: ${pick.teamName} — ${pick.outcome.replaceAll("_", " ")}</span>`;
+    const label = document.createElement("span");
+    label.textContent = `Week ${pick.week}: ${pick.teamName} — ${pick.outcome.replaceAll("_", " ")}${pick.voided ? " — VOID (retained history)" : ""}`;
+    row.append(label);
     const correct = document.createElement("button");
     correct.className = "btn btn-sm btn-warning";
     correct.textContent = "Correct this Pick";
@@ -235,7 +279,7 @@ function renderTrackActions(target, view, ordinal) {
       row.append(select, save);
       correct.remove();
     });
-    row.append(correct);
+    if (!pick.voided) row.append(correct);
     history.append(row);
   });
 
@@ -252,7 +296,7 @@ function renderTrackActions(target, view, ordinal) {
     });
     history.append(operations);
   }
-  target.append(heading, team, actions, history, status);
+  target.append(heading, team, actions, correction, history, status);
 }
 
 async function loadUserWorkspace(userId) {

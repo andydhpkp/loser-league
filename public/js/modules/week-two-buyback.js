@@ -35,7 +35,7 @@ export function renderBuyback(buyback, { fetchImpl = fetch, modalApi = window.bo
   form.replaceChildren(...view.tracks.map((track, index) => {
     const wrapper = document.createElement("div"); wrapper.className = "form-check";
     const input = document.createElement("input"); input.type = "checkbox"; input.className = "form-check-input buyback-track"; input.id = `buybackTrack${track.trackId}`; input.value = String(track.trackId); input.disabled = view.status !== "ELIGIBLE";
-    const label = document.createElement("label"); label.className = "form-check-label"; label.htmlFor = input.id; label.textContent = `Track ${index + 1} — ${view.pickLabel}: ${track.weekOnePick}${track.resolution ? ` (${track.resolution.toLowerCase()})` : ""}`;
+    const label = document.createElement("label"); label.className = "form-check-label"; label.htmlFor = input.id; label.textContent = `Track ${index + 1} — ${view.pickLabel}: ${track.weekOnePick}${track.reversed ? " (buyback reversed)" : track.resolution ? ` (${track.resolution.toLowerCase()})` : ""}`;
     wrapper.append(input, label); return wrapper;
   }));
   const total = document.getElementById("buybackTotal");

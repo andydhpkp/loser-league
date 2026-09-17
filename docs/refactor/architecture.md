@@ -140,3 +140,14 @@ binding. The shared HTTP client owns request/error normalization.
 # Pick Reminder Settings composition
 
 The protected server page boundary owns session/effective-access authorization. `public/js/pages/reminder-settings.js` owns DOM binding and composes the stable channel APIs through `public/js/modules/reminder-settings.js`; neither browser module decides reminder eligibility, deadlines, destinations, or release access. The service worker continues to exclude authenticated pages and APIs from its static cache.
+
+## Retroactive Track correction
+
+The registered elimination correction delegates to
+`server/modules/admin-repairs/elimination-correction.js`. It reuses the action
+preview/audit transaction and the pot module's authoritative contribution query.
+Pick voids and reactivation reversals are excluded by default model scopes;
+inspectors and rollover explicitly read historical rows. Buyback memberships
+retain original resolutions plus correction references so terminal retries remain
+idempotent. Separate audited pot adjustments preserve money without inflating the
+buyback count. See [ADR 0005](../adr/0005-retroactive-track-corrections.md).

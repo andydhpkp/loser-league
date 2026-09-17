@@ -20,10 +20,10 @@ export function createAdminPot({ root, fetchPot = () => fetch("/api/admin/pot", 
         total.textContent = "No League Season";
         return;
       }
-      if (![pot.trackCount, pot.buybackCount, pot.baseCents, pot.buybackCents, pot.totalCents].every(value => Number.isSafeInteger(value) && value >= 0)) throw new Error("Unavailable");
+      if (![pot.trackCount, pot.buybackCount, pot.baseCents, pot.buybackCents, pot.adjustmentCents ?? 0, pot.totalCents].every(value => Number.isSafeInteger(value) && value >= 0)) throw new Error("Unavailable");
       heading.textContent = `${pot.leagueSeason.year} ${pot.leagueSeason.schedulePhase === "PRESEASON" ? "preseason test pot" : "League pot"}`;
       total.textContent = money(pot.totalCents);
-      breakdown.textContent = `${pot.trackCount} Tracks × $5 = ${money(pot.baseCents)}; ${pot.buybackCount} completed buybacks × $10 = ${money(pot.buybackCents)}.`;
+      breakdown.textContent = `${pot.trackCount} Tracks × $5 = ${money(pot.baseCents)}; ${pot.buybackCount} completed buybacks × $10 = ${money(pot.buybackCents)}; adjustments: ${money(pot.adjustmentCents ?? 0)}.`;
     } catch (_error) {
       total.textContent = "Unavailable";
       breakdown.textContent = "";

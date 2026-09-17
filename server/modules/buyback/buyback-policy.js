@@ -45,7 +45,7 @@ function buybackView({ decision, tracks = [], presentation = {}, deadlineAvailab
     unitPriceCents: BUYBACK_PRICE_CENTS,
     selectedCount,
     totalCents: selectedCount * BUYBACK_PRICE_CENTS,
-    tracks: tracks.map((track) => ({ trackId: track.trackId, weekOnePick: track.teamName, resolution: track.resolution || null })),
+    tracks: tracks.map((track) => ({ trackId: track.trackId, weekOnePick: track.teamName, resolution: track.resolution || null, ...(track.reversed ? { reversed: true } : {}) })),
     ...(schedulePhase ? { schedulePhase } : {}),
     contacts: Array.isArray(presentation.contacts) ? presentation.contacts : [],
     payment: presentation.payment || null,

@@ -17,6 +17,7 @@ class Pick extends Model {}
 
 Pick.init(
   {
+    voided_by_operation_id: { type: DataTypes.INTEGER, allowNull: true },
     id: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -78,6 +79,8 @@ Pick.init(
     },
   },
   {
+    // Gameplay sees effective Picks; history/export explicitly uses unscoped().
+    defaultScope: { where: { voided_by_operation_id: null } },
     sequelize,
     timestamps: false,
     freezeTableName: true,

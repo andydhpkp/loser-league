@@ -3,6 +3,7 @@ const { isDeepStrictEqual } = require("node:util");
 const { Op, Transaction } = require("sequelize");
 const {
   sequelize,
+  LeaguePotAdjustment,
   User,
   Track,
   Pick,
@@ -31,6 +32,8 @@ const { earliestScheduleKickoff, isTrackEnrollmentOpen } = require("../modules/l
 const { inferPreseasonWeek } = require("../modules/league-season/preseason-policy");
 const { PICK_REMINDERS, graceState } = require("../features/feature-access-service");
 const { createCampaignWithDeliveries } = require("../modules/reminders/reminder-repository");
+
+const { buildEliminationCorrection, commitEliminationCorrection } = require("../modules/admin-repairs/elimination-correction");
 
 const PREVIEW_TTL_MS = 10 * 60 * 1000;
 const hashKey = (key) => crypto.createHash("sha256").update(key).digest("hex");
@@ -179,10 +182,11 @@ function pickWriteState(state) {
 }
 
 async function clearSeasonGameplay(leagueSeasonId, transaction) {
+  await LeaguePotAdjustment.destroy({ where: { league_season_id: leagueSeasonId }, transaction });
   await BuybackDecision.destroy({ where: { league_season_id: leagueSeasonId }, transaction });
-  await TrackReactivation.destroy({ where: { league_season_id: leagueSeasonId }, transaction });
+  await TrackReactivation.unscoped().destroy({ where: { league_season_id: leagueSeasonId }, transaction });
   await OfficialGameResultOverride.destroy({ where: { league_season_id: leagueSeasonId }, transaction });
-  await Pick.destroy({ where: { league_season_id: leagueSeasonId }, transaction });
+  await Pick.unscoped().destroy({ where: { league_season_id: leagueSeasonId }, transaction });
   await Track.destroy({ where: { league_season_id: leagueSeasonId }, transaction });
   await LeagueWeekOperation.destroy({ where: { league_season_id: leagueSeasonId }, transaction });
   await ScheduleSnapshot.destroy({ where: { league_season_id: leagueSeasonId }, transaction });
@@ -191,6 +195,7 @@ async function clearSeasonGameplay(leagueSeasonId, transaction) {
 async function buildActionPreview(action, input, transaction, lock = false, options = {}) {
   const { manualClosureContext, historicalResultsContext } = options;
   if (!getAdminAction(action)) throw new NotFoundError("Admin action not found");
+  if (action === "RESTORE_TRACK_ELIMINATION") return buildEliminationCorrection(input, transaction, lock, options);
   if (action === "SET_PICK_REMINDERS_BETA_ACCESS") {
     const userId = positiveId(input.userId, "User ID");
     if (typeof input.enabled !== "boolean") throw new ValidationError("Enabled must be a boolean");
@@ -393,7 +398,7 @@ async function buildActionPreview(action, input, transaction, lock = false, opti
     if (!options.targetSchedule || options.targetSchedule.year !== targetYear) throw new ConflictError("Target-year Fixture validation failed");
     const [tracks, picks] = await Promise.all([
       Track.findAll({ where: { league_season_id: season.id }, order: [["id", "ASC"]], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) }),
-      Pick.findAll({ where: { league_season_id: season.id }, order: [["id", "ASC"]], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) }),
+      Pick.unscoped().findAll({ where: { league_season_id: season.id }, order: [["id", "ASC"]], transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) }),
     ]);
     const exported = buildRolloverExport({ season, tracks, picks });
     return { normalizedIntent: { targetYear: String(targetYear) }, description: `Roll the ${season.year} League Season into ${targetYear} Week 0`, warnings: [`Permanently delete ${tracks.length} Tracks and ${picks.length} Picks.`], leagueSeason: season, scheduleHash: exported.exportChecksum, rolloverExport: exported, targets: [{ targetType: "LEAGUE_SEASON", targetId: season.id, beforeState: { state: season.state, stateVersion: season.state_version, trackCount: tracks.length, pickCount: picks.length }, afterState: { state: "ROLLED_OVER", stateVersion: season.state_version + 1, successorYear: targetYear } }], plan: { season, tracks, picks, targetYear }, undoable: false };
@@ -587,7 +592,7 @@ async function buildActionPreview(action, input, transaction, lock = false, opti
     } catch (error) {
       throw new ConflictError(error.message);
     }
-    const existing = await TrackReactivation.findOne({ where: { waived_pick_id: plan.waivedPickId }, transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
+    const existing = await TrackReactivation.unscoped().findOne({ where: { waived_pick_id: plan.waivedPickId }, transaction, ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
     if (existing) throw new ConflictError("This eliminating Pick was already reactivated");
     const beforeTrack = repairTrackState(track);
     const afterTrack = { ...beforeTrack, ...plan.trackAfter, stateVersion: beforeTrack.stateVersion + 1 };
@@ -760,12 +765,12 @@ async function buildActionPreview(action, input, transaction, lock = false, opti
 }
 
 function storedPreview(action, built, expiresAt) {
-  return { action, description: built.description, warnings: built.warnings, leagueSeason: built.leagueSeason ? { id: built.leagueSeason.id, year: built.leagueSeason.year, week: built.leagueSeason.current_week } : null, affectedIds: built.targets.map(({ targetType, targetId }) => ({ targetType, targetId })), targets: built.targets, ...(built.unfinishedUnselectedGames ? { unfinishedUnselectedGames: built.unfinishedUnselectedGames } : {}), ...(built.rolloverExport ? { rolloverExport: built.rolloverExport } : {}), expiresAt, undoable: Boolean(built.undoable) };
+  return { action, description: built.description, warnings: built.warnings, leagueSeason: built.leagueSeason ? { id: built.leagueSeason.id, year: built.leagueSeason.year, week: built.leagueSeason.current_week } : null, affectedIds: built.targets.map(({ targetType, targetId }) => ({ targetType, targetId })), targets: built.targets, ...(built.potImpact ? { potImpact: built.potImpact } : {}), ...(built.unfinishedUnselectedGames ? { unfinishedUnselectedGames: built.unfinishedUnselectedGames } : {}), ...(built.rolloverExport ? { rolloverExport: built.rolloverExport } : {}), expiresAt, undoable: Boolean(built.undoable) };
 }
 
 function publicPreview(action, built, expiresAt, confirmationKey) {
   if (action === "SEND_PICK_REMINDERS") return { action, ...built.publicFields, warnings: built.warnings, expiresAt, confirmationKey };
-  return { action, description: built.description, warnings: built.warnings, leagueSeason: built.leagueSeason ? { id: built.leagueSeason.id, year: built.leagueSeason.year, week: built.leagueSeason.current_week } : null, affectedIds: built.targets.map(({ targetType, targetId }) => ({ targetType, targetId })), targets: built.targets, ...(built.unfinishedUnselectedGames ? { unfinishedUnselectedGames: built.unfinishedUnselectedGames } : {}), ...(built.rolloverExport ? { rolloverExport: built.rolloverExport } : {}), expiresAt, confirmationKey, undoable: Boolean(built.undoable) };
+  return { action, description: built.description, warnings: built.warnings, leagueSeason: built.leagueSeason ? { id: built.leagueSeason.id, year: built.leagueSeason.year, week: built.leagueSeason.current_week } : null, affectedIds: built.targets.map(({ targetType, targetId }) => ({ targetType, targetId })), targets: built.targets, ...(built.potImpact ? { potImpact: built.potImpact } : {}), ...(built.unfinishedUnselectedGames ? { unfinishedUnselectedGames: built.unfinishedUnselectedGames } : {}), ...(built.rolloverExport ? { rolloverExport: built.rolloverExport } : {}), expiresAt, confirmationKey, undoable: Boolean(built.undoable) };
 }
 
 async function createPreview(action, input, options = {}) {
@@ -850,8 +855,8 @@ async function confirmPreview(action, confirmationKey, note, options = {}) {
       for (const user of built.plan.users) await user.addWin(built.leagueSeason.year, built.plan.winners.wonWithTie, { transaction });
       await built.plan.season.update({ state: "COMPLETE", open_slot: null, state_version: built.plan.season.state_version + 1 }, { transaction });
     } else if (action === "ROLLOVER_LEAGUE_SEASON") {
-      await TrackReactivation.destroy({ where: { league_season_id: built.plan.season.id }, transaction });
-      await Pick.destroy({ where: { league_season_id: built.plan.season.id }, transaction });
+      await TrackReactivation.unscoped().destroy({ where: { league_season_id: built.plan.season.id }, transaction });
+      await Pick.unscoped().destroy({ where: { league_season_id: built.plan.season.id }, transaction });
       await Track.destroy({ where: { league_season_id: built.plan.season.id }, transaction });
       await built.plan.season.update({ state: "ROLLED_OVER", open_slot: null, state_version: built.plan.season.state_version + 1 }, { transaction });
       const successor = await LeagueSeason.create({ year: built.plan.targetYear, state: "SETUP", current_week: 0, pick_cycle: 1, state_version: 0, open_slot: 1 }, { transaction });
@@ -943,8 +948,9 @@ async function confirmPreview(action, confirmationKey, note, options = {}) {
       if (built.plan.operation.action === "REACTIVATE_TRACK") await TrackReactivation.destroy({ where: { admin_audit_operation_id: built.plan.operation.id }, transaction });
     }
 
-    const auditNote = action === "OVERRIDE_GAME_RESULT" ? built.normalizedIntent.explanation : action === "REACTIVATE_TRACK" ? built.normalizedIntent.correctionNote : normalizeNote(note);
+    const auditNote = ["RESTORE_TRACK_ELIMINATION", "OVERRIDE_GAME_RESULT"].includes(action) ? built.normalizedIntent.explanation : action === "REACTIVATE_TRACK" ? built.normalizedIntent.correctionNote : normalizeNote(note);
     const operation = await AdminAuditOperation.create({ action, description: built.description, note: auditNote, status: "COMMITTED", league_season_id: auditLeagueSeason?.id || null, week: action === "START_LEAGUE_SEASON" ? 1 : auditLeagueSeason?.current_week ?? null, summary: { affectedCount: targets.length, ...(built.rolloverExport ? { exportChecksum: built.rolloverExport.exportChecksum, deleted: built.rolloverExport.counts } : {}) }, undoable: Boolean(built.undoable) }, { transaction });
+    if (action === "RESTORE_TRACK_ELIMINATION") await commitEliminationCorrection(built, operation, transaction);
     if (action === "SEND_PICK_REMINDERS") {
       const campaign = await createCampaignWithDeliveries({ season: built.leagueSeason, deadline: built.plan.deadline, kind: "MANUAL", candidates: built.plan.deliveries, evaluated: built.plan.evaluated, now: built.plan.currentTime, auditOperationId: operation.id, transaction });
       if (!campaign.created) throw new ConflictError("The manual Pick Reminders campaign already exists for this round");

@@ -257,3 +257,19 @@ Newly centralized failures use:
 ```
 
 The browser must use status and error code rather than parse stack traces.
+
+### Retroactive elimination correction
+
+`POST /api/admin/actions/RESTORE_TRACK_ELIMINATION/preview` accepts `trackId`,
+`pickId`, `potTreatment` (`REVERSE` or `KEEP_TOTAL`) and a required `explanation`
+(up to 500 trimmed characters). It requires shared-admin authorization and the
+current active week's pre-kickoff window. The existing one-use confirmation route
+revalidates the same state and atomically commits the non-undoable correction.
+
+Preview adds `potImpact`: `before` and `after` each contain `user` and `league`
+contribution totals, plus `deltaCents` and `adjustmentCents`. Track inspection adds
+`eliminationCorrection` with candidate `pickIds` and `unavailableReason`. Pick
+history adds `voided`/`voidedByOperationId`, and reactivation history adds
+`reversed`/`reversedByOperationId`. Buyback history adds `reversed: true` only for
+corrected memberships. `GET /api/admin/pot` adds `adjustmentCents`, included in the
+existing total. Existing original decision/fulfillment fields retain their meaning.

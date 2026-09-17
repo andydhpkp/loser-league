@@ -38,7 +38,7 @@ if (!process.env.TEST_DATABASE_URL) {
     await decision(paid, old, [await track(paid, old)], 'COMPLETED_ADMIN_DIRECT', ['FULFILLED']);
     await track(paid, null);
     const result = await getLeaguePot();
-    assert.deepEqual(result, { leagueSeason: { year: 2026, schedulePhase: 'REGULAR' }, trackCount: 5, buybackCount: 1, baseCents: 2500, buybackCents: 1000, totalCents: 3500 });
+    assert.deepEqual(result, { leagueSeason: { year: 2026, schedulePhase: 'REGULAR' }, trackCount: 5, buybackCount: 1, baseCents: 2500, buybackCents: 1000, adjustmentCents: 0, totalCents: 3500 });
     await free.update({ username: 'renamed-free' });
     await migration.up(sequelize.getQueryInterface(), Sequelize);
     assert.deepEqual(await getLeaguePot(), result);

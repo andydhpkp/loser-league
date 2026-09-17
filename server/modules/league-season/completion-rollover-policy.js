@@ -32,7 +32,7 @@ function buildRolloverExport({ season, tracks, picks }) {
       eliminatedByPickId: track.eliminated_by_pick_id,
       stateVersion: track.state_version,
     })),
-    picks: picks.map((pick) => ({ id: pick.id, trackId: pick.track_id, week: pick.week, pickCycle: pick.pick_cycle, teamName: pick.team_name, origin: pick.origin, outcome: pick.outcome })),
+    picks: picks.map((pick) => ({ id: pick.id, trackId: pick.track_id, week: pick.week, pickCycle: pick.pick_cycle, teamName: pick.team_name, origin: pick.origin, outcome: pick.outcome, voidedByOperationId: pick.voided_by_operation_id || null })),
   };
   const json = JSON.stringify(payload);
   return {
