@@ -56,3 +56,13 @@ One optional feature that will provide push, verified email, and shared
 calendar methods. Feature access never means a User consented to a reminder
 method. The User-facing dashboard action is **Pick Reminder Settings**.
 _Avoid_: Text reminders, notification enrollment
+
+**Void Pick**:
+A retained Pick excluded from gameplay because an admin restored elimination
+from an earlier Wrong Pick. Its original selection and any settled outcome remain
+historical evidence.
+
+**Pot Adjustment**:
+An explained admin correction amount shown separately from Track and buyback
+contributions. It can preserve the pot when a mistaken counted buyback is reversed;
+it does not represent another buyback or an external payment.

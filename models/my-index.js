@@ -1,4 +1,5 @@
 //going to need to do a belongs to for future model of picks
+const LeaguePotAdjustment = require('./LeaguePotAdjustment')
 const User = require('./User')
 const Track = require('./Track')
 const Team = require('./Team')
@@ -157,6 +158,7 @@ CalendarEvent.belongsTo(LeagueSeason, { as: 'leagueSeason', foreignKey: 'league_
 
 
 module.exports = {
+    LeaguePotAdjustment,
     User,
     Track,
     Team,

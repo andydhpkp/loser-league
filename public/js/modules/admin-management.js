@@ -900,6 +900,20 @@ function adminActionPreviewMessage(action, preview, displayName) {
       ...(preview.warnings || []),
     ].join("\n");
   }
+  if (action === "RESTORE_TRACK_ELIMINATION") {
+    const money = cents => (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
+    const impact = preview.potImpact;
+    const voids = (preview.targets || []).filter(target => target.targetType === "PICK" && target.afterState?.voided)
+      .map(target => `Week ${target.afterState.week}: ${target.afterState.teamName}`).join("\n") || "None";
+    return [preview.description,
+      `Currently this User contributes ${money(impact.before.user.totalCents)} with ${impact.before.user.buybackCount} counted buyback(s).`,
+      `Current league pot: ${money(impact.before.league.totalCents)}.`,
+      `Pot change: ${money(impact.deltaCents)}. Adjustment: ${money(impact.adjustmentCents)}.`,
+      `After correction this User contributes ${money(impact.after.user.totalCents)} with ${impact.after.user.buybackCount} counted buyback(s).`,
+      `After correction the league pot is ${money(impact.after.league.totalCents)}.`,
+      `Picks to void:\n${voids}`, ...(preview.warnings || []),
+      "Cancel to change pot treatment. Confirm this correction?"].join("\n");
+  }
   const unfinished = (preview.unfinishedUnselectedGames || [])
     .map((game) => `${game.homeTeam} vs ${game.awayTeam}`)
     .join("\n");

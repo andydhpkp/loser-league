@@ -103,3 +103,17 @@ amounts instead of leaving a stale total. Preseason values are labelled a test p
 This is a calculated pot from retained Track/buyback records, not a receipts,
 refunds or historical accounting ledger. Track deletion can change the amount.
 See [the change contract](../plans/admin-league-pot.md).
+
+## Correcting the wrong Track after completion
+
+Use the selected Track's **Set Wrong Pick / reset buyback** action documented in
+[guided repairs](guided-admin-repairs.md#restore-elimination-after-a-mistaken-buyback).
+Do not delete the Track to reverse its buyback. The original completed decision is
+retained; corrected membership is labelled BUYBACK REVERSED and no longer counts
+as a fulfilled buyback for the pot. Other memberships and the User's terminal offer
+state are unchanged. Ordinary completion retries cannot reapply the reversal.
+
+The pot now includes separately displayed, explained correction adjustments.
+Keeping the pot unchanged records only the contribution actually removed; an
+exceptional reactivation that never counted produces no adjustment. Pot reporting
+includes `adjustmentCents`, and `totalCents` is base plus buybacks plus adjustments.

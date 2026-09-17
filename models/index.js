@@ -1,6 +1,7 @@
 const Sequelize = require("sequelize");
 const sequelize = require("../config/connection");
 const {
+  LeaguePotAdjustment,
   User,
   Track,
   Team,
@@ -35,6 +36,7 @@ const {
 module.exports = {
   sequelize,
   Sequelize,
+  LeaguePotAdjustment,
   User,
   Track,
   Team,

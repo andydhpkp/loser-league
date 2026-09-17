@@ -4,12 +4,14 @@ const sequelize = require("../config/connection");
 class TrackReactivation extends Model {}
 
 TrackReactivation.init({
+  reversed_by_operation_id: { type: DataTypes.INTEGER, allowNull: true },
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   track_id: { type: DataTypes.INTEGER, allowNull: false },
   league_season_id: { type: DataTypes.INTEGER, allowNull: false },
   waived_pick_id: { type: DataTypes.INTEGER, allowNull: false, unique: true },
   admin_audit_operation_id: { type: DataTypes.INTEGER, allowNull: false },
 }, {
+  defaultScope: { where: { reversed_by_operation_id: null } },
   sequelize,
   freezeTableName: true,
   underscored: true,

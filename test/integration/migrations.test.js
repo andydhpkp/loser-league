@@ -49,6 +49,7 @@ if (!databaseUrl) {
       "track_reactivation",
       "buyback_decision",
       "buyback_decision_track",
+      "league_pot_adjustment",
     ]) {
       assert.equal(tables.has(table), true, `missing ${table}`);
     }
@@ -63,6 +64,7 @@ if (!databaseUrl) {
     const pick = await queryInterface.describeTable("pick");
     assert.ok(pick.schedule_hash);
     assert.ok(pick.pick_cycle);
+    assert.ok(pick.voided_by_operation_id);
     const season = await queryInterface.describeTable("league_season");
     assert.ok(season.pick_cycle);
     assert.ok(season.schedule_phase);
@@ -70,6 +72,7 @@ if (!databaseUrl) {
     assert.ok(season.late_week_one_enrollment);
     const reactivation = await queryInterface.describeTable("track_reactivation");
     assert.ok(reactivation.waived_pick_id);
+    assert.ok(reactivation.reversed_by_operation_id);
     assert.ok(reactivation.admin_audit_operation_id);
     const decision = await queryInterface.describeTable("buyback_decision");
     assert.ok(decision.state_version);
@@ -77,6 +80,7 @@ if (!databaseUrl) {
     const decisionTrack = await queryInterface.describeTable("buyback_decision_track");
     assert.ok(decisionTrack.week_one_pick_id);
     assert.ok(decisionTrack.track_reactivation_id);
+    assert.ok(decisionTrack.reversed_by_operation_id);
     const resultOverride = await queryInterface.describeTable("official_game_result_override");
     assert.ok(resultOverride.matchup_key);
     assert.ok(resultOverride.schedule_hash);

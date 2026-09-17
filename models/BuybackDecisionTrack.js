@@ -3,6 +3,7 @@ const sequelize = require("../config/connection");
 
 class BuybackDecisionTrack extends Model {}
 BuybackDecisionTrack.init({
+  reversed_by_operation_id: { type: DataTypes.INTEGER, allowNull: true },
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   buyback_decision_id: { type: DataTypes.INTEGER, allowNull: false },
   track_id: { type: DataTypes.INTEGER, allowNull: false },

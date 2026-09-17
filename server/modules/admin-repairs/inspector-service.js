@@ -8,10 +8,13 @@ const {
   AdminAuditOperation,
   AdminAuditTarget,
 } = require("../../../models");
+const { correctionWindow } = require("./elimination-correction");
 const { NotFoundError } = require("../../lib/errors");
 
 function pickView(pick) {
   return {
+    voided: Boolean(pick.voided_by_operation_id),
+    voidedByOperationId: pick.voided_by_operation_id || null,
     id: pick.id,
     week: pick.week,
     pickCycle: pick.pick_cycle,
@@ -31,8 +34,8 @@ async function inspectTrack(trackId) {
   const [user, season, picks, reactivations, auditTargets] = await Promise.all([
     User.findByPk(track.user_id, { attributes: ["id", "first_name", "last_name", "username"] }),
     LeagueSeason.findByPk(track.league_season_id),
-    Pick.findAll({ where: { track_id: id, league_season_id: track.league_season_id }, order: [["pick_cycle", "ASC"], ["week", "ASC"], ["id", "ASC"]] }),
-    TrackReactivation.findAll({ where: { track_id: id }, order: [["createdAt", "DESC"]] }),
+    Pick.unscoped().findAll({ where: { track_id: id, league_season_id: track.league_season_id }, order: [["pick_cycle", "ASC"], ["week", "ASC"], ["id", "ASC"]] }),
+    TrackReactivation.unscoped().findAll({ where: { track_id: id }, order: [["createdAt", "DESC"]] }),
     AdminAuditTarget.findAll({
       where: { target_type: "TRACK", target_id: id },
       include: [{ model: AdminAuditOperation, as: "operation", attributes: ["id", "action", "description", "status", "undoable", "undone_by_operation_id", "createdAt"] }],
@@ -46,7 +49,7 @@ async function inspectTrack(trackId) {
     order: [["fetched_at", "DESC"]],
   }) : null;
   const scheduledTeams = new Set((schedule?.normalized_schedule?.games || []).flatMap((game) => [game.homeTeam, game.awayTeam]));
-  const currentPick = picks.find((pick) => pick.pick_cycle === season.pick_cycle && pick.week === season.current_week && pick.outcome === "PENDING") || null;
+  const currentPick = picks.find((pick) => !pick.voided_by_operation_id && pick.pick_cycle === season.pick_cycle && pick.week === season.current_week && pick.outcome === "PENDING") || null;
   const inconsistencies = [];
   if ((currentPick?.team_name || null) !== (track.current_pick || null)) inconsistencies.push("Current Pick projection does not match normalized Picks");
   if (new Set(track.used_picks).size !== track.used_picks.length || track.used_picks.some((team) => track.available_picks.includes(team))) inconsistencies.push("Used and available Pick projections are inconsistent");
@@ -55,10 +58,11 @@ async function inspectTrack(trackId) {
     track: { id: track.id, active: track.eliminated_by_pick_id === null, stateVersion: track.state_version, eliminatingPickId: track.eliminated_by_pick_id },
     leagueSeason: { id: season.id, year: season.year, state: season.state, week: season.current_week, pickCycle: season.pick_cycle, stateVersion: season.state_version },
     picks: picks.map(pickView),
+    eliminationCorrection: { unavailableReason: correctionWindow(season, schedule), pickIds: picks.filter(pick => !pick.voided_by_operation_id && pick.outcome === "WRONG_PICK" && pick.week < season.current_week && reactivations.some(event => event.waived_pick_id === pick.id && !event.reversed_by_operation_id)).map(pick => pick.id) },
     projections: { currentPick: track.current_pick, usedPicks: [...track.used_picks], availablePicks: [...track.available_picks], wrongPick: track.wrong_pick },
     eligibleCurrentWeekTeams: track.available_picks.filter((team) => scheduledTeams.has(team)),
     inconsistencies,
-    reactivations: reactivations.map((item) => ({ id: item.id, waivedPickId: item.waived_pick_id, auditOperationId: item.admin_audit_operation_id, createdAt: item.createdAt })),
+    reactivations: reactivations.map((item) => ({ id: item.id, reversed: Boolean(item.reversed_by_operation_id), reversedByOperationId: item.reversed_by_operation_id || null, waivedPickId: item.waived_pick_id, auditOperationId: item.admin_audit_operation_id, createdAt: item.createdAt })),
     recentOperations: auditTargets.map((target) => ({
       id: target.operation.id,
       action: target.operation.action,

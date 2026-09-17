@@ -88,3 +88,32 @@ and transactionally audited, but they are intentionally non-undoable and are
 not shown in the guide. Prefer guided actions; reserve raw routes for
 exceptional owner repairs whose existing low-level contract is specifically
 needed.
+
+## Restore elimination after a mistaken buyback
+
+In **Make Changes for a User**, select the Track and use **Set Wrong Pick / reset
+buyback**. Choose the existing historical Wrong Pick by week and Team. Only that
+Track's active reactivation candidates appear; this does not invent a game result.
+The correction window closes at the current week's first validated kickoff and
+opens again when the next week begins, before that week's first kickoff. An absent
+or malformed schedule blocks correction. Resolve any still-pending buyback
+request before applying this historical correction.
+
+Choose **Reset and reverse counted buyback** or **Reset and keep pot unchanged**.
+Explain the correction without personal or payment details. Review the User's
+current contribution and counted buybacks, current league pot, exact delta,
+optional adjustment and resulting contributions/totals. Uncounted exceptional
+reactivations and exempt contributions produce a zero-dollar delta, never a
+fabricated $10 adjustment. Cancel the confirmation to change pot treatment.
+
+Confirmation restores elimination, reverses applicable reactivations and buyback
+memberships, and voids every later Pick for gameplay, including a submitted current
+Pick. Settled outcomes and pending selections remain labelled VOID in history.
+Other Tracks are unchanged and the original User buyback decision is not reopened.
+Keeping the pot unchanged records the removed contribution as a separate audited
+adjustment. Original Track contributions remain. The pot refreshes after success.
+
+This correction cannot use generic Undo. A stale preview requires a fresh review;
+retrying an already-confirmed key cannot repeat accounting changes. After deploying
+and using the correction migration, recover with a forward fix rather than an old
+application that does not understand void Picks and reversals.

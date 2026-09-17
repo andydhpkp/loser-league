@@ -290,3 +290,37 @@ test("workflow back navigation uses a filled Bootstrap button treatment", async 
   await expect(page.locator("#adminBottomNavigation + footer")).toHaveCount(1);
   await expect(page.locator("#adminBottomNavigation button")).toHaveText(["Help", "← Back to Admin Home"]);
 });
+
+for (const treatment of ["REVERSE", "KEEP_TOTAL"]) test(`historical Wrong Pick correction previews ${treatment} money and refreshes void history`, async ({ page }) => {
+  let corrected = false;
+  let submitted;
+  const view = () => ({ ...inspectedTrack(31, corrected ? null : "Raiders"),
+    track: { id: 31, active: !corrected, stateVersion: corrected ? 2 : 1 },
+    picks: [{ id: 101, week: 1, teamName: "Broncos", outcome: "WRONG_PICK" }, { id: 102, week: 2, teamName: "Raiders", outcome: "PENDING", voided: corrected }],
+    eliminationCorrection: { pickIds: corrected ? [] : [101], unavailableReason: null },
+  });
+  await page.route("**/api/admin/users/3/workspace", route => route.fulfill({ json: { user: users[0], tracks: [view()] } }));
+  await page.route("**/api/admin/actions/RESTORE_TRACK_ELIMINATION/preview", async route => {
+    submitted = route.request().postDataJSON();
+    const before = { totalCents: 1500, buybackCount: 1, adjustmentCents: 0 };
+    const after = { totalCents: treatment === "REVERSE" ? 500 : 1500, buybackCount: 0, adjustmentCents: treatment === "REVERSE" ? 0 : 1000 };
+    await route.fulfill({ status: 201, json: { description: "Restore Track elimination", targets: [{ targetType: "PICK", targetId: 102, afterState: { week: 2, teamName: "Raiders", voided: true } }], warnings: ["Cannot be undone"], confirmationKey: "c".repeat(64), potImpact: { before: { user: before, league: before }, after: { user: after, league: after }, deltaCents: after.totalCents - before.totalCents, adjustmentCents: after.adjustmentCents } } });
+  });
+  await page.route("**/api/admin/actions/RESTORE_TRACK_ELIMINATION/confirm", route => { corrected = true; return route.fulfill({ json: { action: "RESTORE_TRACK_ELIMINATION" } }); });
+  await page.getByRole("button", { name: "Make Changes for a User" }).click();
+  await page.getByRole("button", { name: /Alice Able/ }).click();
+  await page.getByRole("button", { name: /Track 1 Active/ }).click();
+  await page.getByLabel("Wrong Pick for Track 1").selectOption("101");
+  await page.getByLabel("Pot treatment for Track 1").selectOption(treatment);
+  await page.getByLabel("Correction explanation for Track 1").fill("Buyback applied to wrong Track");
+  const dialogPromise = page.waitForEvent("dialog");
+  await page.getByRole("button", { name: "Review Set Wrong Pick" }).click();
+  const dialog = await dialogPromise;
+  expect(dialog.message()).toContain("$15.00");
+  expect(dialog.message()).toContain("1 counted buyback");
+  expect(dialog.message()).toContain("Week 2: Raiders");
+  expect(dialog.message()).toContain(treatment === "REVERSE" ? "-$10.00" : "Adjustment: $10.00");
+  await expect(page.locator("#adminUserWorkspaceStatus")).toContainText("Track elimination restored.");
+  await expect(page.getByText(/Week 2: Raiders.*VOID/)).toBeVisible();
+  expect(submitted).toEqual({ trackId: 31, pickId: 101, potTreatment: treatment, explanation: "Buyback applied to wrong Track" });
+});

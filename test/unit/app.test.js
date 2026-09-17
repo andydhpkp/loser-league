@@ -207,6 +207,7 @@ test("admin action registry requires the shared-admin session and exposes no act
     "RESET_CURRENT_PICKS",
     "ASSIGN_CURRENT_PICK",
     "REPLACE_CURRENT_PICK",
+    "RESTORE_TRACK_ELIMINATION",
     "REACTIVATE_TRACK",
     "RESET_PLAYOFF_PICK_POOLS",
     "CORRECT_HISTORICAL_PICK",

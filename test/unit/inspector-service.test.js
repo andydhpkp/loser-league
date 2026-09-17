@@ -105,7 +105,10 @@ test("Track inspector returns normalized state and flags projection inconsistenc
       pickCycle: 0,
       stateVersion: 8,
     },
+    eliminationCorrection: { unavailableReason: "A validated current-week schedule is required", pickIds: [] },
     picks: [{
+      voided: false,
+      voidedByOperationId: null,
       id: 29,
       week: 1,
       pickCycle: 0,
@@ -127,6 +130,8 @@ test("Track inspector returns normalized state and flags projection inconsistenc
       "Used and available Pick projections are inconsistent",
     ],
     reactivations: [{
+      reversed: false,
+      reversedByOperationId: null,
       id: 44,
       waivedPickId: 28,
       auditOperationId: 80,

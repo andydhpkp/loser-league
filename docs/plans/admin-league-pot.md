@@ -72,3 +72,13 @@ historical payment retention is introduced by this feature.
 
 Update admin operations and NFL/buyback documentation as relevant. Record all
 checks and migration/deployment evidence in the PR and handoff.
+
+## Subsequent approved correction behavior
+
+The confirmed [retroactive buyback correction](retroactive-buyback-correction.md)
+adds explicit membership reversals and positive, audited keep-total adjustments.
+Original terminal fulfillment history remains; reversed memberships no longer
+contribute to the effective buyback count. `adjustmentCents` is separate from
+`buybackCents` and included in `totalCents`. Normal re-elimination still does not
+reverse a contribution: only the explicit correction does. The original exempt
+account rule applies to previews and adjustments as well as base/buyback amounts.

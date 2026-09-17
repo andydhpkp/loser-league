@@ -60,8 +60,8 @@ async function materializeLocked({ userId, season, now, transaction }) {
 
 async function childViews(decision, transaction) {
   if (!decision) return [];
-  const rows = await BuybackDecisionTrack.findAll({ where: { buyback_decision_id: decision.id }, include: [{ model: Pick, as: "weekOnePick", attributes: ["team_name"] }], order: [["track_id", "ASC"]], transaction });
-  return rows.map((row) => ({ trackId: row.track_id, teamName: row.weekOnePick.team_name, resolution: row.resolution }));
+  const rows = await BuybackDecisionTrack.findAll({ where: { buyback_decision_id: decision.id }, include: [{ model: Pick.unscoped(), as: "weekOnePick", attributes: ["team_name"] }], order: [["track_id", "ASC"]], transaction });
+  return rows.map((row) => ({ trackId: row.track_id, teamName: row.weekOnePick.team_name, resolution: row.resolution, ...(row.reversed_by_operation_id ? { reversed: true } : {}) }));
 }
 
 async function getUserBuyback({ userId, deadlineAvailable, deadline, presentation = {}, now = new Date() }) {

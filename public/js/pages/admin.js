@@ -124,7 +124,7 @@ async function loadBuybacks(view = "pending") {
     const heading = document.createElement("h3"); heading.className = "h5"; heading.textContent = `${decision.user.displayName} (${decision.user.username}) — ${decision.status}`;
     const preseason = decision.schedulePhase === "PRESEASON";
     const pickLabel = preseason ? "Eliminating Pick" : "Week 1 Pick";
-    const summary = document.createElement("p"); summary.textContent = decision.tracks.map((track) => `Track ${track.trackId} — ${pickLabel}: ${track.weekOnePick}`).join("; ") || "No requested Tracks";
+    const summary = document.createElement("p"); summary.textContent = decision.tracks.map((track) => `Track ${track.trackId} — ${pickLabel}: ${track.weekOnePick || track.teamName}${track.reversed ? " — BUYBACK REVERSED" : ""}`).join("; ") || "No requested Tracks";
     section.append(heading, summary);
     if (decision.status === "PENDING_USER_REQUEST") {
       const choices = document.createElement("fieldset"); const legend = document.createElement("legend"); legend.className = "h6"; legend.textContent = "$10 each — select only Tracks with confirmed external payment"; choices.append(legend);
@@ -231,4 +231,5 @@ initializeAdminWorkflows().catch(() => {
 
 const loadLeaguePot = createAdminPot({ root: document.getElementById("leaguePot") });
 document.getElementById("refreshLeaguePot").addEventListener("click", loadLeaguePot);
+document.addEventListener("league-pot-changed", loadLeaguePot);
 loadLeaguePot();
