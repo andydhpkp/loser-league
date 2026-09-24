@@ -54,7 +54,13 @@ post-deadline replacement workflow; auto-pick intentionally remains complete.
 
 Startup catch-up runs after database verification and does not block the web
 process from becoming available. A temporary Fixture Download outage therefore
-does not fail application startup, but submission remains fail-closed.
+does not fail application startup. Final User submission reuses the latest
+validated saved snapshot for the exact League Season, week, and provider, so
+provider availability is not required when that evidence exists. The saved
+schedule has no within-week age expiry; a correction may remain unseen during
+an outage. Its kickoff deadline and eligibility rules still apply. Missing
+snapshots retain the live-fetch path; invalid saved evidence fails closed.
+Automatic Pick evaluation continues to require its existing refresh policy.
 
 There is no new schema migration for this feature; it reuses the existing
 `ScheduleSnapshot`, normalized `Pick`, and `LeagueWeekOperation` tables. After

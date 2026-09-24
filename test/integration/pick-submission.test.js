@@ -9,11 +9,30 @@ if (!databaseUrl) {
   const { sequelize, User, Track, LeagueSeason, Pick, ScheduleSnapshot } = require("../../models");
   const { submitPicks } = require("../../server/modules/picks/submission-service");
   const { executeAutoPick } = require("../../server/modules/picks/auto-pick-service");
-  const { getLeagueView, getSubmissionState } = require("../../server/modules/picks/league-service");
+  const { getLeagueView, getSubmissionState, submit } = require("../../server/modules/picks/league-service");
   const { migrateEmptyTestDatabase } = require("../support/migrate-test-database");
 
   test.beforeEach(async () => migrateEmptyTestDatabase(sequelize));
   test.after(async () => sequelize.close());
+
+  test("saved weekly schedule allows submission during a provider outage without upstream calls", async () => {
+    const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 1, state_version: 1, open_slot: 1 });
+    const user = await User.create({ first_name: "Cached", last_name: "Schedule", username: "cached", email: "cached@example.test", password: "safe-test-password" });
+    const track = await Track.create({ user_id: user.id, league_season_id: season.id, available_picks: ["Broncos", "Raiders"], used_picks: [], current_pick: null, wrong_pick: null, state_version: 0 });
+    const contentHash = "8".repeat(64);
+    await ScheduleSnapshot.create({ league_season_id: season.id, week: 1, provider: "FIXTURE_DOWNLOAD", content_hash: contentHash, normalized_schedule: { week: 1, games: [{ kickoff: "2026-09-10T00:00:00.000Z", homeTeam: "Broncos", awayTeam: "Raiders" }] }, fetched_at: new Date("2026-09-01T00:00:00Z"), created_at: new Date("2026-09-01T00:00:00Z") });
+    let upstreamCalls = 0;
+    const input = { userId: user.id, selections: [{ trackId: track.id, stateVersion: 0, teamName: "Broncos" }], now: new Date("2026-09-09T00:00:00Z"), fetchImpl: async () => { upstreamCalls += 1; throw new Error("provider unavailable"); } };
+
+    const result = await submit(input);
+    assert.equal(result.picks.length, 1);
+    assert.equal((await Pick.findOne()).schedule_hash, contentHash);
+    assert.equal((await Track.findByPk(track.id)).current_pick, "Broncos");
+    assert.equal((await submit(input)).idempotent, true);
+    await assert.rejects(submit({ ...input, now: new Date("2026-09-10T00:00:00Z") }), /Pick submission is closed/);
+    assert.equal(await Pick.count(), 1);
+    assert.equal(upstreamCalls, 0);
+  });
 
   test("complete submission commits normalized Picks and legacy projections exactly once", async () => {
     const season = await LeagueSeason.create({ year: 2026, state: "ACTIVE", current_week: 1, state_version: 4, open_slot: 1 });

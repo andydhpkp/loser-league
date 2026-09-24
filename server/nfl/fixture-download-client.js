@@ -84,4 +84,17 @@ async function fetchPreseasonWeeks({ year, fetchImpl = global.fetch, now = new D
   return weeks;
 }
 
-module.exports = { fetchFixtureSchedule, fetchPreseasonWeeks, normalizeEspnFixtureSchedule, normalizeFixtureSchedule };
+function restoreFixtureSchedule(snapshot, { year, week, seasonPhase = "REGULAR", allowStartedGames = false, now = new Date() }) {
+  const saved = snapshot.normalized_schedule;
+  const provider = seasonPhase === "PRESEASON" ? "ESPN" : "FIXTURE_DOWNLOAD";
+  if (snapshot.provider !== provider || snapshot.week !== week || saved?.week !== week || !Array.isArray(saved.games) || !/^[a-f0-9]{64}$/i.test(snapshot.content_hash)) {
+    throw new UpstreamError("NFL schedule data is invalid");
+  }
+  const feed = saved.games.map((game) => ({ RoundNumber: week, DateUtc: game?.kickoff, HomeTeam: game?.homeTeam, AwayTeam: game?.awayTeam }));
+  const schedule = normalizeFixtureSchedule(feed, week, { now, allowStartedGames });
+  // Preseason always closes at the first kickoff, even when later games remain.
+  if (seasonPhase === "PRESEASON") schedule.earliestKickoff = normalizeFixtureSchedule(feed, week).earliestKickoff;
+  return { ...schedule, year, week, seasonPhase, provider, contentHash: snapshot.content_hash, normalizedSchedule: saved, fetchedAt: snapshot.fetched_at };
+}
+
+module.exports = { fetchFixtureSchedule, fetchPreseasonWeeks, normalizeEspnFixtureSchedule, normalizeFixtureSchedule, restoreFixtureSchedule };

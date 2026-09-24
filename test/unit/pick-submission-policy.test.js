@@ -11,8 +11,44 @@ const {
   fetchPreseasonWeeks,
   normalizeEspnFixtureSchedule,
   normalizeFixtureSchedule,
+  restoreFixtureSchedule,
 } = require("../../server/nfl/fixture-download-client");
 const { autoPickDue } = require("../../server/modules/picks/auto-pick-policy");
+
+test("saved schedule retains evidence and recalculates deadline and eligibility at submission time", () => {
+  const snapshot = { week: 1, provider: "FIXTURE_DOWNLOAD", content_hash: "a".repeat(64), fetched_at: new Date("2026-09-01T00:00:00Z"), normalized_schedule: { week: 1, games: [
+    { kickoff: "2026-09-10T00:00:00Z", homeTeam: "Broncos", awayTeam: "Raiders" },
+    { kickoff: "2026-09-11T00:00:00Z", homeTeam: "Chiefs", awayTeam: "Chargers" },
+  ] } };
+  const input = { year: 2026, week: 1, now: new Date("2026-09-10T12:00:00Z") };
+  const regular = restoreFixtureSchedule(snapshot, input);
+  assert.equal(regular.earliestKickoff.toISOString(), "2026-09-10T00:00:00.000Z");
+  assert.equal(regular.contentHash, snapshot.content_hash);
+  assert.equal(regular.normalizedSchedule, snapshot.normalized_schedule);
+  assert.equal(regular.fetchedAt, snapshot.fetched_at);
+  assert.deepEqual(regular.teams, ["Broncos", "Chargers", "Chiefs", "Raiders"]);
+  const late = restoreFixtureSchedule(snapshot, { ...input, allowStartedGames: true });
+  assert.equal(late.earliestKickoff.toISOString(), "2026-09-11T00:00:00.000Z");
+  assert.deepEqual(late.teams, ["Chargers", "Chiefs"]);
+  const preseason = restoreFixtureSchedule({ ...snapshot, provider: "ESPN" }, { ...input, seasonPhase: "PRESEASON", allowStartedGames: true });
+  assert.equal(preseason.earliestKickoff.toISOString(), "2026-09-10T00:00:00.000Z");
+  assert.deepEqual(preseason.teams, ["Chargers", "Chiefs"]);
+});
+
+test("saved schedule rejects malformed games and mismatched schedule evidence", () => {
+  const snapshot = { week: 1, provider: "FIXTURE_DOWNLOAD", content_hash: "a".repeat(64), normalized_schedule: { week: 1, games: [{ kickoff: "2026-09-10T00:00:00Z", homeTeam: "Broncos", awayTeam: "Raiders" }] } };
+  const input = { year: 2026, week: 1 };
+  for (const invalid of [
+    { ...snapshot, provider: "ESPN" },
+    { ...snapshot, week: 2 },
+    { ...snapshot, content_hash: "invalid" },
+    { ...snapshot, normalized_schedule: null },
+    { ...snapshot, normalized_schedule: { week: 2, games: snapshot.normalized_schedule.games } },
+    { ...snapshot, normalized_schedule: { week: 1, games: [] } },
+    { ...snapshot, normalized_schedule: { week: 1, games: [null] } },
+    { ...snapshot, normalized_schedule: { week: 1, games: [{ ...snapshot.normalized_schedule.games[0], kickoff: "invalid" }] } },
+  ]) assert.throws(() => restoreFixtureSchedule(invalid, input), /NFL schedule data is invalid/);
+});
 
 test("League view access requires every active Track Pick after Week 0", () => {
   assert.equal(leagueViewAccess({ week: 4, activeTrackIds: [1, 2], pickedTrackIds: [1] }), "BLOCKED");
