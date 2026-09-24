@@ -13,7 +13,31 @@ const buybackService = require("../../server/modules/buyback/buyback-service");
 const {
   getSubmissionState,
   getLeagueView,
+  submit,
 } = require("../../server/modules/picks/league-service");
+
+test("submission selects only the current season, week, and provider snapshot and still enforces kickoff", async (t) => {
+  const season = { id: 23, year: 2026, current_week: 3, state: "ACTIVE", schedule_phase: "REGULAR" };
+  t.mock.method(LeagueSeason, "findOne", async () => season);
+  t.mock.method(ScheduleSnapshot, "findOne", async (query) => {
+    assert.deepEqual(query.where, { league_season_id: 23, week: 3, provider: "FIXTURE_DOWNLOAD" });
+    assert.deepEqual(query.order, [["fetched_at", "DESC"], ["id", "DESC"]]);
+    return { week: 3, provider: "FIXTURE_DOWNLOAD", content_hash: "a".repeat(64), normalized_schedule: { week: 3, games: [{ kickoff: "2026-09-24T00:00:00Z", homeTeam: "Broncos", awayTeam: "Raiders" }] } };
+  });
+  let calls = 0;
+  await assert.rejects(submit({ userId: 7, selections: [], now: new Date("2026-09-24T00:00:00Z"), fetchImpl: async () => { calls += 1; throw new Error("outage"); } }), /Pick submission is closed/);
+  assert.equal(calls, 0);
+});
+
+test("submission without a saved schedule retains live fetching and fails closed on outage", async (t) => {
+  t.mock.method(LeagueSeason, "findOne", async () => ({ id: 23, year: 2026, current_week: 3, state: "ACTIVE", schedule_phase: "REGULAR" }));
+  t.mock.method(ScheduleSnapshot, "findOne", async () => null);
+  let calls = 0;
+  const input = { userId: 7, selections: [], now: new Date("2026-09-24T00:00:00Z") };
+  await assert.rejects(submit({ ...input, fetchImpl: async () => { calls += 1; throw new Error("outage"); } }), /NFL schedule data is unavailable/);
+  assert.equal(calls, 1);
+  await assert.rejects(submit({ ...input, fetchImpl: async () => ({ ok: true, json: async () => [{ RoundNumber: 3, DateUtc: "2026-09-24T00:00:00Z", HomeTeam: "Broncos", AwayTeam: "Raiders" }] }) }), /Pick submission is closed/);
+});
 
 test("submission state derives the current deadline and eligible Teams for each Track", async (t) => {
   const season = {

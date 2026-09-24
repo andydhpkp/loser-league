@@ -1,7 +1,7 @@
 const { Op } = require("sequelize");
 const { User, Track, Pick, LeagueSeason, LeagueWeekOperation, ScheduleSnapshot } = require("../../../models");
 const { ConflictError } = require("../../lib/errors");
-const { fetchFixtureSchedule } = require("../../nfl/fixture-download-client");
+const { fetchFixtureSchedule, restoreFixtureSchedule } = require("../../nfl/fixture-download-client");
 const { currentPickVisibility, eligibleTeamsForTrack, leagueViewAccess } = require("./submission-policy");
 const { submitPicks } = require("./submission-service");
 const { earliestScheduleKickoff, isTrackEnrollmentOpen } = require("../league-season/enrollment-policy");
@@ -92,7 +92,12 @@ async function submit({ userId, selections, fetchImpl, now = () => new Date() })
   const season = await openSeason();
   if (season.state !== "ACTIVE") throw new ConflictError("Pick submission is not open");
   const fetchedAt = typeof now === "function" ? now() : now;
-  const schedule = await fetchFixtureSchedule({ year: season.year, week: season.current_week, seasonPhase: season.schedule_phase, allowStartedGames: season.schedule_phase === "PRESEASON" || season.late_week_one_enrollment, fetchImpl, now: fetchedAt });
+  const scheduleInput = { year: season.year, week: season.current_week, seasonPhase: season.schedule_phase, allowStartedGames: season.schedule_phase === "PRESEASON" || season.late_week_one_enrollment, now: fetchedAt };
+  const snapshot = await ScheduleSnapshot.findOne({
+    where: { league_season_id: season.id, week: season.current_week, provider: season.schedule_phase === "PRESEASON" ? "ESPN" : "FIXTURE_DOWNLOAD" },
+    order: [["fetched_at", "DESC"], ["id", "DESC"]],
+  });
+  const schedule = snapshot ? restoreFixtureSchedule(snapshot, scheduleInput) : await fetchFixtureSchedule({ ...scheduleInput, fetchImpl });
   if (season.schedule_phase === "PRESEASON" || season.current_week === 2) {
     const buyback = await buybackService.getUserBuyback({ userId, deadlineAvailable: true, deadline: season.schedule_phase === "PRESEASON" ? null : schedule.earliestKickoff, now: fetchedAt });
     if (buyback?.pickBlocked) throw new ConflictError(`Resolve the ${season.schedule_phase === "PRESEASON" ? "preseason" : "Week 2"} buyback decision before submitting Picks`);

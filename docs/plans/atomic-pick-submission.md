@@ -2,6 +2,11 @@
 
 Confirmed: 2026-08-01
 
+Schedule-loading amendment (2026-09-24):
+[`pick-schedule-cache.md`](pick-schedule-cache.md) supersedes the fresh-fetch
+requirement below. Final submission now reuses validated saved evidence for
+the exact League Season/week/provider and fetches only when no snapshot exists.
+
 ## Problem and outcome
 
 - Current browser navigation uses local Pick counts to decide whether a User may

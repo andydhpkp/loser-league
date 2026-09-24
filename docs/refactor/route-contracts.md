@@ -234,6 +234,12 @@ All User responses are authenticated and `private, no-store`:
 | POST | `/api/user/league/buyback/request` | Create or exactly replay one immutable selected-Track request using the server state version. |
 | POST | `/api/user/league/buyback/decline` | Durably decline or exactly replay the season offer. |
 
+Final User Pick submission uses the latest validated stored schedule for the
+exact League Season/week/provider, without a live provider call when a snapshot
+exists. Missing snapshots use the existing live-fetch path; malformed evidence
+fails closed. Saved kickoff deadlines, Team eligibility, and transactional
+checks remain authoritative. See [the hotfix contract](../plans/pick-schedule-cache.md).
+
 `GET /api/user/league/submission` includes a sanitized `buyback` view when a
 decision applies and may wake the shared deadline evaluator before returning.
 The submission route returns `409` while buyback state blocks Picks.
